@@ -1,15 +1,17 @@
 name: it-tickets
 services:
   osticket:
-    image: rinkp/osticket-dockerized@sha256:43163dda84304a178f5849eddb0bef2207758bce8b08380b61c3599ce2f9bc47
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:80"
+      - "8081:80"
     environment:
       OST_SECRET_SALT: ${OST_SECRET_SALT:?required}
       OST_ADMIN_EMAIL: ${OST_ADMIN_EMAIL:?required}
       OST_ADMIN_PASSWD: ${OST_ADMIN_PASSWD:?required}
-      OST_HELPDESK_URL: http://localhost:8080/
+      OST_HELPDESK_URL: ${OST_HELPDESK_URL:-http://localhost:8081/}
       OST_HELPDESK_ONLINE: "true"
       OST_DBHOST: database
       OST_DBNAME: osticket
@@ -19,7 +21,7 @@ services:
       OST_SESSION_BACKEND: db
       OST_PLUGINS_STORAGEFS_PATH: /var/www/attachments
     volumes:
-      - attachments:/var/www/attachments
+      - source_attachments:/var/www/attachments
     depends_on:
       database:
         condition: service_healthy
@@ -32,7 +34,7 @@ services:
       MARIADB_USER: osticket
       MARIADB_PASSWORD: ${DB_PASSWORD:?required}
     volumes:
-      - database:/var/lib/mysql
+      - source_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -40,5 +42,5 @@ services:
       retries: 15
       start_period: 30s
 volumes:
-  database:
-  attachments:
+  source_database:
+  source_attachments:

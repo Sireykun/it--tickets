@@ -1,0 +1,19 @@
+{
+  "name": "itdesk-git-buttons",
+  "displayName": "IT Desk Git Buttons",
+  "description": "Simple Pull and Push buttons in the VS Code status bar.",
+  "version": "0.0.2",
+  "publisher": "local-itdesk",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "main": "./extension.js",
+  "files": ["extension.js", "README.md"],
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "itdeskGit.pull", "title": "IT Desk: Pull from GitHub" },
+      { "command": "itdeskGit.push", "title": "IT Desk: Push to GitHub" },
+      { "command": "itdeskGit.connect", "title": "IT Desk: Connect GitHub Repository" }
+    ]
+  }
+}

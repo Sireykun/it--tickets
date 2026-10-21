@@ -1,0 +1,30 @@
+/* Lightweight staff theme and phone layout for the copied osTicket source. */
+body { background: #f3f6fb; color: #1c2940; }
+#container { box-shadow: 0 10px 35px rgba(27, 49, 80, .08); }
+#header { background: #fff; box-shadow: none; }
+#content { border-color: #dce5f0; background: #fff; }
+#nav { background: #eaf0f8; border-bottom-color: #dce5f0; }
+#nav li.active { background: #fff; }
+a, .link { color: #1764a2; }
+
+@media (max-width: 760px) {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { width: 100%; overflow-x: hidden; }
+  #container, #header, #content, #footer { width: 100%; max-width: 100%; }
+  #container { margin: 0; box-shadow: none; }
+  #header { height: auto; min-height: 72px; padding: 8px 12px; }
+  #header #logo { height: auto; max-width: 100%; padding: 0; }
+  #header #logo img { max-width: min(220px, 55vw); max-height: 58px; }
+  #header p { float: none; clear: both; width: 100%; max-width: none; margin: 8px 0 0; padding: 8px; text-align: left; }
+  #nav, #sub_nav { width: 100%; height: auto; padding: 4px 8px; white-space: normal; }
+  #nav { min-height: 38px; }
+  #nav .active, #nav .inactive { min-width: 0; padding: 5px 10px; height: auto; }
+  #nav > li + li { margin-left: 2px; }
+  #nav li.inactive:focus-within > ul { visibility: visible; opacity: 1; }
+  #sub_nav { min-height: 34px; }
+  #content { overflow-x: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
+  #content img, #content iframe { max-width: 100%; }
+  #content input, #content select, #content textarea { max-width: 100%; }
+  #content table { max-width: none; }
+  .jb-overflowmenu { max-width: 100%; overflow-x: auto; }
+}
