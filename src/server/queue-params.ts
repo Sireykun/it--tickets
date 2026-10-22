@@ -1,6 +1,6 @@
 import type { TicketPriority, TicketStatus } from "@/generated/prisma/enums";
 import { PRIORITIES, STATUSES } from "@/lib/labels";
-import { QUEUE_VIEWS, type QueueParams } from "@/server/tickets";
+import { QUEUE_SORTS, QUEUE_VIEWS, type QueueParams } from "@/server/tickets";
 
 const pick = <T extends string>(value: unknown, allowed: readonly T[]): T | undefined =>
   typeof value === "string" && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
@@ -17,6 +17,7 @@ export function parseQueueParams(sp: Record<string, string | string[] | undefine
     orgId: str(sp.org),
     campusId: str(sp.campus),
     q: str(sp.q),
+    sort: pick(sp.sort, QUEUE_SORTS),
     page: Math.max(0, Number(sp.page) || 0),
   };
 }

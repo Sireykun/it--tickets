@@ -4,17 +4,20 @@ import * as Dialog from "@radix-ui/react-dialog";
 import clsx from "clsx";
 import {
   AlarmClock,
+  BarChart3,
+  BookOpen,
   Building,
   Building2,
-  Mail,
+  ChevronDown,
   ClipboardList,
   Inbox,
   ListTodo,
-  LogOut,
+  Mail,
   Menu,
   MessageSquareText,
-  School,
   PlusCircle,
+  School,
+  Settings,
   Tags,
   Timer,
   UserRound,
@@ -25,14 +28,21 @@ import {
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { logoutAction } from "@/app/actions/auth";
 import { Brand } from "@/components/brand";
-import { Avatar } from "@/components/ui/misc";
+import { UserMenu } from "@/components/ui/user-menu";
+import type { Theme } from "@/lib/theme";
 
 type Counts = { personal: number; unassigned: number; mine: number; teams: number; open: number; overdue: number; tasks: number };
 // `fullQueue`: admins get every queue and Tasks; agents only "My open tickets" and "New ticket".
-// `admin`: "super" sees every settings page; "users" is a campus admin allowed to manage users.
-type NavProps = { counts: Counts; fullQueue: boolean; admin: "super" | "users" | null; userName: string; onNavigate?: () => void };
+// `admin`: "super" sees every settings page and Reports; "users" is a campus admin allowed to manage users.
+type NavProps = {
+  counts: Counts;
+  fullQueue: boolean;
+  admin: "super" | "users" | null;
+  user: { name: string; email: string };
+  theme: Theme;
+  onNavigate?: () => void;
+};
 
 const views = [
   { view: "unassigned", label: "Unassigned", icon: Inbox },
@@ -42,16 +52,27 @@ const views = [
   { view: "overdue", label: "Overdue", icon: AlarmClock },
 ] as const;
 
-const adminLinks = [
-  { href: "/staff/admin/users", label: "Users", icon: Users },
-  { href: "/staff/admin/campuses", label: "Campuses", icon: School },
-  { href: "/staff/admin/organizations", label: "Organizations", icon: Building },
-  { href: "/staff/admin/canned", label: "Canned replies", icon: MessageSquareText },
-  { href: "/staff/admin/email", label: "Email", icon: Mail },
-  { href: "/staff/admin/teams", label: "Teams", icon: UsersRound },
-  { href: "/staff/admin/departments", label: "Departments", icon: Building2 },
-  { href: "/staff/admin/help-topics", label: "Help topics", icon: Tags },
-  { href: "/staff/admin/sla", label: "SLA policies", icon: Timer },
+const SETTINGS_GROUPS = [
+  {
+    label: "People",
+    links: [
+      { href: "/staff/admin/users", label: "Users", icon: Users },
+      { href: "/staff/admin/campuses", label: "Campuses", icon: School },
+      { href: "/staff/admin/organizations", label: "Organizations", icon: Building },
+    ],
+  },
+  {
+    label: "Helpdesk",
+    links: [
+      { href: "/staff/admin/teams", label: "Teams", icon: UsersRound },
+      { href: "/staff/admin/departments", label: "Departments", icon: Building2 },
+      { href: "/staff/admin/help-topics", label: "Help topics", icon: Tags },
+      { href: "/staff/admin/sla", label: "SLA policies", icon: Timer },
+      { href: "/staff/admin/canned", label: "Canned replies", icon: MessageSquareText },
+      { href: "/staff/admin/knowledge-base", label: "Knowledge base", icon: BookOpen },
+    ],
+  },
+  { label: "Messaging", links: [{ href: "/staff/admin/email", label: "Email", icon: Mail }] },
 ];
 
 const itemClass = (active: boolean) =>
@@ -60,7 +81,7 @@ const itemClass = (active: boolean) =>
     active ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface-2 hover:text-text",
   );
 
-function NavLinks({ counts, fullQueue, admin, userName, onNavigate }: NavProps) {
+function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProps) {
   const pathname = usePathname();
   const params = useSearchParams();
   const currentView = pathname === "/staff" ? (params.get("view") ?? "unassigned") : null;
@@ -75,7 +96,7 @@ function NavLinks({ counts, fullQueue, admin, userName, onNavigate }: NavProps) 
 
       <nav aria-label="Staff" className="flex-1 space-y-6 overflow-y-auto px-3 pt-2 pb-4">
         {fullQueue ? (
-          <FullQueueLinks counts={counts} currentView={currentView} pathname={pathname} onNavigate={onNavigate} />
+          <FullQueueLinks counts={counts} currentView={currentView} pathname={pathname} showReports={admin === "super"} onNavigate={onNavigate} />
         ) : (
           <ul className="space-y-0.5">
             <li>
@@ -90,39 +111,32 @@ function NavLinks({ counts, fullQueue, admin, userName, onNavigate }: NavProps) 
                 <PlusCircle className="size-[1.125rem]" aria-hidden /> New ticket
               </Link>
             </li>
+            <li>
+              <Link href="/help" onClick={onNavigate} className={itemClass(false)}>
+                <BookOpen className="size-[1.125rem]" aria-hidden /> Knowledge base
+              </Link>
+            </li>
           </ul>
         )}
 
-        {admin && (
+        {admin === "super" && <SettingsLinks pathname={pathname} onNavigate={onNavigate} />}
+        {admin === "users" && (
           <div>
             <p className="mb-1.5 px-3 text-xs font-bold text-muted">Admin</p>
-            <ul className="space-y-0.5">
-              {(admin === "super" ? adminLinks : adminLinks.filter((l) => l.href === "/staff/admin/users")).map(({ href, label, icon: Icon }) => (
-                <li key={href}>
-                  <Link href={href} onClick={onNavigate} aria-current={pathname.startsWith(href) ? "page" : undefined} className={itemClass(pathname.startsWith(href))}>
-                    <Icon className="size-[1.125rem]" aria-hidden /> {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <Link
+              href="/staff/admin/users"
+              onClick={onNavigate}
+              aria-current={pathname.startsWith("/staff/admin/users") ? "page" : undefined}
+              className={itemClass(pathname.startsWith("/staff/admin/users"))}
+            >
+              <Users className="size-[1.125rem]" aria-hidden /> Users
+            </Link>
           </div>
         )}
-
-        <div>
-          <Link href="/" onClick={onNavigate} className={itemClass(false)}>
-            <UserRound className="size-[1.125rem]" aria-hidden /> Requester portal
-          </Link>
-        </div>
       </nav>
 
-      <div className="flex items-center gap-3 border-t border-border p-4">
-        <Avatar name={userName} />
-        <span className="min-w-0 flex-1 truncate font-bold">{userName}</span>
-        <form action={logoutAction}>
-          <button type="submit" className="grid size-10 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text" aria-label="Sign out" title="Sign out">
-            <LogOut className="size-5" aria-hidden />
-          </button>
-        </form>
+      <div className="border-t border-border p-3">
+        <UserMenu name={user.name} email={user.email} theme={theme} switchTo="portal" showName />
       </div>
     </div>
   );
@@ -132,8 +146,9 @@ function FullQueueLinks({
   counts,
   currentView,
   pathname,
+  showReports,
   onNavigate,
-}: Pick<NavProps, "counts" | "onNavigate"> & { currentView: string | null; pathname: string }) {
+}: Pick<NavProps, "counts" | "onNavigate"> & { currentView: string | null; pathname: string; showReports: boolean }) {
   return (
     <>
       <div>
@@ -170,9 +185,59 @@ function FullQueueLinks({
               </span>
             </Link>
           </li>
+          {showReports && (
+            <li>
+              <Link href="/staff/reports" onClick={onNavigate} aria-current={pathname.startsWith("/staff/reports") ? "page" : undefined} className={itemClass(pathname.startsWith("/staff/reports"))}>
+                <BarChart3 className="size-[1.125rem]" aria-hidden /> Reports
+              </Link>
+            </li>
+          )}
+          <li>
+            <Link href="/help" onClick={onNavigate} className={itemClass(false)}>
+              <BookOpen className="size-[1.125rem]" aria-hidden /> Knowledge base
+            </Link>
+          </li>
         </ul>
       </div>
     </>
+  );
+}
+
+function SettingsLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const isInSettings = pathname.startsWith("/staff/admin");
+  const [isOpen, setIsOpen] = useState(isInSettings);
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-controls="settings-links"
+        onClick={() => setIsOpen((o) => !o)}
+        className={clsx(itemClass(false), "w-full", isInSettings && !isOpen && "text-primary")}
+      >
+        <Settings className="size-[1.125rem]" aria-hidden />
+        <span className="flex-1 text-left">Settings</span>
+        <ChevronDown className={clsx("size-4 transition-transform", isOpen && "rotate-180")} aria-hidden />
+      </button>
+      {isOpen && (
+        <div id="settings-links" className="mt-1 ml-5 space-y-3 border-l border-border pl-2">
+          {SETTINGS_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="mb-0.5 px-3 pt-1 text-xs font-bold text-muted">{group.label}</p>
+              <ul className="space-y-0.5">
+                {group.links.map(({ href, label, icon: Icon }) => (
+                  <li key={href}>
+                    <Link href={href} onClick={onNavigate} aria-current={pathname.startsWith(href) ? "page" : undefined} className={itemClass(pathname.startsWith(href))}>
+                      <Icon className="size-[1.125rem]" aria-hidden /> {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -192,7 +257,7 @@ export function StaffMobileNav(props: NavProps) {
         <Menu className="size-6" aria-hidden />
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-text/40 backdrop-blur-[2px]" />
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim backdrop-blur-[2px]" />
         <Dialog.Content className="fixed inset-y-0 left-0 z-50 w-[min(20rem,85vw)] border-r border-border bg-surface shadow-raised focus:outline-none">
           <Dialog.Title className="sr-only">Navigation</Dialog.Title>
           <Dialog.Close className="absolute top-4 right-3 grid size-10 place-items-center rounded-lg hover:bg-surface-2" aria-label="Close menu">

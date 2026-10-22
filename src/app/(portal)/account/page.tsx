@@ -6,13 +6,17 @@ import { Avatar, Card, PageHeader } from "@/components/ui/misc";
 import { ROLE_LABEL } from "@/lib/labels";
 import { isStaff, requireUser } from "@/server/authz";
 import { prisma } from "@/server/prisma";
-import { EmailAlertsForm, PasswordForm, ProfileForm } from "./account-forms";
+import { readTheme } from "@/server/theme";
+import { EmailAlertsForm, PasswordForm, ProfileForm, ThemePicker } from "./account-forms";
 
 export const metadata: Metadata = { title: "Account" };
 
 export default async function AccountPage() {
   const user = await requireUser();
-  const { emailAlerts } = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { emailAlerts: true } });
+  const [{ emailAlerts }, theme] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { emailAlerts: true } }),
+    readTheme(),
+  ]);
   return (
     <div className="max-w-xl space-y-5">
       <PageHeader title="Account" />
@@ -30,6 +34,11 @@ export default async function AccountPage() {
       <Card className="p-4 sm:p-5">
         <h2 className="mb-3 text-lg font-bold">Profile</h2>
         <ProfileForm name={user.name} />
+      </Card>
+
+      <Card className="p-4 sm:p-5">
+        <h2 className="mb-3 text-lg font-bold">Appearance</h2>
+        <ThemePicker theme={theme} />
       </Card>
 
       <Card className="p-4 sm:p-5">

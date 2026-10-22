@@ -18,6 +18,7 @@ import {
 } from "@/server/admin";
 import { type AppUser, requireSuperadmin, requireUserManager } from "@/server/authz";
 import { saveCanned } from "@/server/canned";
+import { saveArticle } from "@/server/kb";
 import {
   adminUserSchema,
   campusSchema,
@@ -27,6 +28,7 @@ import {
   firstError,
   formToObject,
   helpTopicSchema,
+  kbArticleSchema,
   namedEntitySchema,
   slaSchema,
   teamSchema,
@@ -93,4 +95,8 @@ export async function resetEmailTemplateAction(key: string) {
 
 export async function saveCampusAction(_prev: ActionState, formData: FormData) {
   return save(formData, campusSchema, saveCampus, "/staff/admin/campuses");
+}
+
+export async function saveArticleAction(_prev: ActionState, formData: FormData) {
+  return save(formData, kbArticleSchema, saveArticle, "/staff/admin/knowledge-base");
 }

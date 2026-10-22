@@ -48,28 +48,72 @@
   --note-border: #ecc94b;
   --warn: #a64708;
   --warn-soft: #fff1e6;
+  /* Dims the page behind dialogs and drawers. */
+  --scrim: rgb(15 27 38 / 0.45);
+}
+
+
+/* CIA FIRST Digital Nexus palette: the dark theme (and the default, see src/lib/theme.ts).
+   Kept as two identical blocks because a media query can't share a selector list. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #071225;
+  --surface: #101e34;
+  --surface-2: #182b43;
+  --border: #30445e;
+  --border-strong: #48617a;
+  --text: #eef6ff;
+  --muted: #b0c4d8;
+  --primary: #79d9ed;
+  --primary-hover: #a1eafa;
+  --primary-fg: #061624;
+  --primary-soft: #18364d;
+  --focus: #79d9ed;
+  --shadow: 0 0 0;
+  --brand: #0a2b43;
+  --brand-fg: #f3faff;
+  --danger: #f2837a;
+  --danger-soft: #3a1714;
+  --open: #7db3ea;
+  --open-soft: #16304d;
+  --progress: #b99af0;
+  --progress-soft: #2c2048;
+  --resolved: #6fd0a2;
+  --resolved-soft: #123628;
+  --closed: #a5b1bc;
+  --closed-soft: #252f39;
+  --p-low: #b0c4d8;
+  --p-normal: #7db3ea;
+  --p-high: #f0a66b;
+  --p-emergency: #f2837a;
+  --note: #f3d77a;
+  --note-bg: #2a2410;
+  --note-border: #6e5a1c;
+  --warn: #f0a66b;
+  --warn-soft: #3a2412;
+  --scrim: rgb(2 6 14 / 0.65);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1016;
-    --surface: #121920;
-    --surface-2: #1a232c;
-    --border: #232e39;
-    --border-strong: #354452;
-    --text: #e6edf3;
-    --muted: #9aa8b5;
-    --primary: #68addd;
-    --primary-hover: #8bc1e7;
-    --primary-fg: #04121c;
-    --primary-soft: #132d42;
-    --focus: #8bc1e7;
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --bg: #071225;
+    --surface: #101e34;
+    --surface-2: #182b43;
+    --border: #30445e;
+    --border-strong: #48617a;
+    --text: #eef6ff;
+    --muted: #b0c4d8;
+    --primary: #79d9ed;
+    --primary-hover: #a1eafa;
+    --primary-fg: #061624;
+    --primary-soft: #18364d;
+    --focus: #79d9ed;
+    --shadow: 0 0 0;
+    --brand: #0a2b43;
+    --brand-fg: #f3faff;
     --danger: #f2837a;
     --danger-soft: #3a1714;
-    --shadow: 0 0 0;
-    --brand: #123f5c;
-    --brand-fg: #f1f6fa;
-
     --open: #7db3ea;
     --open-soft: #16304d;
     --progress: #b99af0;
@@ -78,17 +122,16 @@
     --resolved-soft: #123628;
     --closed: #a5b1bc;
     --closed-soft: #252f39;
-
-    --p-low: #9aa8b5;
+    --p-low: #b0c4d8;
     --p-normal: #7db3ea;
     --p-high: #f0a66b;
     --p-emergency: #f2837a;
-
     --note: #f3d77a;
     --note-bg: #2a2410;
     --note-border: #6e5a1c;
     --warn: #f0a66b;
     --warn-soft: #3a2412;
+    --scrim: rgb(2 6 14 / 0.65);
   }
 }
 
@@ -126,6 +169,7 @@
   --color-note-border: var(--note-border);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-scrim: var(--scrim);
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
   /* Shadows are tinted with the page hue, never pure black on light. */
@@ -134,7 +178,7 @@
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: light;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -169,43 +213,3 @@ body {
     animation-duration: 0.01ms !important;
   }
 }
-
-/* CIA FIRST Digital Nexus palette, kept consistent on all devices. */
-:root {
-  --bg: #071225;
-  --surface: #101e34;
-  --surface-2: #182b43;
-  --border: #30445e;
-  --border-strong: #48617a;
-  --text: #eef6ff;
-  --muted: #b0c4d8;
-  --primary: #79d9ed;
-  --primary-hover: #a1eafa;
-  --primary-fg: #061624;
-  --primary-soft: #18364d;
-  --focus: #79d9ed;
-  --shadow: 0 0 0;
-  --brand: #0a2b43;
-  --brand-fg: #f3faff;
-  --danger: #f2837a;
-  --danger-soft: #3a1714;
-  --open: #7db3ea;
-  --open-soft: #16304d;
-  --progress: #b99af0;
-  --progress-soft: #2c2048;
-  --resolved: #6fd0a2;
-  --resolved-soft: #123628;
-  --closed: #a5b1bc;
-  --closed-soft: #252f39;
-  --p-low: #b0c4d8;
-  --p-normal: #7db3ea;
-  --p-high: #f0a66b;
-  --p-emergency: #f2837a;
-  --note: #f3d77a;
-  --note-bg: #2a2410;
-  --note-border: #6e5a1c;
-  --warn: #f0a66b;
-  --warn-soft: #3a2412;
-}
-
-html { color-scheme: dark; }

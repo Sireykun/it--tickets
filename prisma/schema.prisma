@@ -134,6 +134,7 @@ model User {
   addedCollaborators TicketCollaborator[] @relation("CollaboratorAddedBy")
   campus             Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
   staffCampuses      StaffCampus[]
+  kbArticles         KbArticle[]
 
   @@index([role, isActive])
   @@index([organizationId])
@@ -225,6 +226,7 @@ model HelpTopic {
   defaultTeam       Team?       @relation(fields: [defaultTeamId], references: [id], onDelete: SetNull)
   slaPolicy         SlaPolicy?  @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
   tickets           Ticket[]
+  kbArticles        KbArticle[]
 
   @@map("help_topics")
 }
@@ -559,4 +561,24 @@ model AuditEvent {
   @@index([createdAt])
   @@index([actorId])
   @@map("audit_events")
+}
+
+// ─── Knowledge base ─────────────────────────────────────────────────────────
+
+// Self-service help articles, shared across campuses like help topics. Bodies are plain text.
+model KbArticle {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  title       String   @db.VarChar(200)
+  body        String
+  helpTopicId String?  @map("help_topic_id") @db.Uuid
+  isPublished Boolean  @default(false) @map("is_published")
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  helpTopic HelpTopic? @relation(fields: [helpTopicId], references: [id], onDelete: SetNull)
+  createdBy User       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([isPublished, helpTopicId])
+  @@map("kb_articles")
 }

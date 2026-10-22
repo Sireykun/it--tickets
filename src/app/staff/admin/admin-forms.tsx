@@ -9,6 +9,7 @@ import type { Role, TicketPriority } from "@/generated/prisma/enums";
 import { type ActionState, initialActionState } from "@/lib/action-state";
 import { PRIORITIES, PRIORITY_LABEL, ROLE_LABEL } from "@/lib/labels";
 import {
+  saveArticleAction,
   saveCampusAction,
   saveCannedAction,
   saveDepartmentAction,
@@ -369,6 +370,28 @@ export function HelpTopicForm({ topic, departments, teams, slas }: { topic?: Top
       <OptionSelect id="defaultDepartmentId" label="Route to department" options={departments} value={topic?.defaultDepartmentId} empty="Default department" />
       <OptionSelect id="defaultTeamId" label="Assign to team" options={teams} value={topic?.defaultTeamId} empty="No team" />
       <ActiveToggle isActive={topic?.isActive} hint="Inactive topics are hidden from the new-ticket form." />
+    </AdminForm>
+  );
+}
+
+// ─── Knowledge base ─────────────────────────────────────────────────────────
+
+type Article = { id: string; title: string; body: string; helpTopicId: string | null; isPublished: boolean };
+
+export function ArticleForm({ article, topics }: { article?: Article; topics: Option[] }) {
+  return (
+    <AdminForm action={saveArticleAction} cancelHref="/staff/admin/knowledge-base" id={article?.id}>
+      <Field label="Title" htmlFor="title">
+        <Input id="title" name="title" required minLength={3} maxLength={200} defaultValue={article?.title} placeholder="e.g. How to connect to school Wi‑Fi" />
+      </Field>
+      <OptionSelect id="helpTopicId" label="Help topic" options={topics} value={article?.helpTopicId} empty="General" />
+      <Field label="Article" htmlFor="body" className="sm:col-span-2" hint="Plain text. Blank lines start a new paragraph; number your steps 1. 2. 3.">
+        <Textarea id="body" name="body" required rows={12} defaultValue={article?.body} />
+      </Field>
+      <div className="sm:col-span-2">
+        <Checkbox name="isPublished" defaultChecked={article?.isPublished ?? true} label={<span className="font-bold">Published</span>} />
+        <p className="text-sm text-muted">Drafts are only visible to superadmins.</p>
+      </div>
     </AdminForm>
   );
 }

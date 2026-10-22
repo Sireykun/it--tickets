@@ -16,7 +16,7 @@ test("student opens a ticket, agent works it, student closes it", async ({ brows
   await student.goto("/tickets/new");
   await student.getByText("Student Wifi", { exact: true }).click();
   await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await student.getByLabel("Room").fill("204");
+  await student.getByLabel("Room", { exact: true }).fill("204");
   await student.getByLabel("Issue Summary").fill(subject);
   await student.getByLabel("Please Describe Your Issue").fill("In room 204 the wifi disconnects every few minutes.");
   await student.locator('input[type="file"][name="files"]').setInputFiles({ name: "error.png", mimeType: "image/png", buffer: PNG });
@@ -92,7 +92,7 @@ test("requesters can't open someone else's ticket or the staff console", async (
   await agent.goto("/tickets/new");
   await agent.getByText("Printer Setup", { exact: true }).click();
   await agent.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await agent.getByLabel("Room").fill("Office");
+  await agent.getByLabel("Room", { exact: true }).fill("Office");
   await agent.getByLabel("Issue Summary").fill(`Agent's own printer ${Date.now()}`);
   await agent.getByLabel("Please Describe Your Issue").fill("Toner light is on.");
   await agent.getByRole("button", { name: "Submit ticket" }).click();

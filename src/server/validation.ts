@@ -43,6 +43,18 @@ const ticketNumber = z
 
 export const ticketPairSchema = z.object({ other: ticketNumber });
 
+// "me" for the agent value is resolved to the acting user by the action.
+export const bulkUpdateSchema = z
+  .object({ tickets: z.array(ticketNumber).min(1, "Select at least one ticket.").max(50, "Select at most 50 tickets at a time.") })
+  .and(
+    z.discriminatedUnion("field", [
+      z.object({ field: z.literal("status"), value: status }),
+      z.object({ field: z.literal("priority"), value: priority }),
+      z.object({ field: z.literal("agent"), value: z.union([z.literal("me"), optionalId]) }),
+      z.object({ field: z.literal("team"), value: optionalId }),
+    ]),
+  );
+
 // Staff opening a ticket for someone else.
 export const staffNewTicketSchema = newTicketSchema.omit({ campusId: true, room: true }).extend({
   requesterEmail: z.email("Enter the requester's email.").max(254),
@@ -122,6 +134,14 @@ export const organizationSchema = z.object({
     .optional()
     .transform((v) => v || null),
   isActive: checkbox,
+});
+
+export const kbArticleSchema = z.object({
+  id: optionalId,
+  title: z.string().trim().min(3, "Title must be at least 3 characters.").max(200),
+  body: z.string().trim().min(1, "Write the article.").max(50_000),
+  helpTopicId: optionalId,
+  isPublished: checkbox,
 });
 
 export const emailTemplateSchema = z.object({

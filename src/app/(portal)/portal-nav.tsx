@@ -1,13 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { Inbox, PlusCircle, UserRound } from "lucide-react";
+import { BookOpen, Inbox, PlusCircle, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/", label: "My tickets", icon: Inbox, match: (p: string) => p === "/" || (p.startsWith("/tickets/") && p !== "/tickets/new") },
   { href: "/tickets/new", label: "New ticket", icon: PlusCircle, match: (p: string) => p === "/tickets/new" },
+  { href: "/help", label: "Help", icon: BookOpen, match: (p: string) => p.startsWith("/help") },
   { href: "/account", label: "Account", icon: UserRound, match: (p: string) => p.startsWith("/account") },
 ];
 
@@ -37,7 +38,7 @@ export function TabBar() {
   const pathname = usePathname();
   return (
     <nav aria-label="Main" className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/90 backdrop-blur-md md:hidden">
-      <ul className="grid grid-cols-3">
+      <ul className="grid grid-cols-4">
         {tabs.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname);
           return (

@@ -3,6 +3,7 @@ import { CheckCircle2, Circle, ListTodo, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/button";
+import { ChoiceMenu } from "@/components/ui/list-controls";
 import { Card, EmptyState, PageHeader } from "@/components/ui/misc";
 import { formatDateTime } from "@/lib/format";
 import { requireStaff } from "@/server/authz";
@@ -10,6 +11,7 @@ import { listTasks, TASK_VIEWS, type TaskView } from "@/server/tasks";
 import { assignmentOptions } from "@/server/tickets";
 import { createTaskAction, toggleTaskAction } from "../actions";
 import { TaskForm } from "./task-forms";
+import { TaskRowMenu } from "./task-row-menu";
 
 export const metadata: Metadata = { title: "Tasks" };
 
@@ -44,7 +46,10 @@ export default async function TasksPage({ searchParams }: PageProps<"/staff/task
         </Card>
       )}
 
-      <nav aria-label="Task views" className="mb-4 inline-flex flex-wrap rounded-lg border border-border bg-surface-2 p-1">
+      <div className="mb-4 md:hidden">
+        <ChoiceMenu label="Show" icon={<ListTodo className="size-4" aria-hidden />} value={view} choices={TASK_VIEWS.map((v) => ({ value: v, label: VIEW_LABEL[v], href: `/staff/tasks?view=${v}` }))} />
+      </div>
+      <nav aria-label="Task views" className="mb-4 hidden flex-wrap rounded-lg border border-border bg-surface-2 p-1 md:inline-flex">
         {TASK_VIEWS.map((v) => (
           <Link
             key={v}
@@ -91,6 +96,7 @@ export default async function TasksPage({ searchParams }: PageProps<"/staff/task
                       </span>
                     )}
                   </Link>
+                  <TaskRowMenu taskId={t.id} title={t.title} isOpen={t.status === "OPEN"} ticketNumber={t.ticket?.ticketNumber ?? null} toggle={toggleTaskAction.bind(null, t.id)} />
                 </li>
               );
             })}

@@ -1,11 +1,12 @@
-import { Headset } from "lucide-react";
 import Link from "next/link";
 import { Brand } from "@/components/brand";
+import { UserMenu } from "@/components/ui/user-menu";
 import { isStaff, requireUser } from "@/server/authz";
+import { readTheme } from "@/server/theme";
 import { DesktopNav, TabBar } from "./portal-nav";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireUser();
+  const [user, theme] = await Promise.all([requireUser(), readTheme()]);
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur-md">
@@ -14,14 +15,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <Brand />
           </Link>
           <DesktopNav />
-          {isStaff(user.role) && (
-            <Link
-              href="/staff"
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-bold text-primary transition-colors hover:bg-primary-soft md:ml-2"
-            >
-              <Headset className="size-4" aria-hidden /> Staff console
-            </Link>
-          )}
+          <UserMenu name={user.name} email={user.email} theme={theme} switchTo={isStaff(user.role) ? "staff" : null} />
         </div>
       </header>
       <main className="pb-tabbar mx-auto max-w-4xl px-4 py-8 md:pb-12">{children}</main>

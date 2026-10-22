@@ -1,6 +1,7 @@
+import { Search } from "lucide-react";
 import type { Metadata } from "next";
-import { buttonClass } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { FilterChips, FiltersPopover } from "@/components/ui/list-controls";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Role } from "@/generated/prisma/enums";
 import { formatRelative } from "@/lib/format";
@@ -88,6 +89,23 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
     }
   }
 
+  const hrefWith = (changes: Record<string, string | null>) => {
+    const p = new URLSearchParams();
+    if (q) p.set("q", q);
+    if (role) p.set("role", role);
+    if (campusId) p.set("campus", campusId);
+    for (const [k, v] of Object.entries(changes)) {
+      if (v === null) p.delete(k);
+      else p.set(k, v);
+    }
+    return `/staff/admin/users${p.size ? `?${p}` : ""}`;
+  };
+  const campusName = campuses.find((c) => c.id === campusId)?.name;
+  const chips = [
+    ...(role ? [{ label: ROLE_LABEL[role], href: hrefWith({ role: null }) }] : []),
+    ...(campusName ? [{ label: campusName, href: hrefWith({ campus: null }) }] : []),
+  ];
+
   return (
     <AdminPage
       title="Users"
@@ -111,30 +129,37 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
         ) : undefined
       }
       toolbar={
-        <form method="get" className="mb-4 flex flex-wrap gap-2">
-          <Input name="q" type="search" defaultValue={q} placeholder="Search name or email" aria-label="Search users" className="min-w-0 flex-1 basis-48" />
-          <Select name="role" defaultValue={role ?? ""} aria-label="Role" className="w-auto">
-            <option value="">All roles</option>
-            {roles.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABEL[r]}
-              </option>
-            ))}
-          </Select>
-          {campuses.length > 1 && (
-            <Select name="campus" defaultValue={campusId ?? ""} aria-label="Campus" className="w-auto">
-              <option value="">All campuses</option>
-              {campuses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
-          )}
-          <button type="submit" className={buttonClass({ variant: "secondary" })}>
-            Filter
-          </button>
-        </form>
+        <div className="mb-4 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <form method="get" className="relative min-w-0 flex-1 basis-56">
+              {role && <input type="hidden" name="role" value={role} />}
+              {campusId && <input type="hidden" name="campus" value={campusId} />}
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted" aria-hidden />
+              <Input name="q" type="search" defaultValue={q} placeholder="Search name or email" aria-label="Search users" className="pl-10" />
+            </form>
+            <FiltersPopover action="/staff/admin/users" hidden={{ q: q || undefined }} activeCount={chips.length} clearHref={hrefWith({ role: null, campus: null })}>
+              <Select name="role" defaultValue={role ?? ""} aria-label="Role">
+                <option value="">All roles</option>
+                {roles.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
+              </Select>
+              {campuses.length > 1 && (
+                <Select name="campus" defaultValue={campusId ?? ""} aria-label="Campus">
+                  <option value="">All campuses</option>
+                  {campuses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </FiltersPopover>
+          </div>
+          <FilterChips chips={chips} />
+        </div>
       }
       rows={users.map((u) => {
         const works = u.staffCampuses.map((s) => s.campus.name + (s.permissions.includes("users.manage") ? " (manages users)" : ""));

@@ -70,7 +70,7 @@ test("CC: requester adds and removes someone, staff can add people by name", asy
   await student.goto("/tickets/new");
   await student.getByText("Printer Setup", { exact: true }).click();
   await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await student.getByLabel("Room").fill("Classroom");
+  await student.getByLabel("Room", { exact: true }).fill("Classroom");
   await student.getByLabel("Issue Summary").fill(`Printer for class ${stamp}`);
   await student.getByLabel("Please Describe Your Issue").fill("The class printer needs setting up.");
   await student.getByRole("button", { name: "Submit ticket" }).click();

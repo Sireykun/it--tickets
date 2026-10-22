@@ -12,7 +12,7 @@ import { type PreparedFile, type StoredFile, withStoredFiles } from "@/server/st
 export type Actor = Pick<AppUser, "id" | "name" | "role" | "campusScope">;
 
 // Only tickets in the actor's campuses (no filter for superadmins).
-function campusWhere(actor: Pick<AppUser, "campusScope">): Prisma.TicketWhereInput {
+export function campusWhere(actor: Pick<AppUser, "campusScope">): Prisma.TicketWhereInput {
   return actor.campusScope === "all" ? {} : { campusId: { in: actor.campusScope } };
 }
 
@@ -266,13 +266,19 @@ const lastConversationEntry = {
   select: { type: true, createdAt: true },
 };
 
-export async function listMyTickets(actor: Actor, filter: "open" | "closed") {
+export async function listMyTickets(
+  actor: Actor,
+  filter: "open" | "closed",
+  opts: { q?: string; sort?: "updated" | "newest" | "oldest" } = {},
+) {
+  const q = opts.q?.trim();
   return prisma.ticket.findMany({
     where: {
       OR: [{ requesterId: actor.id }, { collaborators: { some: { userId: actor.id } } }],
       status: filter === "open" ? { in: ACTIVE_STATUSES } : "CLOSED",
+      ...(q && { AND: [{ OR: [{ ticketNumber: { contains: q, mode: "insensitive" } }, { subject: { contains: q, mode: "insensitive" } }] }] }),
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: opts.sort === "newest" ? { createdAt: "desc" } : opts.sort === "oldest" ? { createdAt: "asc" } : { updatedAt: "desc" },
     take: 100,
     include: {
       helpTopic: { select: { name: true } },
@@ -285,6 +291,9 @@ export async function listMyTickets(actor: Actor, filter: "open" | "closed") {
 export const QUEUE_VIEWS = ["personal", "unassigned", "mine", "teams", "open", "overdue", "all"] as const;
 export type QueueView = (typeof QUEUE_VIEWS)[number];
 
+export const QUEUE_SORTS = ["priority", "newest", "oldest", "updated"] as const;
+export type QueueSort = (typeof QUEUE_SORTS)[number];
+
 export type QueueParams = {
   view: QueueView;
   status?: TicketStatus;
@@ -294,11 +303,19 @@ export type QueueParams = {
   orgId?: string;
   campusId?: string;
   q?: string;
+  sort?: QueueSort; // defaults to "priority"
   page?: number;
   limit?: number; // defaults to QUEUE_PAGE_SIZE; CSV export asks for more
 };
 
 export const QUEUE_PAGE_SIZE = 50;
+
+const QUEUE_ORDER: Record<QueueSort, Prisma.TicketOrderByWithRelationInput[]> = {
+  priority: [{ priorityLevel: "desc" }, { resolutionDueAt: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+  newest: [{ createdAt: "desc" }],
+  oldest: [{ createdAt: "asc" }],
+  updated: [{ updatedAt: "desc" }],
+};
 
 async function myTeamIds(actor: Actor): Promise<string[]> {
   const rows = await prisma.teamMember.findMany({ where: { userId: actor.id }, select: { teamId: true } });
@@ -358,7 +375,7 @@ export async function listQueue(actor: Actor, params: QueueParams) {
   const [tickets, total] = await Promise.all([
     prisma.ticket.findMany({
       where,
-      orderBy: [{ priorityLevel: "desc" }, { resolutionDueAt: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+      orderBy: QUEUE_ORDER[params.sort ?? "priority"],
       skip: page * (params.limit ?? QUEUE_PAGE_SIZE),
       take: params.limit ?? QUEUE_PAGE_SIZE,
       include: {
@@ -576,6 +593,44 @@ export async function updateTicketFields(
     if (patch.status !== ticket.status) await notifyStatus(tx, ticket.id, actor, patch.status);
     return updated;
   });
+}
+
+export const BULK_LIMIT = 50;
+
+export type BulkChange =
+  | { status: TicketStatus }
+  | { priority: TicketPriority }
+  | { assignedAgentId: string | null }
+  | { assignedTeamId: string | null };
+
+// Applies one change to many tickets through `updateTicketFields`, so each ticket gets the same
+// campus/assignment checks, system events, audit row and emails as a single edit.
+export async function bulkUpdateTickets(actor: Actor, ticketNumbers: string[], change: BulkChange) {
+  if (!isStaff(actor.role)) throw new TicketError("Not allowed.");
+  const numbers = [...new Set(ticketNumbers.map(normalizeNumber))];
+  if (numbers.length === 0) throw new TicketError("Select at least one ticket.");
+  if (numbers.length > BULK_LIMIT) throw new TicketError(`Select at most ${BULK_LIMIT} tickets at a time.`);
+
+  let updated = 0;
+  const skipped: { ticketNumber: string; reason: string }[] = [];
+  for (const ticketNumber of numbers) {
+    const ticket = await prisma.ticket.findUnique({ where: { ticketNumber } });
+    try {
+      if (!ticket) throw new TicketError("Ticket not found.");
+      await updateTicketFields(actor, ticketNumber, {
+        status: ticket.status,
+        priority: ticket.priority,
+        assignedTeamId: ticket.assignedTeamId,
+        assignedAgentId: ticket.assignedAgentId,
+        ...change,
+      });
+      updated++;
+    } catch (err) {
+      if (!(err instanceof TicketError)) throw err;
+      skipped.push({ ticketNumber, reason: err.message });
+    }
+  }
+  return { updated, skipped };
 }
 
 // ─── Links & merges ─────────────────────────────────────────────────────────

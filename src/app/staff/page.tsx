@@ -1,17 +1,20 @@
-import { Download, Inbox, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Download, Inbox, Plus, Search } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PriorityBadge, SlaBadge, StatusChip } from "@/components/tickets/badges";
 import { TicketCard, TicketList } from "@/components/tickets/ticket-card";
 import { buttonClass, LinkButton } from "@/components/ui/button";
+import { MenuLinkItem } from "@/components/ui/dropdown-menu";
 import { Input, Select } from "@/components/ui/field";
-import { Card, EmptyState, PageHeader } from "@/components/ui/misc";
+import { ChoiceMenu, FilterChips, FiltersPopover, MoreMenuButton } from "@/components/ui/list-controls";
+import { Alert, Card, EmptyState, PageHeader } from "@/components/ui/misc";
 import { formatRelative } from "@/lib/format";
 import { PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL } from "@/lib/labels";
 import { isSuperadmin, requireStaff } from "@/server/authz";
 import { prisma } from "@/server/prisma";
 import { parseQueueParams } from "@/server/queue-params";
-import { listQueue, QUEUE_PAGE_SIZE, type QueueView } from "@/server/tickets";
+import { assignmentOptions, listQueue, QUEUE_PAGE_SIZE, type QueueSort, type QueueView } from "@/server/tickets";
+import { BULK_FORM_ID, BulkBar, SelectAllCheckbox } from "./bulk-bar";
 
 export const metadata: Metadata = { title: "Queue" };
 
@@ -25,12 +28,22 @@ const VIEW_TITLE: Record<QueueView, string> = {
   all: "All tickets",
 };
 
+const SORT_LABEL: Record<QueueSort, string> = {
+  priority: "Priority",
+  newest: "Newest",
+  oldest: "Oldest",
+  updated: "Recently updated",
+};
+
+// Query param name → which filter it is, for chips and the active count.
+const FILTER_KEYS = ["status", "priority", "team", "topic", "campus", "org"] as const;
+
 export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
   const user = await requireStaff();
   const sp = await searchParams;
   const params = parseQueueParams(sp);
 
-  const [{ tickets, total, page, view }, teams, topics, orgs, campuses] = await Promise.all([
+  const [{ tickets, total, page, view }, teams, topics, orgs, campuses, options] = await Promise.all([
     listQueue(user, params),
     prisma.team.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.helpTopic.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -40,17 +53,38 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    assignmentOptions(user),
   ]);
-  const filtered = Boolean(params.status || params.priority || params.teamId || params.topicId || params.orgId || params.campusId || params.q);
   // Campus filter and labels only matter to people who see more than one campus.
   const multiCampus = campuses.length > 1;
   const pages = Math.ceil(total / QUEUE_PAGE_SIZE);
+  const sort = params.sort ?? "priority";
 
-  const pageHref = (p: number) => {
-    const q = new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string"));
-    q.set("page", String(p));
+  const current = Object.fromEntries(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string"));
+  const hrefWith = (changes: Record<string, string | null>) => {
+    const q = new URLSearchParams(current);
+    for (const key of ["page", "bulk", "skipped", "bulkError"]) q.delete(key);
+    for (const [k, v] of Object.entries(changes)) {
+      if (v === null) q.delete(k);
+      else q.set(k, v);
+    }
     return `/staff?${q}`;
   };
+
+  const filterLabel: Record<(typeof FILTER_KEYS)[number], (v: string) => string | undefined> = {
+    status: (v) => STATUS_LABEL[v as keyof typeof STATUS_LABEL],
+    priority: (v) => PRIORITY_LABEL[v as keyof typeof PRIORITY_LABEL],
+    team: (v) => teams.find((t) => t.id === v)?.name,
+    topic: (v) => topics.find((t) => t.id === v)?.name,
+    campus: (v) => campuses.find((c) => c.id === v)?.name,
+    org: (v) => orgs.find((o) => o.id === v)?.name,
+  };
+  const chips = FILTER_KEYS.flatMap((key) => {
+    const label = current[key] ? filterLabel[key](current[key]) : undefined;
+    return label ? [{ label, href: hrefWith({ [key]: null }) }] : [];
+  });
+  const filtered = chips.length > 0 || Boolean(params.q);
+  const skipped = typeof sp.skipped === "string" ? sp.skipped.split("\n") : [];
 
   return (
     <>
@@ -59,26 +93,52 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
         subtitle={`${total} ticket${total === 1 ? "" : "s"}`}
         actions={
           <>
-            {isSuperadmin(user) && (
-            <a
-              href={`/staff/export?${new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string" && e[0] !== "page"))}`}
-              className={buttonClass({ variant: "secondary" })}
-              download
-            >
-              <Download className="size-5" aria-hidden /> <span className="hidden sm:inline">Export CSV</span>
-              <span className="sr-only sm:hidden">Export CSV</span>
-            </a>
-            )}
             <LinkButton href="/staff/tickets/new">
               <Plus className="size-5" aria-hidden /> New ticket
             </LinkButton>
+            {isSuperadmin(user) && (
+              <MoreMenuButton label="More queue actions">
+                <MenuLinkItem href={hrefWith({}).replace("/staff?", "/staff/export?")} download icon={<Download />}>
+                  Export CSV
+                </MenuLinkItem>
+              </MoreMenuButton>
+            )}
           </>
         }
       />
 
-      <form method="get" className="mb-5 space-y-3">
-        <input type="hidden" name="view" value={view} />
-        <div className="flex gap-2">
+      {typeof sp.bulk === "string" && (
+        <div className="mb-4">
+          <Alert tone={skipped.length ? "info" : "success"}>
+            Updated {sp.bulk} ticket{sp.bulk === "1" ? "" : "s"}.
+            {skipped.length > 0 && (
+              <>
+                {" "}
+                Skipped {skipped.length}:
+                <ul className="mt-1 list-disc pl-5 font-normal">
+                  {skipped.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </Alert>
+        </div>
+      )}
+      {typeof sp.bulkError === "string" && (
+        <div className="mb-4">
+          <Alert>{sp.bulkError}</Alert>
+        </div>
+      )}
+
+      <div className="mb-5 space-y-3">
+        <form method="get" className="flex gap-2">
+          {Object.entries(current)
+            .filter(([k]) => !["q", "view", "page", "bulk", "skipped", "bulkError"].includes(k))
+            .map(([k, v]) => (
+              <input key={k} type="hidden" name={k} value={v} />
+            ))}
+          <input type="hidden" name="view" value={view} />
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted" aria-hidden />
             <label htmlFor="q" className="sr-only">
@@ -89,12 +149,15 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
           <button type="submit" className={buttonClass({ variant: "secondary" })}>
             Search
           </button>
-        </div>
-        <details className="group md:open:block" open={filtered || undefined}>
-          <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-1 font-bold text-muted hover:text-text">
-            <SlidersHorizontal className="size-4" aria-hidden /> Filters{filtered && " (active)"}
-          </summary>
-          <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
+        </form>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <FiltersPopover
+            action="/staff"
+            hidden={{ view, q: params.q, sort: params.sort }}
+            activeCount={chips.length}
+            clearHref={`/staff?view=${view}${params.q ? `&q=${encodeURIComponent(params.q)}` : ""}`}
+          >
             <Select name="status" defaultValue={params.status ?? ""} aria-label="Status">
               <option value="">Any status</option>
               {STATUSES.map((s) => (
@@ -145,19 +208,19 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
                 </option>
               ))}
             </Select>
-            <div className="col-span-2 flex gap-2 md:col-span-1">
-              <button type="submit" className={buttonClass({ className: "flex-1" })}>
-                Apply
-              </button>
-              {filtered && (
-                <LinkButton href={`/staff?view=${view}`} variant="ghost">
-                  Clear
-                </LinkButton>
-              )}
-            </div>
-          </div>
-        </details>
-      </form>
+          </FiltersPopover>
+          <ChoiceMenu
+            label="Sort"
+            value={sort}
+            choices={(Object.keys(SORT_LABEL) as QueueSort[]).map((s) => ({
+              value: s,
+              label: SORT_LABEL[s],
+              href: hrefWith({ sort: s === "priority" ? null : s }),
+            }))}
+          />
+          <FilterChips chips={chips} />
+        </div>
+      </div>
 
       {tickets.length === 0 ? (
         <Card>
@@ -176,11 +239,18 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
         </Card>
       ) : (
         <>
+          <BulkBar agents={options.agents} teams={options.teams} />
+
           {/* Phones: rows */}
           <TicketList className="md:hidden">
             {tickets.map((t) => (
-              <li key={t.id}>
-                <TicketCard ticket={t} href={`/staff/tickets/${t.ticketNumber}`} variant="staff" />
+              <li key={t.id} className="flex items-stretch">
+                <label className="grid w-12 shrink-0 cursor-pointer place-items-center border-r border-border">
+                  <input type="checkbox" name="tickets" value={t.ticketNumber} form={BULK_FORM_ID} aria-label={`Select ${t.ticketNumber}`} className="size-5 rounded accent-primary" />
+                </label>
+                <div className="min-w-0 flex-1">
+                  <TicketCard ticket={t} href={`/staff/tickets/${t.ticketNumber}`} variant="staff" />
+                </div>
               </li>
             ))}
           </TicketList>
@@ -190,7 +260,10 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-surface-2/60 text-xs text-muted">
                 <tr>
-                  <th className="px-4 py-3 font-bold">Ticket</th>
+                  <th className="w-12 py-3 pl-4">
+                    <SelectAllCheckbox />
+                  </th>
+                  <th className="px-3 py-3 font-bold">Ticket</th>
                   <th className="px-3 py-3 font-bold">Status</th>
                   <th className="px-3 py-3 font-bold">Priority</th>
                   <th className="px-3 py-3 font-bold">SLA</th>
@@ -202,9 +275,19 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
                 {tickets.map((t) => {
                   const awaiting = t.status !== "CLOSED" && t.thread[0]?.type === "CLIENT_MESSAGE";
                   return (
-                    <tr key={t.id} className="relative transition-colors hover:bg-surface-2/70">
-                      <td className="max-w-md px-4 py-3">
-                        <Link href={`/staff/tickets/${t.ticketNumber}`} className="block after:absolute after:inset-0">
+                    <tr key={t.id} className="relative transition-colors hover:bg-surface-2/70 has-checked:bg-primary-soft/60">
+                      <td className="py-3 pl-4">
+                        <input
+                          type="checkbox"
+                          name="tickets"
+                          value={t.ticketNumber}
+                          form={BULK_FORM_ID}
+                          aria-label={`Select ${t.ticketNumber}`}
+                          className="relative z-10 size-5 cursor-pointer rounded accent-primary"
+                        />
+                      </td>
+                      <td className="max-w-md px-3 py-3">
+                        <Link href={`/staff/tickets/${t.ticketNumber}`} className="block after:absolute after:inset-0 after:left-12">
                           <span className="flex items-center gap-2 text-xs text-muted">
                             <span className="font-mono tracking-tight">{t.ticketNumber}</span>
                             {awaiting && <span className="size-2 rounded-full bg-primary" title="Awaiting reply" />}
@@ -240,11 +323,11 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
 
           {pages > 1 && (
             <nav aria-label="Pages" className="mt-4 flex items-center justify-between">
-              {page > 0 ? <LinkButton href={pageHref(page - 1)} variant="secondary">Previous</LinkButton> : <span />}
+              {page > 0 ? <LinkButton href={hrefWith({ page: String(page - 1) })} variant="secondary">Previous</LinkButton> : <span />}
               <span className="text-sm text-muted tabular-nums">
                 Page {page + 1} of {pages}
               </span>
-              {page + 1 < pages ? <LinkButton href={pageHref(page + 1)} variant="secondary">Next</LinkButton> : <span />}
+              {page + 1 < pages ? <LinkButton href={hrefWith({ page: String(page + 1) })} variant="secondary">Next</LinkButton> : <span />}
             </nav>
           )}
         </>

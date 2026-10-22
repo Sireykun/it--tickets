@@ -10,18 +10,22 @@ import { type ActionState, initialActionState } from "@/lib/action-state";
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 type Option = { id: string; name: string };
 
-// Clears its fields after a successful submit.
-function useResettingForm(action: Action) {
+// Clears its fields (and tells the caller) after a successful submit.
+function useResettingForm(action: Action, onDone?: () => void) {
   const [state, formAction] = useActionState(action, initialActionState);
   const ref = useRef<HTMLFormElement>(null);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   useEffect(() => {
-    if (state.nonce) ref.current?.reset();
+    if (!state.nonce) return;
+    ref.current?.reset();
+    onDoneRef.current?.();
   }, [state.nonce]);
   return { state, formAction, ref };
 }
 
-export function LinkTicketForm({ action }: { action: Action }) {
-  const { state, formAction, ref } = useResettingForm(action);
+export function LinkTicketForm({ action, onDone }: { action: Action; onDone?: () => void }) {
+  const { state, formAction, ref } = useResettingForm(action, onDone);
   return (
     <form ref={ref} action={formAction} className="space-y-2">
       {state.error && <Alert>{state.error}</Alert>}

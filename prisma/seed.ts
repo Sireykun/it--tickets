@@ -189,6 +189,36 @@ async function main() {
     }
   }
 
+  // Starter help articles, only on a fresh install so edits and deletions survive re-seeding.
+  if ((await prisma.kbArticle.count()) === 0) {
+    const topicId = async (name: string) => (await prisma.helpTopic.findUnique({ where: { name } }))?.id ?? null;
+    await prisma.kbArticle.createMany({
+      data: [
+        {
+          title: "Connect to the student Wi‑Fi",
+          helpTopicId: await topicId("Student Wifi"),
+          isPublished: true,
+          createdById: admin.id,
+          body: "1. Open Wi‑Fi settings and choose the student network.\n2. Sign in with your school email and password.\n3. If it says \"can't join\", choose Forget this network and join again.\n\nStill slow or not connecting? Restart the device, then open a ticket with your room number.",
+        },
+        {
+          title: "Printer shows offline or won't print",
+          helpTopicId: await topicId("Printer Setup"),
+          isPublished: true,
+          createdById: admin.id,
+          body: "1. Check the printer is on and has paper.\n2. On your computer, remove the stuck jobs from the print queue.\n3. Turn the printer off for 30 seconds, then on again.\n\nIf it still shows offline, open a ticket and include the printer's name or room.",
+        },
+        {
+          title: "Reset a forgotten password",
+          helpTopicId: await topicId("Email & Accounts"),
+          isPublished: true,
+          createdById: admin.id,
+          body: "Go to the school sign-in page and choose Forgot password. A reset link is sent to your recovery email or phone.\n\nNo recovery option set up? Open a ticket under Email & Accounts and IT will verify your identity and reset it.",
+        },
+      ],
+    });
+  }
+
   await prisma.teamMember.upsert({
     where: { teamId_userId: { teamId: teamIds.get("Infrastructure Team")!, userId: admin.id } },
     update: { isLead: true },

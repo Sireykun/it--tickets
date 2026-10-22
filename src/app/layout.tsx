@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible_Mono, Atkinson_Hyperlegible_Next } from "next/font/google";
+import { readTheme } from "@/server/theme";
 import "./globals.css";
 
 // Hyperlegible for readers on small screens and in a second language; the mono sibling sets ticket numbers and counts.
@@ -13,16 +14,30 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "CIA FIRST IT", statusBarStyle: "default" },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  viewportFit: "cover",
-  themeColor: "#071225",
-};
+export async function generateViewport(): Promise<Viewport> {
+  const theme = await readTheme();
+  const light = "#f4f6f8";
+  const dark = "#071225";
+  return {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+    themeColor:
+      theme === "system"
+        ? [
+            { media: "(prefers-color-scheme: light)", color: light },
+            { media: "(prefers-color-scheme: dark)", color: dark },
+          ]
+        : theme === "light"
+          ? light
+          : dark,
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const theme = await readTheme();
   return (
-    <html lang="en" className={`${body.variable} ${code.variable}`}>
+    <html lang="en" data-theme={theme} className={`${body.variable} ${code.variable}`}>
       <body className="min-h-dvh font-sans text-[15px] leading-relaxed antialiased">{children}</body>
     </html>
   );

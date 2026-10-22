@@ -57,7 +57,7 @@ test("an agent from another campus can't see this campus's tickets", async ({ br
   await student.goto("/tickets/new");
   await student.getByText("Printer Setup", { exact: true }).click();
   await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await student.getByLabel("Room").fill("101");
+  await student.getByLabel("Room", { exact: true }).fill("101");
   await student.getByLabel("Issue Summary").fill(subject);
   await student.getByLabel("Please Describe Your Issue").fill("Printer offline.");
   await student.getByRole("button", { name: "Submit ticket" }).click();
