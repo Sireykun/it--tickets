@@ -24,9 +24,9 @@ export function CcPanel({
   hint?: string;
 }) {
   return (
-    <Card className="space-y-3 p-4 text-sm" aria-labelledby="cc-heading">
-      <h2 id="cc-heading" className="flex items-center gap-1.5 font-bold">
-        <UserPlus className="size-4" aria-hidden /> CC
+    <Card className="space-y-3 p-5 text-base" aria-labelledby="cc-heading">
+      <h2 id="cc-heading" className="flex items-center gap-2 text-lg font-bold">
+        <UserPlus className="size-5 text-primary" aria-hidden /> People on this ticket
       </h2>
       {collaborators.length === 0 ? (
         <p className="text-muted">Nobody else is on this ticket.</p>

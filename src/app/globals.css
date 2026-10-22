@@ -209,3 +209,38 @@ body {
 }
 
 html { color-scheme: dark; }
+
+[data-portal-theme="violet"] {
+  --bg: #0d0b1b;
+  --surface: #1a1730;
+  --surface-2: #26213e;
+  --border: #453b60;
+  --border-strong: #655879;
+  --primary: #c4a7ff;
+  --primary-hover: #ddc8ff;
+  --primary-fg: #170d2a;
+  --primary-soft: #33254e;
+  --focus: #c4a7ff;
+}
+
+[data-portal-theme="rose"] {
+  --bg: #190d19;
+  --surface: #2a1928;
+  --surface-2: #3a2436;
+  --border: #66405c;
+  --border-strong: #865671;
+  --primary: #f7a2ca;
+  --primary-hover: #ffc2df;
+  --primary-fg: #29111f;
+  --primary-soft: #4b2940;
+  --focus: #f7a2ca;
+}
+
+@keyframes conversation-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgb(121 217 237 / 0.06); }
+  50% { box-shadow: 0 0 0 1px rgb(181 107 155 / 0.28), 0 0 24px rgb(181 107 155 / 0.08); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .conversation-panel { animation: conversation-glow 8s ease-in-out infinite; }
+}

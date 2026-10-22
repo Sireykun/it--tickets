@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { AlarmClock, CheckCircle2, Clock } from "lucide-react";
+import { AlarmClock, CheckCircle2, Clock, Flag } from "lucide-react";
 import type { TicketPriority, TicketStatus } from "@/generated/prisma/enums";
 import { PRIORITY_LABEL, STATUS_LABEL } from "@/lib/labels";
 import { formatDuration, slaState } from "@/server/sla";
@@ -26,16 +26,10 @@ const priorityStyles: Record<TicketPriority, string> = {
   EMERGENCY: "text-p-emergency",
 };
 
-// Bars give a shape cue as well as color, so priority reads without relying on hue.
 export function PriorityBadge({ priority, className }: { priority: TicketPriority; className?: string }) {
-  const level = { LOW: 1, NORMAL: 2, HIGH: 3, EMERGENCY: 4 }[priority];
   return (
     <span className={clsx("inline-flex items-center gap-1.5 text-xs font-bold whitespace-nowrap", priorityStyles[priority], className)}>
-      <span aria-hidden className="flex h-3 items-end gap-px">
-        {[1, 2, 3, 4].map((i) => (
-          <span key={i} className={clsx("w-[3px] rounded-sm", i <= level ? "bg-current" : "bg-current/20")} style={{ height: `${i * 3}px` }} />
-        ))}
-      </span>
+      <Flag className="size-3.5" aria-hidden />
       {PRIORITY_LABEL[priority]}
     </span>
   );

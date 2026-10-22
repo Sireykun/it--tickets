@@ -143,14 +143,6 @@ export const cannedSchema = z.object({
 
 const password = z.string().min(10, "Password must be at least 10 characters.").max(200);
 
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().max(200),
-    newPassword: password,
-    confirmPassword: z.string(),
-  })
-  .refine((v) => v.newPassword === v.confirmPassword, { message: "Passwords don't match.", path: ["confirmPassword"] });
-
 export const profileSchema = z.object({ name: z.string().trim().min(1).max(100) });
 
 export const adminUserSchema = z.object({

@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Circle, Eye, EyeOff, Link2, Printer, UserPlus, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Eye, EyeOff, Heart, Link2, Printer, UserPlus, X } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -181,6 +181,10 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
         </aside>
 
         <aside aria-label="Requester, tasks and links" className="order-last space-y-4 lg:order-none lg:col-start-2 lg:row-start-2">
+          {ticket.kudo && <Card className="border-[#b56b9b]/50 bg-[#42263e] p-4">
+            <h2 className="flex items-center gap-2 font-bold text-[#f7a2ca]"><Heart className="size-5 fill-current" aria-hidden />Kudos from the requester</h2>
+            <p className="mt-1 text-sm text-muted">A thank-you gift from {ticket.requester.name}. No rating attached.</p>
+          </Card>}
           <Card className="p-4 text-sm">
             <h2 className="mb-2 font-bold">Requester</h2>
             <p className="font-bold">{ticket.requester.name}</p>
