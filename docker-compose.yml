@@ -1,0 +1,124 @@
+# Local development stack. Credentials below are DEV-ONLY; never reuse them in production.
+
+x-node: &node
+  build: .
+  working_dir: /app
+  depends_on:
+    db:
+      condition: service_healthy
+  volumes:
+    - .:/app
+    - node_modules:/app/node_modules
+    - next_cache:/app/.next
+    - uploads:/data/uploads
+
+x-env: &env
+  DATABASE_URL: postgresql://ticket:ticket_dev_password@db:5432/ticketdb?schema=public
+  SEED_ADMIN_EMAIL: admin@ciaschool.edu.kh
+  SEED_ADMIN_PASSWORD: ChangeMe-DevOnly-123!
+  # Password for the sample agent/student accounts (non-production seeds only).
+  SEED_SAMPLE_PASSWORD: Sample-DevOnly-123!
+  UPLOAD_DIR: /data/uploads
+  APP_TIME_ZONE: Asia/Phnom_Penh
+  ALLOWED_EMAIL_DOMAIN: ciaschool.edu.kh
+  APP_URL: http://localhost:3000
+  # Email. Dev points at the local GreenMail server; production uses the school's Google Workspace.
+  EMAIL_OUTBOUND: "on"
+  MAIL_FROM: CIA IT Helpdesk <helpdesk@ciaschool.edu.kh>
+  HELPDESK_ADDRESS: helpdesk@ciaschool.edu.kh
+  EMAIL_TOKEN_SECRET: dev-only-email-token-secret-change-me
+  SMTP_HOST: mail
+  SMTP_PORT: "3025"
+  SMTP_SECURE: "false"
+  IMAP_HOST: mail
+  IMAP_PORT: "3143"
+  IMAP_SECURE: "false"
+  IMAP_USER: helpdesk@ciaschool.edu.kh
+  IMAP_PASS: helpdesk
+  INBOUND_HELP_TOPIC: Other
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ticket
+      POSTGRES_PASSWORD: ticket_dev_password
+      POSTGRES_DB: ticketdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticket -d ticketdb"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # Toolbox for one-off commands: docker compose run --rm app <cmd>
+  app:
+    <<: *node
+    environment:
+      <<: *env
+
+  web:
+    <<: *node
+    command: npx next dev -H 0.0.0.0 -p 3000
+    ports:
+      - "3000:3000"
+    environment:
+      <<: *env
+      AUTH_SECRET: dev-only-auth-secret-change-me-0123456789abcdef
+      # Trust the request host so redirects work both from the host browser and the e2e container.
+      AUTH_TRUST_HOST: "true"
+      # Leave empty to hide the Google button; set on the host to enable SSO.
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      WATCHPACK_POLLING: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+
+  # Sends queued email and fetches the helpdesk mailbox.
+  worker:
+    <<: *node
+    command: npx tsx src/worker/index.ts
+    environment:
+      <<: *env
+      IMAP_POLL_SECONDS: "5" # dev: quick turnaround; production default is 30
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
+
+  # Dev-only mail server (SMTP 3025, IMAP 3143, REST API 8080). Accepts any login.
+  mail:
+    image: greenmail/standalone:2.1.3
+    environment:
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled
+        -Dgreenmail.verbose=false
+    ports:
+      - "8025:8080"
+
+  # End-to-end tests against the running `web` service: docker compose run --rm e2e
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.64.1-noble
+    profiles: ["e2e"]
+    working_dir: /app
+    ipc: host
+    depends_on: [web, worker, mail]
+    environment:
+      BASE_URL: http://web:3000
+      MAIL_API: http://mail:8080
+      MAIL_SMTP_HOST: mail
+      E2E_ADMIN_PASSWORD: ChangeMe-DevOnly-123!
+      E2E_SAMPLE_PASSWORD: Sample-DevOnly-123!
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: npx playwright test
+
+volumes:
+  pgdata:
+  node_modules:
+  next_cache:
+  uploads:

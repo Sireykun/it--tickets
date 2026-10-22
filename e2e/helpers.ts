@@ -1,0 +1,42 @@
+import { type Browser, expect, type Page, type TestInfo } from "@playwright/test";
+
+export const ADMIN = { email: "admin@ciaschool.edu.kh", password: process.env.E2E_ADMIN_PASSWORD ?? "ChangeMe-DevOnly-123!" };
+export const AGENT = { email: "agent@ciaschool.edu.kh", password: process.env.E2E_SAMPLE_PASSWORD ?? "Sample-DevOnly-123!" };
+export const STUDENT = { email: "student@ciaschool.edu.kh", password: process.env.E2E_SAMPLE_PASSWORD ?? "Sample-DevOnly-123!" };
+// Campus admin of Main Campus with "Manage users & agents", and an agent who only works at Campus 2.
+export const CAMPUS_ADMIN = { email: "campusadmin@ciaschool.edu.kh", password: process.env.E2E_SAMPLE_PASSWORD ?? "Sample-DevOnly-123!" };
+export const AGENT2 = { email: "agent2@ciaschool.edu.kh", password: process.env.E2E_SAMPLE_PASSWORD ?? "Sample-DevOnly-123!" };
+
+// 1×1 PNG, enough to exercise image upload and inline rendering.
+export const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+export async function login(page: Page, who: { email: string; password: string }) {
+  await page.goto("/login");
+  await page.getByLabel("School email").fill(who.email);
+  await page.getByLabel("Password").fill(who.password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL((url) => !url.pathname.startsWith("/login") && url.pathname !== "/go");
+}
+
+// Each user gets their own browser context (separate cookies) with the project's device settings.
+export async function sessionFor(browser: Browser, testInfo: TestInfo, who: { email: string; password: string }) {
+  const context = await browser.newContext(testInfo.project.use);
+  const page = await context.newPage();
+  await login(page, who);
+  return page;
+}
+
+// On phones the staff ticket panel is collapsed behind an "Edit details" button.
+export async function openTicketPanel(page: Page) {
+  const toggle = page.getByRole("button", { name: /Edit details/ });
+  if (await toggle.isVisible()) await toggle.click();
+  await expect(page.getByLabel("Status")).toBeVisible();
+}
+
+export async function shot(page: Page, testInfo: TestInfo, name: string) {
+  if (testInfo.project.name !== "iphone") return;
+  await page.screenshot({ path: `test-results/screens/${name}.png`, fullPage: true });
+}

@@ -1,8 +1,0 @@
-{
-    "require": {
-        "mpdf/mpdf": "^8.0"
-    },
-    "replace": {
-        "psr/http-message": "*"
-    }
-}

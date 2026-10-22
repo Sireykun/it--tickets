@@ -1,0 +1,76 @@
+"use client";
+
+import clsx from "clsx";
+import { Paperclip } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Field, Input, Textarea } from "@/components/ui/field";
+import { Alert } from "@/components/ui/misc";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { initialActionState } from "@/lib/action-state";
+import { createTicketAction } from "../../actions";
+
+type Topic = { id: string; name: string; description: string | null };
+
+export function NewTicketForm({ topics, accept }: { topics: Topic[]; accept: string }) {
+  const [state, action] = useActionState(createTicketAction, initialActionState);
+  // Controlled so typed text survives a validation error.
+  const [topicId, setTopicId] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [fileCount, setFileCount] = useState(0);
+
+  return (
+    <form action={action} className="space-y-6">
+      {state.error && <Alert>{state.error}</Alert>}
+
+      <fieldset>
+        <legend className="mb-2 text-sm font-bold">What do you need help with?</legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {topics.map((t) => (
+            <label
+              key={t.id}
+              className={clsx(
+                // The radio is visually hidden, so the tile carries its focus ring.
+                "flex min-h-16 cursor-pointer flex-col justify-center rounded-lg border bg-surface px-4 py-3 shadow-card transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus",
+                topicId === t.id ? "border-primary bg-primary-soft ring-1 ring-primary" : "border-border hover:border-border-strong",
+              )}
+            >
+              <input
+                type="radio"
+                name="helpTopicId"
+                value={t.id}
+                checked={topicId === t.id}
+                onChange={() => setTopicId(t.id)}
+                required
+                className="sr-only"
+              />
+              <span className="font-bold">{t.name}</span>
+              {t.description && <span className="text-sm text-muted">{t.description}</span>}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <Field label="Subject" htmlFor="subject" hint="A short summary, e.g. “Projector in room 12 won't turn on”.">
+        <Input id="subject" name="subject" required minLength={3} maxLength={200} value={subject} onChange={(e) => setSubject(e.target.value)} />
+      </Field>
+
+      <Field label="Describe the problem" htmlFor="body" hint="Where are you, what device, and what have you tried?">
+        <Textarea id="body" name="body" required rows={6} value={body} onChange={(e) => setBody(e.target.value)} />
+      </Field>
+
+      <div>
+        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border-strong bg-surface px-4 font-bold text-muted transition-colors hover:bg-surface-2 hover:text-text has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus">
+          <Paperclip className="size-5" aria-hidden />
+          {fileCount > 0 ? `${fileCount} file${fileCount > 1 ? "s" : ""} attached` : "Add photos or files"}
+          <input type="file" name="files" multiple accept={accept} className="sr-only" onChange={(e) => setFileCount(e.target.files?.length ?? 0)} />
+        </label>
+        <p className="mt-1.5 text-sm text-muted">Up to 5 files, 10 MB each. A photo of the error helps a lot.</p>
+      </div>
+
+      <SubmitButton size="lg" className="w-full sm:w-auto" pendingText="Sending…">
+        Submit ticket
+      </SubmitButton>
+    </form>
+  );
+}

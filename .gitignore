@@ -1,6 +1,10 @@
-.env
-.env.*
-!.env.example
-backups/
-*.sql
-*.sql.gz
+CLAUDE.local.md
+node_modules/
+src/generated/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+uploads/
+test-results/
+playwright-report/
+.claude/settings.local.json

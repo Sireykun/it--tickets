@@ -1,0 +1,561 @@
+// CIA IT Ticket System: database schema.
+//
+// Some rules live in the SQL migration because Prisma can't express them:
+//   - ticket_number_seq + formatted default for tickets.ticket_number (TKT-000001, ...)
+//   - trigger keeping tickets.priority_level in sync with tickets.priority
+//   - CHECK constraints on sla_policies hours
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER // requester
+  AGENT // IT staff, scoped to their campuses
+  ADMIN // campus admin: agent + permissions granted per campus (StaffCampus.permissions)
+  SUPERADMIN // everything, all campuses
+
+  @@map("role")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+
+  @@map("ticket_status")
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  EMERGENCY
+
+  @@map("ticket_priority")
+}
+
+enum ThreadEntryType {
+  CLIENT_MESSAGE
+  AGENT_REPLY
+  INTERNAL_NOTE // never shown to the requester
+  SYSTEM_EVENT // status/assignment/priority changes, written by the app
+
+  @@map("thread_entry_type")
+}
+
+// How a ticket reached the helpdesk.
+enum TicketSource {
+  WEB
+  EMAIL
+  PHONE
+  WALK_IN
+  API
+
+  @@map("ticket_source")
+}
+
+enum TaskStatus {
+  OPEN
+  CLOSED
+
+  @@map("task_status")
+}
+
+enum EmailStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED // gave up after the last retry
+
+  @@map("email_status")
+}
+
+enum InboundStatus {
+  PROCESSED // became a ticket or a reply
+  REJECTED // sender not allowed / not a participant
+  IGNORED // auto-reply, our own mail, empty
+  FAILED
+
+  @@map("inbound_status")
+}
+
+enum TicketLinkKind {
+  LINKED // related tickets, both stay active
+  MERGED // `from` was merged into `to` and closed
+
+  @@map("ticket_link_kind")
+}
+
+// ─── Users, departments, teams ──────────────────────────────────────────────
+
+model User {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  email          String    @unique // store lowercased
+  name           String
+  // Null for requesters who only open tickets by email and never log in.
+  passwordHash   String?   @map("password_hash")
+  role           Role      @default(USER)
+  isActive       Boolean   @default(true) @map("is_active")
+  departmentId   String?   @map("department_id") @db.Uuid
+  organizationId String?   @map("organization_id") @db.Uuid
+  // Home campus: new tickets from this user go here.
+  campusId       String?   @map("campus_id") @db.Uuid
+  // Staff alert emails (new ticket, assigned, requester replied). Requester emails always go out.
+  emailAlerts    Boolean   @default(true) @map("email_alerts")
+  lastLoginAt    DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  department         Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  teamMemberships    TeamMember[]
+  requestedTickets   Ticket[]             @relation("TicketRequester")
+  assignedTickets    Ticket[]             @relation("TicketAssignedAgent")
+  createdTickets     Ticket[]             @relation("TicketCreator")
+  threadEntries      TicketThread[]
+  uploads            Attachment[]
+  cannedResponses    CannedResponse[]
+  assignedTasks      Task[]               @relation("TaskAssignedAgent")
+  createdTasks       Task[]               @relation("TaskCreatedBy")
+  taskComments       TaskComment[]
+  ticketLocks        TicketLock[]
+  ticketLinks        TicketLink[]
+  auditEvents        AuditEvent[]
+  organization       Organization?        @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  collaborations     TicketCollaborator[] @relation("CollaboratorUser")
+  addedCollaborators TicketCollaborator[] @relation("CollaboratorAddedBy")
+  campus             Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  staffCampuses      StaffCampus[]
+
+  @@index([role, isActive])
+  @@index([organizationId])
+  @@index([campusId])
+  @@map("users")
+}
+
+model Department {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  users            User[]
+  teams            Team[]
+  tickets          Ticket[]
+  defaultForTopics HelpTopic[]
+  cannedResponses  CannedResponse[]
+
+  @@map("departments")
+}
+
+model Team {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  name         String   @unique
+  description  String?
+  departmentId String?  @map("department_id") @db.Uuid
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  department       Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  members          TeamMember[]
+  tickets          Ticket[]
+  defaultForTopics HelpTopic[]
+  tasks            Task[]
+
+  @@index([departmentId])
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId    String   @map("team_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  isLead    Boolean  @default(false) @map("is_lead")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+// ─── SLA & help topics ──────────────────────────────────────────────────────
+
+model SlaPolicy {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  name                String   @unique
+  description         String?
+  responseTimeHours   Int      @map("response_time_hours") // CHECK > 0
+  resolutionTimeHours Int      @map("resolution_time_hours") // CHECK > 0
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  helpTopics HelpTopic[]
+  tickets    Ticket[]
+
+  @@map("sla_policies")
+}
+
+model HelpTopic {
+  id                  String         @id @default(uuid(7)) @db.Uuid
+  name                String         @unique
+  description         String?
+  defaultPriority     TicketPriority @default(NORMAL) @map("default_priority")
+  defaultDepartmentId String?        @map("default_department_id") @db.Uuid
+  defaultTeamId       String?        @map("default_team_id") @db.Uuid
+  slaPolicyId         String?        @map("sla_policy_id") @db.Uuid
+  isActive            Boolean        @default(true) @map("is_active")
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  defaultDepartment Department? @relation(fields: [defaultDepartmentId], references: [id], onDelete: SetNull)
+  defaultTeam       Team?       @relation(fields: [defaultTeamId], references: [id], onDelete: SetNull)
+  slaPolicy         SlaPolicy?  @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  tickets           Ticket[]
+
+  @@map("help_topics")
+}
+
+// ─── Tickets & threads ──────────────────────────────────────────────────────
+
+model Ticket {
+  id              String         @id @default(uuid(7)) @db.Uuid
+  // Generated by the database from ticket_number_seq, e.g. TKT-000042.
+  ticketNumber    String         @unique @default(dbgenerated("('TKT-'::text || lpad((nextval('ticket_number_seq'::regclass))::text, 6, '0'::text))")) @map("ticket_number")
+  subject         String
+  source          TicketSource   @default(WEB)
+  // Always set by the app. Null only for rows from before campuses existed (superadmin-only until the seed backfills them).
+  campusId        String?        @map("campus_id") @db.Uuid
+  status          TicketStatus   @default(OPEN)
+  priority        TicketPriority @default(NORMAL)
+  // 1 = LOW … 4 = EMERGENCY. Set by a trigger from `priority`; don't write it directly.
+  priorityLevel   Int            @default(2) @map("priority_level")
+  requesterId     String         @map("requester_id") @db.Uuid
+  departmentId    String         @map("department_id") @db.Uuid
+  helpTopicId     String?        @map("help_topic_id") @db.Uuid
+  assignedTeamId  String?        @map("assigned_team_id") @db.Uuid
+  // Must be an AGENT or ADMIN; enforced in application code.
+  assignedAgentId String?        @map("assigned_agent_id") @db.Uuid
+  // Copied from the help topic when the ticket is created.
+  slaPolicyId     String?        @map("sla_policy_id") @db.Uuid
+  // Who filed it: the requester, or the agent who opened it on their behalf. Null for email-created tickets
+  // from unknown senders and for rows whose creator was deleted.
+  createdById     String?        @map("created_by_id") @db.Uuid
+
+  firstResponseDueAt DateTime? @map("first_response_due_at") @db.Timestamptz(3)
+  resolutionDueAt    DateTime? @map("resolution_due_at") @db.Timestamptz(3)
+  firstRespondedAt   DateTime? @map("first_responded_at") @db.Timestamptz(3)
+  resolvedAt         DateTime? @map("resolved_at") @db.Timestamptz(3)
+  closedAt           DateTime? @map("closed_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  requester     User                 @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  department    Department           @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  helpTopic     HelpTopic?           @relation(fields: [helpTopicId], references: [id], onDelete: SetNull)
+  assignedTeam  Team?                @relation(fields: [assignedTeamId], references: [id], onDelete: SetNull)
+  assignedAgent User?                @relation("TicketAssignedAgent", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  createdBy     User?                @relation("TicketCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  slaPolicy    SlaPolicy?           @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  thread        TicketThread[]
+  tasks         Task[]
+  lock          TicketLock?
+  linksFrom     TicketLink[]         @relation("TicketLinkFrom")
+  linksTo       TicketLink[]         @relation("TicketLinkTo")
+  collaborators TicketCollaborator[]
+  emails        EmailOutbox[]
+  inboundEmails InboundEmail[]
+  campus        Campus?              @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
+  @@index([campusId, status])
+  @@index([status, priorityLevel])
+  @@index([assignedAgentId, status])
+  @@index([assignedTeamId, status])
+  @@index([requesterId])
+  @@index([createdById])
+  @@index([departmentId])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+// One row per entry in a ticket's conversation.
+model TicketThread {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  ticketId  String          @map("ticket_id") @db.Uuid
+  // Null for system-generated entries or inbound email from unknown senders.
+  authorId  String?         @map("author_id") @db.Uuid
+  type      ThreadEntryType
+  body      String
+  editedAt  DateTime?       @map("edited_at") @db.Timestamptz(3)
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket      Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author      User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  attachments Attachment[]
+
+  @@index([ticketId, createdAt])
+  @@index([authorId])
+  @@map("ticket_threads")
+}
+
+// Metadata only. The file itself lives in object storage under `storageKey`.
+model Attachment {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  threadEntryId  String   @map("thread_entry_id") @db.Uuid
+  uploadedById   String?  @map("uploaded_by_id") @db.Uuid
+  fileName       String   @map("file_name")
+  mimeType       String   @map("mime_type")
+  sizeBytes      BigInt   @map("size_bytes")
+  storageKey     String   @unique @map("storage_key")
+  checksumSha256 String?  @map("checksum_sha256") @db.Char(64)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  threadEntry TicketThread @relation(fields: [threadEntryId], references: [id], onDelete: Cascade)
+  uploadedBy  User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([threadEntryId])
+  @@map("attachments")
+}
+
+// ─── Agent productivity ─────────────────────────────────────────────────────
+
+// Saved replies. `departmentId` null = available to every department.
+model CannedResponse {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  title        String   @unique
+  body         String
+  departmentId String?  @map("department_id") @db.Uuid
+  isActive     Boolean  @default(true) @map("is_active")
+  createdById  String?  @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdBy  User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("canned_responses")
+}
+
+// Internal to-do items for staff, optionally attached to a ticket.
+model Task {
+  id              String     @id @default(uuid(7)) @db.Uuid
+  ticketId        String?    @map("ticket_id") @db.Uuid
+  title           String
+  description     String?
+  status          TaskStatus @default(OPEN)
+  assignedAgentId String?    @map("assigned_agent_id") @db.Uuid
+  assignedTeamId  String?    @map("assigned_team_id") @db.Uuid
+  dueAt           DateTime?  @map("due_at") @db.Timestamptz(3)
+  createdById     String?    @map("created_by_id") @db.Uuid
+  closedAt        DateTime?  @map("closed_at") @db.Timestamptz(3)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  ticket        Ticket?       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  assignedAgent User?         @relation("TaskAssignedAgent", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  assignedTeam  Team?         @relation(fields: [assignedTeamId], references: [id], onDelete: SetNull)
+  createdBy     User?         @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  comments      TaskComment[]
+
+  @@index([ticketId])
+  @@index([assignedAgentId, status])
+  @@index([assignedTeamId, status])
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  authorId  String?  @map("author_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  task   Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, createdAt])
+  @@map("task_comments")
+}
+
+// "Someone else is replying" warning. One row per ticket; stale once `expiresAt` passes.
+model TicketLock {
+  ticketId   String   @id @map("ticket_id") @db.Uuid
+  agentId    String   @map("agent_id") @db.Uuid
+  acquiredAt DateTime @default(now()) @map("acquired_at") @db.Timestamptz(3)
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  agent  User   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_locks")
+}
+
+model TicketLink {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  fromTicketId String         @map("from_ticket_id") @db.Uuid
+  toTicketId   String         @map("to_ticket_id") @db.Uuid
+  kind         TicketLinkKind
+  createdById  String?        @map("created_by_id") @db.Uuid
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  fromTicket Ticket @relation("TicketLinkFrom", fields: [fromTicketId], references: [id], onDelete: Cascade)
+  toTicket   Ticket @relation("TicketLinkTo", fields: [toTicketId], references: [id], onDelete: Cascade)
+  createdBy  User?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([fromTicketId, toTicketId])
+  @@index([toTicketId])
+  @@map("ticket_links")
+}
+
+// ─── People ─────────────────────────────────────────────────────────────────
+
+// People CC'd on a ticket: they can see it, reply, and get the same emails as the requester.
+model TicketCollaborator {
+  ticketId  String   @map("ticket_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  addedById String?  @map("added_by_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket  Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user    User   @relation("CollaboratorUser", fields: [userId], references: [id], onDelete: Cascade)
+  addedBy User?  @relation("CollaboratorAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@id([ticketId, userId])
+  @@index([userId])
+  @@map("ticket_collaborators")
+}
+
+// Groups of users (campus, grade, staff). `domains` auto-assigns new users by email domain.
+// The school's campuses. Tickets, requesters and staff belong to campuses; settings are shared.
+model Campus {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  name         String   @unique
+  // New users with these email domains get this home campus.
+  emailDomains String[] @default([]) @map("email_domains")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  users   User[]
+  tickets Ticket[]
+  staff   StaffCampus[]
+
+  @@map("campuses")
+}
+
+// Which campuses a staff member works at, and what they may do there.
+// `permissions` is granted by a superadmin; see CAMPUS_PERMISSIONS in src/server/roles.ts.
+model StaffCampus {
+  userId      String   @map("user_id") @db.Uuid
+  campusId    String   @map("campus_id") @db.Uuid
+  permissions String[] @default([])
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@id([userId, campusId])
+  @@index([campusId])
+  @@map("staff_campuses")
+}
+
+model Organization {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String   @unique
+  domains   String[] @default([])
+  notes     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  users User[]
+
+  @@map("organizations")
+}
+
+// ─── Email ──────────────────────────────────────────────────────────────────
+
+// Transactional outbox: rows are written with the change that caused them and sent by the worker.
+model EmailOutbox {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  toAddress     String      @map("to_address")
+  subject       String
+  textBody      String      @map("text_body")
+  htmlBody      String      @map("html_body")
+  messageId     String      @unique @map("message_id")
+  inReplyTo     String?     @map("in_reply_to")
+  references    String[]    @default([])
+  templateKey   String?     @map("template_key")
+  ticketId      String?     @map("ticket_id") @db.Uuid
+  status        EmailStatus @default(PENDING)
+  attempts      Int         @default(0)
+  nextAttemptAt DateTime    @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lastError     String?     @map("last_error")
+  sentAt        DateTime?   @map("sent_at") @db.Timestamptz(3)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@index([ticketId])
+  @@map("email_outbox")
+}
+
+// Editable email wording. `key` is one of the template keys in src/server/email/templates.ts.
+model EmailTemplate {
+  key       String   @id
+  subject   String
+  body      String
+  isActive  Boolean  @default(true) @map("is_active")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("email_templates")
+}
+
+// One row per fetched message, so each is processed exactly once.
+model InboundEmail {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  messageId   String        @unique @map("message_id")
+  fromAddress String        @map("from_address")
+  subject     String
+  status      InboundStatus
+  reason      String?
+  ticketId    String?       @map("ticket_id") @db.Uuid
+  receivedAt  DateTime      @default(now()) @map("received_at") @db.Timestamptz(3)
+
+  ticket Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([receivedAt])
+  @@map("inbound_emails")
+}
+
+// Append-only record of who changed what.
+model AuditEvent {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String // e.g. "ticket.update", "user.save"
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  data       Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("audit_events")
+}
