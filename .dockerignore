@@ -1,9 +1,7 @@
-.git
-.env
-.env.*
-!.env.example
-app/
-backups/
-vscode-git-buttons/
-*.sql
-*.sql.gz
+node_modules
+src/generated
+.next
+.claude
+uploads
+test-results
+playwright-report

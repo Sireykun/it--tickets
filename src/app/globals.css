@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ─────────────────────────────────────────────────────────
+   Cool neutral base + one brand accent (the helpdesk blue). Status and
+   priority hues are semantic, never decorative. Every pair used for text
+   meets WCAG AA in both themes.
+
+   Shape rule (keep it consistent):
+     controls (buttons, inputs, nav items, segmented tabs) → rounded-lg (8px)
+     surfaces (cards, panels, message bubbles, dialogs)    → rounded-xl (12px)
+     chips, counts, avatars                                 → rounded-full */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --border: #e0e5ea;
+  --border-strong: #c5cdd6;
+  --text: #0f1b26;
+  --muted: #55626e;
+  --primary: #17587f;
+  --primary-hover: #104562;
+  --primary-fg: #ffffff;
+  --primary-soft: #e3eef6;
+  --focus: #2b7bba;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --shadow: 16 32 48;
+  /* Solid brand surface (login panel); stays deep blue in both themes. */
+  --brand: #17587f;
+  --brand-fg: #ffffff;
+
+  --open: #1c5fa8;
+  --open-soft: #e3eefa;
+  --progress: #6a3fb5;
+  --progress-soft: #efe8fa;
+  --resolved: #12704a;
+  --resolved-soft: #e2f4eb;
+  --closed: #4f5b66;
+  --closed-soft: #eceff2;
+
+  --p-low: #55626e;
+  --p-normal: #1c5fa8;
+  --p-high: #a64708;
+  --p-emergency: #b42318;
+
+  --note: #6b4e00;
+  --note-bg: #fff7dc;
+  --note-border: #ecc94b;
+  --warn: #a64708;
+  --warn-soft: #fff1e6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1016;
+    --surface: #121920;
+    --surface-2: #1a232c;
+    --border: #232e39;
+    --border-strong: #354452;
+    --text: #e6edf3;
+    --muted: #9aa8b5;
+    --primary: #68addd;
+    --primary-hover: #8bc1e7;
+    --primary-fg: #04121c;
+    --primary-soft: #132d42;
+    --focus: #8bc1e7;
+    --danger: #f2837a;
+    --danger-soft: #3a1714;
+    --shadow: 0 0 0;
+    --brand: #123f5c;
+    --brand-fg: #f1f6fa;
+
+    --open: #7db3ea;
+    --open-soft: #16304d;
+    --progress: #b99af0;
+    --progress-soft: #2c2048;
+    --resolved: #6fd0a2;
+    --resolved-soft: #123628;
+    --closed: #a5b1bc;
+    --closed-soft: #252f39;
+
+    --p-low: #9aa8b5;
+    --p-normal: #7db3ea;
+    --p-high: #f0a66b;
+    --p-emergency: #f2837a;
+
+    --note: #f3d77a;
+    --note-bg: #2a2410;
+    --note-border: #6e5a1c;
+    --warn: #f0a66b;
+    --warn-soft: #3a2412;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+  --color-focus: var(--focus);
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-open: var(--open);
+  --color-open-soft: var(--open-soft);
+  --color-progress: var(--progress);
+  --color-progress-soft: var(--progress-soft);
+  --color-resolved: var(--resolved);
+  --color-resolved-soft: var(--resolved-soft);
+  --color-closed: var(--closed);
+  --color-closed-soft: var(--closed-soft);
+  --color-p-low: var(--p-low);
+  --color-p-normal: var(--p-normal);
+  --color-p-high: var(--p-high);
+  --color-p-emergency: var(--p-emergency);
+  --color-note: var(--note);
+  --color-note-bg: var(--note-bg);
+  --color-note-border: var(--note-border);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-code), ui-monospace, monospace;
+  /* Shadows are tinted with the page hue, never pure black on light. */
+  --shadow-card: 0 1px 2px rgb(var(--shadow) / 0.05), 0 1px 1px rgb(var(--shadow) / 0.03);
+  --shadow-raised: 0 8px 24px -8px rgb(var(--shadow) / 0.16), 0 2px 4px rgb(var(--shadow) / 0.05);
+}
+
+html {
+  color-scheme: light dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Room for the phone bottom tab bar + iOS home indicator. */
+.pb-tabbar {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* CIA FIRST Digital Nexus palette, kept consistent on all devices. */
+:root {
+  --bg: #071225;
+  --surface: #101e34;
+  --surface-2: #182b43;
+  --border: #30445e;
+  --border-strong: #48617a;
+  --text: #eef6ff;
+  --muted: #b0c4d8;
+  --primary: #79d9ed;
+  --primary-hover: #a1eafa;
+  --primary-fg: #061624;
+  --primary-soft: #18364d;
+  --focus: #79d9ed;
+  --shadow: 0 0 0;
+  --brand: #0a2b43;
+  --brand-fg: #f3faff;
+  --danger: #f2837a;
+  --danger-soft: #3a1714;
+  --open: #7db3ea;
+  --open-soft: #16304d;
+  --progress: #b99af0;
+  --progress-soft: #2c2048;
+  --resolved: #6fd0a2;
+  --resolved-soft: #123628;
+  --closed: #a5b1bc;
+  --closed-soft: #252f39;
+  --p-low: #b0c4d8;
+  --p-normal: #7db3ea;
+  --p-high: #f0a66b;
+  --p-emergency: #f2837a;
+  --note: #f3d77a;
+  --note-bg: #2a2410;
+  --note-border: #6e5a1c;
+  --warn: #f0a66b;
+  --warn-soft: #3a2412;
+}
+
+html { color-scheme: dark; }
