@@ -80,7 +80,7 @@ type CreateOptions = {
 
 export async function createTicket(
   actor: Actor,
-  input: { helpTopicId: string; subject: string; body: string; room?: string },
+  input: { helpTopicId: string; subject: string; body: string; room?: string; priority?: TicketPriority },
   files: PreparedFile[] = [],
   opts: CreateOptions = {},
 ) {
@@ -123,7 +123,7 @@ export async function createTicket(
           room: input.room?.trim() || null,
           campusId,
           source: opts.source ?? "WEB",
-          priority: topic.defaultPriority,
+          priority: input.priority ?? topic.defaultPriority,
           requesterId,
           createdById: actor.id,
           departmentId,
@@ -520,7 +520,7 @@ export async function giveKudo(actor: Actor, ticketNumber: string) {
   return prisma.$transaction(async (tx) => {
     const ticket = await tx.ticket.findUnique({ where: { ticketNumber: normalizeNumber(ticketNumber) } });
     if (!ticket || ticket.requesterId !== actor.id) throw new TicketError("Ticket not found.");
-    if (ticket.status !== "CLOSED" || !ticket.closedByStaff) throw new TicketError("Kudos are available after the IT team closes your ticket.");
+    if (ticket.status !== "CLOSED") throw new TicketError("Kudos are available on closed tickets.");
     const existing = await tx.ticketKudo.findUnique({ where: { ticketId: ticket.id } });
     if (existing) return existing;
     const kudo = await tx.ticketKudo.create({ data: { ticketId: ticket.id, requesterId: actor.id, recipientId: ticket.assignedAgentId } });

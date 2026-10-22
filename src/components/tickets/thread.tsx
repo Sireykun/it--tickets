@@ -43,16 +43,16 @@ function Message({ entry, mine, now }: { entry: Entry; mine: boolean; now: Date 
       <article
         className={clsx(
           // On wider screens the bubble shrinks to its text but leaves room for the avatar column.
-          "relative min-w-0 flex-1 rounded-xl border px-4 py-3.5 sm:max-w-[min(calc(100%-3rem),40rem)] sm:flex-initial",
+          "relative min-w-0 flex-1 rounded-xl border px-4 py-4 sm:min-w-72 sm:max-w-[min(calc(100%-3rem),42rem)] sm:flex-initial sm:px-5 md:min-w-96",
           note
             ? "border-note-border border-dashed bg-note-bg"
             : mine
               ? "border-primary/40 bg-primary-soft after:absolute after:top-5 after:-right-1.5 after:size-3 after:rotate-45 after:border-r after:border-t after:border-primary/40 after:bg-primary-soft"
-              : "border-[#b56b9b] bg-[#42263e] shadow-card after:absolute after:top-5 after:-left-1.5 after:size-3 after:rotate-45 after:border-b after:border-l after:border-[#b56b9b] after:bg-[#42263e]",
+              : "border-reply-border bg-reply-bg shadow-card after:absolute after:top-5 after:-left-1.5 after:size-3 after:rotate-45 after:border-b after:border-l after:border-reply-border after:bg-reply-bg",
         )}
       >
-        <header className="mb-2 flex flex-wrap items-baseline gap-x-2 text-sm">
-          <span className="font-bold">{entry.author?.name ?? "Unknown sender"}</span>
+        <header className="mb-2 flex flex-wrap items-baseline gap-x-2 text-base">
+          <span className="font-bold text-gold-text">{entry.author?.name ?? "Unknown sender"}</span>
           {fromStaff && !note && <span className="font-bold text-primary">IT Team</span>}
           {note && (
             <span className="inline-flex items-center gap-1 text-sm font-bold text-note">

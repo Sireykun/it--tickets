@@ -1,5 +1,5 @@
 import { UserPlus, X } from "lucide-react";
-import { Card } from "@/components/ui/misc";
+import { AccentRule, Card } from "@/components/ui/misc";
 import type { ActionState } from "@/lib/action-state";
 import { AddCcForm } from "./add-cc-form";
 
@@ -24,10 +24,11 @@ export function CcPanel({
   hint?: string;
 }) {
   return (
-    <Card className="space-y-3 p-5 text-base" aria-labelledby="cc-heading">
+    <Card className="space-y-3 border-gold/50 p-5 text-base" aria-labelledby="cc-heading">
       <h2 id="cc-heading" className="flex items-center gap-2 text-lg font-bold">
         <UserPlus className="size-5 text-primary" aria-hidden /> People on this ticket
       </h2>
+      <AccentRule className="mt-0 w-10" />
       {collaborators.length === 0 ? (
         <p className="text-muted">Nobody else is on this ticket.</p>
       ) : (

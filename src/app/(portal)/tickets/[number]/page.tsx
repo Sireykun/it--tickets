@@ -2,11 +2,11 @@ import { ArrowLeft, Building2, CalendarDays, CheckCircle2, DoorOpen, Heart, Lock
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { StatusChip } from "@/components/tickets/badges";
+import { PriorityBadge, StatusChip } from "@/components/tickets/badges";
 import { Composer } from "@/components/tickets/composer";
 import { Thread } from "@/components/tickets/thread";
 import { Button, LinkButton } from "@/components/ui/button";
-import { Alert, Card } from "@/components/ui/misc";
+import { AccentRule, Alert, Card } from "@/components/ui/misc";
 import { formatDateTime } from "@/lib/format";
 import { isStaff, requireUser } from "@/server/authz";
 import { ACCEPT_ATTRIBUTE } from "@/server/storage";
@@ -53,21 +53,53 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/t
           <section className="rounded-xl border border-border bg-surface px-4 py-3 shadow-card sm:px-5 sm:py-4" aria-labelledby="ticket-title">
             <div className="mb-2 flex flex-wrap items-center gap-2.5">
               <span className="rounded-md border border-border-strong bg-surface-2 px-2.5 py-1 font-mono text-sm font-bold text-primary">{ticket.ticketNumber}</span>
-              {ticket.helpTopic && <span className="text-sm font-semibold text-muted">{ticket.helpTopic.name}</span>}
+              {ticket.helpTopic && <span className="rounded-md border border-gold/40 bg-gold/10 px-2.5 py-1 text-sm font-semibold text-gold-text">{ticket.helpTopic.name}</span>}
+              <PriorityBadge priority={ticket.priority} className="rounded-md border border-border-strong bg-surface-2 px-2.5 py-1 text-sm" />
               <StatusChip status={ticket.status} className="ml-auto text-sm" />
             </div>
             <h1 id="ticket-title" className="text-xl leading-tight font-bold tracking-tight text-balance break-words sm:text-2xl">{ticket.subject}</h1>
+            <AccentRule />
           </section>
 
-          <section className="conversation-panel rounded-xl border border-border bg-surface p-4 shadow-card sm:p-5" aria-labelledby="conversation-title">
-            <div className="mb-5 flex items-center justify-between border-b border-border pb-4">
-              <h2 id="conversation-title" className="flex items-center gap-2 text-lg font-bold"><MessageSquareText className="size-5 text-primary" aria-hidden />Conversation</h2>
-              <span className="rounded-full bg-surface-2 px-3 py-1 text-sm font-semibold text-muted">{ticket.thread.length} updates</span>
+          <section className="conversation-panel rounded-xl border border-gold/70 bg-surface p-4 shadow-card sm:p-5" aria-labelledby="conversation-title">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <h2 id="conversation-title" className="flex items-center gap-2 text-lg font-bold"><MessageSquareText className="size-5 text-primary" aria-hidden />Conversation</h2>
+                <AccentRule className="mt-2 w-10" />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-sm font-semibold text-gold-text">{ticket.thread.length} updates</span>
+                {isRequester && (ticket.kudo ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-gold/50 bg-gold/10 px-3 py-2 text-sm font-bold text-gold-text"><Heart className="size-4 fill-current" aria-hidden /> Kudo sent</span>
+                ) : closed ? (
+                  <form action={giveKudoAction.bind(null, ticket.ticketNumber)}>
+                    <Button type="submit" variant="secondary" className="border-gold/60 text-gold-text"><Heart className="size-4" aria-hidden /> Give a kudo to support</Button>
+                  </form>
+                ) : null)}
+              </div>
             </div>
             <Thread entries={ticket.thread} perspective="requester" />
+            {!closed && (
+              <div className="mt-6 border-t border-border pt-5" aria-labelledby="reply-title">
+                {ticket.status === "RESOLVED" && (
+                  <div className="mb-3">
+                    <Alert tone="info">IT marked this as resolved. Reply below if it's still not working, or close the ticket.</Alert>
+                  </div>
+                )}
+                <h2 id="reply-title" className="mb-3 text-lg font-bold">Reply to IT</h2>
+                <Composer action={postClientMessageAction.bind(null, ticket.ticketNumber)} accept={ACCEPT_ATTRIBUTE} placeholder="Message…" />
+                {isRequester && (
+                  <form action={closeTicketAction.bind(null, ticket.ticketNumber)} className="mt-3 flex justify-end">
+                    <Button type="submit" variant="secondary">
+                      <CheckCircle2 className="size-5" aria-hidden /> My problem is solved, close ticket
+                    </Button>
+                  </form>
+                )}
+              </div>
+            )}
           </section>
 
-          {closed ? (
+          {closed && (
             <Card className="space-y-4 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="flex items-center gap-2 text-muted"><Lock className="size-5" aria-hidden /> This ticket is closed.</p>
@@ -76,36 +108,14 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/t
                   <LinkButton href="/tickets/new" variant="secondary">Open a new ticket</LinkButton>
                 </div>
               </div>
-              {isRequester && ticket.closedByStaff && <div className="rounded-lg border border-[#b56b9b]/50 bg-[#42263e] p-4">
-                <p className="font-bold">Appreciate the IT team’s help?</p>
-                <p className="mt-1 text-sm text-muted">Send a small thank-you gift. No rating or review.</p>
-                {ticket.kudo ? <p className="mt-3 inline-flex items-center gap-2 font-bold text-[#f7a2ca]"><Heart className="size-5 fill-current" aria-hidden /> Kudos sent. Thank you!</p> : <form action={giveKudoAction.bind(null, ticket.ticketNumber)} className="mt-3"><Button type="submit" variant="secondary"><Heart className="size-4" aria-hidden /> Send kudos</Button></form>}
-              </div>}
             </Card>
-          ) : (
-            <section className="rounded-xl border border-border bg-surface p-4 shadow-card sm:p-5" aria-labelledby="reply-title">
-              {ticket.status === "RESOLVED" && (
-                <div className="mb-3">
-                  <Alert tone="info">IT marked this as resolved. Reply below if it's still not working, or close the ticket.</Alert>
-                </div>
-              )}
-              <h2 id="reply-title" className="mb-1 text-lg font-bold">Reply to IT</h2>
-              <p className="mb-4 text-base text-muted">Add an update, describe what you tried, or attach a photo.</p>
-              <Composer action={postClientMessageAction.bind(null, ticket.ticketNumber)} accept={ACCEPT_ATTRIBUTE} placeholder="Add more details or reply to IT…" />
-              {isRequester && (
-                <form action={closeTicketAction.bind(null, ticket.ticketNumber)} className="mt-3 flex justify-end">
-                  <Button type="submit" variant="ghost">
-                    <CheckCircle2 className="size-5" aria-hidden /> My problem is solved, close ticket
-                  </Button>
-                </form>
-              )}
-            </section>
           )}
         </div>
 
         <aside aria-label="Ticket details and people" className="min-w-0 space-y-5 lg:sticky lg:top-6">
           <section className="rounded-xl border border-border bg-surface p-5 shadow-card" aria-labelledby="details-title">
-            <h2 id="details-title" className="mb-4 text-lg font-bold">Ticket details</h2>
+            <h2 id="details-title" className="text-lg font-bold">Ticket details</h2>
+            <AccentRule className="mb-4 mt-2 w-10" />
             <dl className="divide-y divide-border">
               <div className="flex gap-3 py-3 first:pt-0"><Building2 className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden /><div><dt className="text-sm font-semibold text-muted">Campus</dt><dd className="mt-0.5 break-words font-semibold">{ticket.campus?.name ?? "Not specified"}</dd></div></div>
               <div className="flex gap-3 py-3"><DoorOpen className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden /><div><dt className="text-sm font-semibold text-muted">Room</dt><dd className="mt-0.5 break-words font-semibold">{ticket.room || "Not specified"}</dd></div></div>

@@ -28,7 +28,7 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
 
   // ── Canned reply fills in the requester's name ──
   await agent.getByLabel("Insert canned reply").selectOption({ label: "Wifi: forget and rejoin" });
-  await expect(composer(agent)).toHaveValue(/^Hi Sample,/);
+  await expect(composer(agent)).toHaveValue(/^Hi (Sample|Temporary),/);
   await expect(composer(agent)).toHaveValue(/Sample Agent, IT Team/);
 
   // ── While the agent has a draft, the admin sees a "also replying" warning ──

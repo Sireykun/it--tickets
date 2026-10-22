@@ -1,95 +1,61 @@
 @import "tailwindcss";
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────
-   Cool neutral base + one brand accent (the helpdesk blue). Status and
-   priority hues are semantic, never decorative. Every pair used for text
-   meets WCAG AA in both themes.
+   CIA FIRST Digital Nexus dark palette: near-black slate canvas, navy cards,
+   cyan links, teal actions, and muted gold accents. Status and priority remain
+   semantic.
 
    Shape rule (keep it consistent):
      controls (buttons, inputs, nav items, segmented tabs) → rounded-lg (8px)
      surfaces (cards, panels, message bubbles, dialogs)    → rounded-xl (12px)
      chips, counts, avatars                                 → rounded-full */
 :root {
-  --bg: #f4f6f8;
-  --surface: #ffffff;
-  --surface-2: #eef1f4;
-  --border: #e0e5ea;
-  --border-strong: #c5cdd6;
-  --text: #0f1b26;
-  --muted: #55626e;
-  --primary: #17587f;
-  --primary-hover: #104562;
-  --primary-fg: #ffffff;
-  --primary-soft: #e3eef6;
-  --focus: #2b7bba;
-  --danger: #b42318;
-  --danger-soft: #fdecea;
-  --shadow: 16 32 48;
-  /* Solid brand surface (login panel); stays deep blue in both themes. */
-  --brand: #17587f;
+  --bg: #020617;
+  --surface: #0f172a;
+  --surface-2: #17243a;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --text: #f1f5f9;
+  --muted: #cbd5e1;
+  --primary: #5cc8e8;
+  --primary-hover: #8cddf2;
+  --primary-fg: #05151d;
+  --primary-soft: #0b3042;
+  --action: #015f7a;
+  --action-hover: #017596;
+  --action-fg: #ffffff;
+  --focus: #5cc8e8;
+  --danger: #f2837a;
+  --danger-soft: #3a1714;
+  --shadow: 0 0 0;
+  --brand: #015f7a;
   --brand-fg: #ffffff;
+  --gold: #bca560;
+  --gold-text: #d4bc84;
+  --accent-green: #6fd0a2;
+  --accent-green-soft: #123628;
+  --reply-bg: #211f24;
+  --reply-border: #6b5c30;
 
-  --open: #1c5fa8;
-  --open-soft: #e3eefa;
-  --progress: #6a3fb5;
-  --progress-soft: #efe8fa;
-  --resolved: #12704a;
-  --resolved-soft: #e2f4eb;
-  --closed: #4f5b66;
-  --closed-soft: #eceff2;
+  --open: #7db3ea;
+  --open-soft: #16304d;
+  --progress: #b99af0;
+  --progress-soft: #2c2048;
+  --resolved: #6fd0a2;
+  --resolved-soft: #123628;
+  --closed: #a5b1bc;
+  --closed-soft: #252f39;
 
-  --p-low: #55626e;
-  --p-normal: #1c5fa8;
-  --p-high: #a64708;
-  --p-emergency: #b42318;
+  --p-low: #cbd5e1;
+  --p-normal: #7db3ea;
+  --p-high: #f0a66b;
+  --p-emergency: #f2837a;
 
-  --note: #6b4e00;
-  --note-bg: #fff7dc;
-  --note-border: #ecc94b;
-  --warn: #a64708;
-  --warn-soft: #fff1e6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1016;
-    --surface: #121920;
-    --surface-2: #1a232c;
-    --border: #232e39;
-    --border-strong: #354452;
-    --text: #e6edf3;
-    --muted: #9aa8b5;
-    --primary: #68addd;
-    --primary-hover: #8bc1e7;
-    --primary-fg: #04121c;
-    --primary-soft: #132d42;
-    --focus: #8bc1e7;
-    --danger: #f2837a;
-    --danger-soft: #3a1714;
-    --shadow: 0 0 0;
-    --brand: #123f5c;
-    --brand-fg: #f1f6fa;
-
-    --open: #7db3ea;
-    --open-soft: #16304d;
-    --progress: #b99af0;
-    --progress-soft: #2c2048;
-    --resolved: #6fd0a2;
-    --resolved-soft: #123628;
-    --closed: #a5b1bc;
-    --closed-soft: #252f39;
-
-    --p-low: #9aa8b5;
-    --p-normal: #7db3ea;
-    --p-high: #f0a66b;
-    --p-emergency: #f2837a;
-
-    --note: #f3d77a;
-    --note-bg: #2a2410;
-    --note-border: #6e5a1c;
-    --warn: #f0a66b;
-    --warn-soft: #3a2412;
-  }
+  --note: #f3d77a;
+  --note-bg: #2a2410;
+  --note-border: #6e5a1c;
+  --warn: #f0a66b;
+  --warn-soft: #3a2412;
 }
 
 @theme inline {
@@ -104,9 +70,18 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-fg: var(--primary-fg);
   --color-primary-soft: var(--primary-soft);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-fg: var(--action-fg);
   --color-focus: var(--focus);
   --color-brand: var(--brand);
   --color-brand-fg: var(--brand-fg);
+  --color-gold: var(--gold);
+  --color-gold-text: var(--gold-text);
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-soft: var(--accent-green-soft);
+  --color-reply-bg: var(--reply-bg);
+  --color-reply-border: var(--reply-border);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-open: var(--open);
@@ -134,8 +109,13 @@
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: dark;
+  font-size: 17px;
   -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 768px) {
+  html { font-size: 18px; }
 }
 
 body {
@@ -170,46 +150,6 @@ body {
   }
 }
 
-/* CIA FIRST Digital Nexus palette, kept consistent on all devices. */
-:root {
-  --bg: #071225;
-  --surface: #101e34;
-  --surface-2: #182b43;
-  --border: #30445e;
-  --border-strong: #48617a;
-  --text: #eef6ff;
-  --muted: #b0c4d8;
-  --primary: #79d9ed;
-  --primary-hover: #a1eafa;
-  --primary-fg: #061624;
-  --primary-soft: #18364d;
-  --focus: #79d9ed;
-  --shadow: 0 0 0;
-  --brand: #0a2b43;
-  --brand-fg: #f3faff;
-  --danger: #f2837a;
-  --danger-soft: #3a1714;
-  --open: #7db3ea;
-  --open-soft: #16304d;
-  --progress: #b99af0;
-  --progress-soft: #2c2048;
-  --resolved: #6fd0a2;
-  --resolved-soft: #123628;
-  --closed: #a5b1bc;
-  --closed-soft: #252f39;
-  --p-low: #b0c4d8;
-  --p-normal: #7db3ea;
-  --p-high: #f0a66b;
-  --p-emergency: #f2837a;
-  --note: #f3d77a;
-  --note-bg: #2a2410;
-  --note-border: #6e5a1c;
-  --warn: #f0a66b;
-  --warn-soft: #3a2412;
-}
-
-html { color-scheme: dark; }
-
 [data-portal-theme="violet"] {
   --bg: #0d0b1b;
   --surface: #1a1730;
@@ -218,8 +158,9 @@ html { color-scheme: dark; }
   --border-strong: #655879;
   --primary: #c4a7ff;
   --primary-hover: #ddc8ff;
-  --primary-fg: #170d2a;
   --primary-soft: #33254e;
+  --action: #68449a;
+  --action-hover: #7955ac;
   --focus: #c4a7ff;
 }
 
@@ -231,14 +172,15 @@ html { color-scheme: dark; }
   --border-strong: #865671;
   --primary: #f7a2ca;
   --primary-hover: #ffc2df;
-  --primary-fg: #29111f;
   --primary-soft: #4b2940;
+  --action: #8b3561;
+  --action-hover: #a54373;
   --focus: #f7a2ca;
 }
 
 @keyframes conversation-glow {
-  0%, 100% { box-shadow: 0 0 0 1px rgb(121 217 237 / 0.06); }
-  50% { box-shadow: 0 0 0 1px rgb(181 107 155 / 0.28), 0 0 24px rgb(181 107 155 / 0.08); }
+  0%, 100% { box-shadow: 0 0 0 1px rgb(188 165 96 / 0.07); }
+  50% { box-shadow: 0 0 0 1px rgb(188 165 96 / 0.22), 0 0 20px rgb(188 165 96 / 0.07); }
 }
 
 @media (prefers-reduced-motion: no-preference) {

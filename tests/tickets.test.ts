@@ -68,6 +68,11 @@ describe("ticket lifecycle", () => {
     expect(full.thread[0].attachments[0]).toMatchObject({ fileName: "wifi.png", mimeType: "image/png" });
   });
 
+  it("uses the priority selected by the requester", async () => {
+    const ticket = await createTicket(alice, { helpTopicId: wifiTopicId, subject: "Urgent wifi issue", body: "The classroom is offline", priority: "HIGH" });
+    expect(ticket.priority).toBe("HIGH");
+  });
+
   it("keeps other requesters out", async () => {
     const t = await createTicket(alice, { helpTopicId: wifiTopicId, subject: "Private", body: "x" });
     expect(await getTicketForViewer(bob, t.ticketNumber)).toBeNull();
@@ -159,17 +164,20 @@ describe("ticket lifecycle", () => {
     await addMessage(alice, t.ticketNumber, { body: "Here are more details", mode: "client" });
   });
 
-  it("accepts one kudo after staff closes a ticket, without a rating", async () => {
+  it("accepts one kudo on a closed ticket, without a rating", async () => {
     const t = await createTicket(alice, { helpTopicId: wifiTopicId, subject: "Kudos", body: "Help" });
+    await expect(giveKudo(alice, t.ticketNumber)).rejects.toThrow("closed tickets");
     await closeAsRequester(alice, t.ticketNumber);
-    await expect(giveKudo(alice, t.ticketNumber)).rejects.toThrow("after the IT team closes");
-    await reopenAsRequester(alice, t.ticketNumber);
-    await updateTicketFields(admin, t.ticketNumber, { ...update(t), status: "CLOSED" });
     await expect(giveKudo(bob, t.ticketNumber)).rejects.toThrow("Ticket not found");
     const first = await giveKudo(alice, t.ticketNumber);
     const second = await giveKudo(alice, t.ticketNumber);
     expect(second.id).toBe(first.id);
     expect(await prisma.ticketKudo.count({ where: { ticketId: t.id } })).toBe(1);
+
+    const staffClosed = await createTicket(alice, { helpTopicId: wifiTopicId, subject: "Staff helped", body: "Help" });
+    await updateTicketFields(admin, staffClosed.ticketNumber, { ...update(staffClosed), status: "CLOSED" });
+    await giveKudo(alice, staffClosed.ticketNumber);
+    expect(await prisma.ticketKudo.count({ where: { ticketId: staffClosed.id } })).toBe(1);
   });
 });
 

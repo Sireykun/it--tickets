@@ -17,13 +17,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#071225",
+  themeColor: "#020617",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${body.variable} ${code.variable}`}>
-      <body className="min-h-dvh font-sans text-[15px] leading-relaxed antialiased">{children}</body>
+      <body className="min-h-dvh font-sans text-base leading-relaxed antialiased">{children}</body>
     </html>
   );
 }

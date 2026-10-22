@@ -15,8 +15,9 @@ export function Brand({ subtitle }: { subtitle?: string }) {
       <BrandMark />
       <span className="leading-tight">
         <span className="block font-bold tracking-tight">CIA FIRST</span>
-        <span className="block text-xs font-bold tracking-wide text-primary">INTERNATIONAL SCHOOL</span>
+        <span className="block text-xs font-bold tracking-wide text-gold-text">INTERNATIONAL SCHOOL</span>
         {subtitle && <span className="block text-xs text-muted">{subtitle}</span>}
+        <span aria-hidden className="mt-1 block h-0.5 w-10 rounded-full bg-gold" />
       </span>
     </span>
   );

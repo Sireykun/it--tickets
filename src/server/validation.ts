@@ -14,6 +14,7 @@ const checkbox = z.preprocess((v) => v === "on" || v === "true" || v === true, z
 
 export const newTicketSchema = z.object({
   helpTopicId: z.uuid({ message: "Please choose a help topic." }),
+  priority: priority.optional(),
   campusId: z.uuid({ message: "Please choose a campus." }),
   room: z.string().trim().min(1, "Please enter a room.").max(100),
   subject: z.string().trim().min(3, "Subject must be at least 3 characters.").max(200),

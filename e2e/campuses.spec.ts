@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN, AGENT2, CAMPUS_ADMIN, sessionFor, shot, STUDENT } from "./helpers";
+import { ADMIN, AGENT2, CAMPUS_ADMIN, fillNewTicket, sessionFor, shot, STUDENT } from "./helpers";
 
 test("superadmin adds a campus and grants a campus admin 'Manage users' there", async ({ browser }, testInfo) => {
   const stamp = `${testInfo.project.name}-${Date.now()}`;
@@ -54,12 +54,7 @@ test("campus admin manages users of their campus but no other settings", async (
 test("an agent from another campus can't see this campus's tickets", async ({ browser }, testInfo) => {
   const subject = `Main campus only ${testInfo.project.name}-${Date.now()}`;
   const student = await sessionFor(browser, testInfo, STUDENT);
-  await student.goto("/tickets/new");
-  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Printer Setup" });
-  await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await student.getByLabel("Room").fill("101");
-  await student.getByLabel("Issue Summary").fill(subject);
-  await student.getByLabel("Please Describe Your Issue").fill("Printer offline.");
+  await fillNewTicket(student, { topic: "Printer Setup", campus: "Main Campus", room: "101", subject, body: "Printer offline." });
   await student.getByRole("button", { name: "Submit ticket" }).click();
   await student.waitForURL(/\/tickets\/TKT-\d{6}/);
   const ticketNumber = student.url().match(/TKT-\d{6}/)![0];

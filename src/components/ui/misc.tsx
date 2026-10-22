@@ -29,12 +29,17 @@ export function EmptyState({ icon, title, children }: { icon: ReactNode; title: 
   );
 }
 
+export function AccentRule({ className }: { className?: string }) {
+  return <span aria-hidden className={clsx("mt-3 block h-0.5 w-14 rounded-full bg-gold", className)} />;
+}
+
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
       <div className="min-w-0">
         <h1 className="text-2xl leading-tight font-bold tracking-tight text-balance md:text-[1.75rem]">{title}</h1>
-        {subtitle && <p className="mt-1 text-muted">{subtitle}</p>}
+        <AccentRule />
+        {subtitle && <p className="mt-3 text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex gap-2">{actions}</div>}
     </div>

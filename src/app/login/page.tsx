@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { googleLoginAction } from "@/app/actions/auth";
 import { googleEnabled } from "@/auth";
 import { BrandMark } from "@/components/brand";
+import { AccentRule } from "@/components/ui/misc";
 import { allowedDomain, safeRedirectPath } from "@/server/auth-rules";
 import { getCurrentUser } from "@/server/authz";
 import { EagleCode } from "./eagle-code";
@@ -22,15 +23,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const error = typeof params.error === "string" ? (ERRORS[params.error] ?? "Login failed. Please try again.") : null;
 
   return (
-    <main className="grid min-h-dvh bg-[#081023] text-slate-100 lg:grid-cols-2">
-      <section className="relative flex min-h-[440px] flex-col justify-between overflow-hidden bg-[#030916] px-5 py-5 sm:min-h-[520px] sm:px-7 sm:py-7 lg:min-h-dvh lg:px-7 lg:py-7">
+    <main className="grid min-h-dvh bg-bg text-text lg:grid-cols-2">
+      <section className="relative flex min-h-[440px] flex-col justify-between overflow-hidden bg-[#030b16] px-5 py-5 text-slate-100 sm:min-h-[520px] sm:px-7 sm:py-7 lg:min-h-dvh lg:px-7 lg:py-7">
         <EagleCode />
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex items-center gap-3 rounded-full border border-sky-400/20 bg-[#041527]/85 px-3 py-2 shadow-lg backdrop-blur-md">
             <BrandMark className="size-9 shrink-0" />
             <div className="pr-1 leading-tight">
               <strong className="block text-sm font-extrabold tracking-wide text-white">CIA FIRST</strong>
-              <span className="block text-[10px] font-medium text-slate-300">INTERNATIONAL SCHOOL · IT Help Desk</span>
+              <span className="block text-[10px] font-medium text-gold-text">INTERNATIONAL SCHOOL · IT Help Desk</span>
             </div>
           </div>
           <div className="flex max-w-full items-center gap-1.5 overflow-x-auto rounded-full border border-sky-400/25 bg-[#061529]/85 p-1 text-[11px] text-slate-300 shadow-lg backdrop-blur-md">
@@ -49,44 +50,46 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <h1 className="max-w-[18ch] text-3xl font-extrabold leading-[1.12] tracking-tight text-white drop-shadow-lg sm:text-4xl xl:text-[40px]">
             Something broken?<br />We&apos;ll help you fix it.
           </h1>
+          <AccentRule />
           <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-200 sm:text-[15px]">
             Report a problem, follow its progress, and talk to the IT team in one place.
           </p>
           <p className="mt-2 font-mono text-[11px] text-sky-300/80">Tip: Move your cursor or click on the eagle to ripple the falling binary code streams.</p>
         </div>
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#030917]/85 via-transparent to-[#030917]/30" />
-        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-16 bg-gradient-to-l from-[#081023] to-transparent lg:block" />
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-16 bg-gradient-to-l from-bg to-transparent lg:block" />
       </section>
 
-      <section aria-label="Login to IT Help Desk" className="flex min-h-[500px] items-center justify-center bg-[#081023] px-5 py-10 sm:px-10 lg:min-h-dvh">
+      <section aria-label="Login to IT Help Desk" className="flex min-h-[500px] items-center justify-center bg-bg px-5 py-10 sm:px-10 lg:min-h-dvh">
         <div className="w-full max-w-[380px]">
-          <h2 className="text-2xl font-bold tracking-tight text-white">Login</h2>
-          <p className="mt-1 text-sm text-slate-300">Log in to request IT help and follow your tickets.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-text">Login</h2>
+          <AccentRule />
+          <p className="mt-3 text-sm text-muted">Log in to request IT help and follow your tickets.</p>
 
-          <div className="mt-5 rounded-xl border border-[#2c4263] bg-[#0f1e33] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.35)] sm:p-6">
-            {error && <p role="alert" className="mb-4 rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>}
+          <div className="mt-5 rounded-xl border border-border bg-surface p-5 shadow-raised sm:p-6">
+            {error && <p role="alert" className="mb-4 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">{error}</p>}
             {googleEnabled ? (
               <form action={googleLoginAction}>
                 {next && <input type="hidden" name="next" value={next} />}
-                <button type="submit" className="flex min-h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-[#395572] bg-[#182b43] px-4 text-sm font-semibold text-slate-100 transition-colors hover:bg-[#203a56]">
+                <button type="submit" className="flex min-h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-border-strong bg-surface-2 px-4 text-sm font-semibold text-text transition-colors hover:bg-primary-soft">
                   <GoogleIcon /> Continue with Google
                 </button>
               </form>
             ) : (
               <div>
-                <button disabled type="button" aria-describedby="google-unavailable" className="flex min-h-11 w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-lg border border-[#395572] bg-[#182b43] px-4 text-sm font-semibold text-slate-400">
+                <button disabled type="button" aria-describedby="google-unavailable" className="flex min-h-11 w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-lg border border-border bg-surface-2 px-4 text-sm font-semibold text-muted opacity-70">
                   <GoogleIcon /> Continue with Google
                 </button>
-                <p id="google-unavailable" className="mt-2 text-center text-xs text-slate-300">Google login is being set up. Use your email below.</p>
+                <p id="google-unavailable" className="mt-2 text-center text-sm text-muted">Google login is being set up. Use your email below.</p>
               </div>
             )}
 
-            <div className="my-5 flex items-center gap-3 text-xs text-slate-300">
-              <span className="h-px flex-1 bg-[#2c4263]" /> Login with email <span className="h-px flex-1 bg-[#2c4263]" />
+            <div className="my-5 flex items-center gap-3 text-sm text-muted">
+              <span className="h-px flex-1 bg-border" /> Login with email <span className="h-px flex-1 bg-border" />
             </div>
             <LoginForm next={next} />
           </div>
-          <p className="mt-5 text-center text-xs text-slate-300">Forgot your password? Ask the IT office to reset it.</p>
+          <p className="mt-5 text-center text-sm text-muted">Forgot your password? Ask the IT office to reset it.</p>
         </div>
       </section>
     </main>

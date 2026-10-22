@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Lock, MessageSquareReply, Paperclip, TriangleAlert, X } from "lucide-react";
+import { Lock, MessageSquareReply, Paperclip, SendHorizontal, Smile, TriangleAlert, X } from "lucide-react";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -9,6 +9,7 @@ import { type ActionState, initialActionState } from "@/lib/action-state";
 import type { LockHolder } from "@/server/locks";
 
 const HEARTBEAT_MS = 60_000;
+const EMOJI = ["😀", "😊", "👍", "🙏", "❤️", "🎉", "👋", "😅"];
 
 type Props = {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -32,8 +33,10 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
   const [body, setBody] = useState("");
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [files, setFiles] = useState<File[]>([]);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [holder, setHolder] = useState<LockHolder | null>(lock?.holder ?? null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const bodyInput = useRef<HTMLTextAreaElement>(null);
   const isNote = staff && mode === "note";
   const typing = body.trim() !== "";
 
@@ -75,6 +78,14 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
     if (state.nonce) setBody("");
   }, [state]);
 
+  // Let long drafts grow like a chat input, then scroll within the field.
+  useEffect(() => {
+    const input = bodyInput.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 224)}px`;
+  }, [body]);
+
   // Keep the <input type=file> in sync with the chip list so removing a chip removes the upload.
   function syncInput(next: File[]) {
     setFiles(next);
@@ -84,11 +95,23 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
     fileInput.current.files = dt.files;
   }
 
+  function insertEmoji(emoji: string) {
+    const input = bodyInput.current;
+    const start = input?.selectionStart ?? body.length;
+    const end = input?.selectionEnd ?? start;
+    setBody((current) => `${current.slice(0, start)}${emoji}${current.slice(end)}`);
+    setEmojiOpen(false);
+    requestAnimationFrame(() => {
+      input?.focus();
+      input?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  }
+
   return (
     <form
       action={formAction}
       className={clsx(
-        "rounded-xl border bg-surface p-3 shadow-card",
+        "rounded-xl border bg-surface p-2 shadow-card",
         isNote ? "border-note-border border-dashed bg-note-bg" : "border-border",
       )}
     >
@@ -150,19 +173,48 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
         </div>
       )}
 
-      <label htmlFor="composer-body" className="sr-only">
-        {isNote ? "Internal note" : "Message"}
-      </label>
-      <textarea
-        id="composer-body"
-        name="body"
-        required
-        rows={3}
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder={isNote ? "Only staff will see this note…" : (placeholder ?? "Write a reply…")}
-        className="block min-h-24 w-full resize-y bg-transparent px-1 text-base leading-relaxed placeholder:text-muted/80 focus:outline-none"
-      />
+      <div className="relative flex items-end gap-1">
+        <label htmlFor="composer-body" className="sr-only">
+          {isNote ? "Internal note" : "Message"}
+        </label>
+        <textarea
+          ref={bodyInput}
+          id="composer-body"
+          name="body"
+          required
+          rows={1}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder={isNote ? "Only staff will see this note…" : (placeholder ?? "Write a reply…")}
+          className="min-h-12 max-h-56 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2.5 text-lg leading-relaxed placeholder:text-muted/80 focus:outline-none"
+        />
+        <div className="flex shrink-0 items-center gap-0.5">
+          <label title="Attach files" className="grid size-11 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text has-focus-visible:outline-2 has-focus-visible:outline-focus">
+            <Paperclip className="size-5" aria-hidden />
+            <span className="sr-only">Attach files</span>
+            <input
+              ref={fileInput}
+              type="file"
+              name="files"
+              multiple
+              accept={accept}
+              className="sr-only"
+              onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            />
+          </label>
+          <button type="button" aria-label="Choose emoji" aria-expanded={emojiOpen} onClick={() => setEmojiOpen((open) => !open)} className="grid size-11 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text">
+            <Smile className="size-5" aria-hidden />
+          </button>
+          <SubmitButton pendingText="Sending…" aria-label={isNote ? "Add note" : "Send message"} className="size-11 px-0 sm:w-auto sm:px-4">
+            <SendHorizontal className="size-5" aria-hidden /> <span className="hidden sm:inline">{isNote ? "Add note" : "Send"}</span>
+          </SubmitButton>
+        </div>
+        {emojiOpen && (
+          <div role="group" aria-label="Emoji" onKeyDown={(event) => { if (event.key === "Escape") setEmojiOpen(false); }} className="absolute right-0 bottom-full z-10 mb-2 grid grid-cols-4 gap-1 rounded-xl border border-gold/50 bg-surface-2 p-2 shadow-raised">
+            {EMOJI.map((emoji) => <button key={emoji} type="button" aria-label={`Insert ${emoji}`} onClick={() => insertEmoji(emoji)} className="grid size-11 place-items-center rounded-lg text-2xl hover:bg-primary-soft">{emoji}</button>)}
+          </div>
+        )}
+      </div>
 
       {files.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-2">
@@ -188,22 +240,6 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
         </div>
       )}
 
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
-        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-3 font-bold text-muted hover:bg-surface-2 hover:text-text">
-          <Paperclip className="size-5" aria-hidden />
-          <span>Attach</span>
-          <input
-            ref={fileInput}
-            type="file"
-            name="files"
-            multiple
-            accept={accept}
-            className="sr-only"
-            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-          />
-        </label>
-        <SubmitButton pendingText="Sending…">{isNote ? "Add note" : "Send"}</SubmitButton>
-      </div>
     </form>
   );
 }

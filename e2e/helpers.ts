@@ -40,3 +40,17 @@ export async function shot(page: Page, testInfo: TestInfo, name: string) {
   if (testInfo.project.name !== "iphone") return;
   await page.screenshot({ path: `test-results/screens/${name}.png`, fullPage: true });
 }
+
+export async function fillNewTicket(page: Page, details: { topic: string; campus: string; room: string; subject: string; body: string; file?: { name: string; mimeType: string; buffer: Buffer } }) {
+  await page.goto("/tickets/new");
+  await page.getByRole("combobox", { name: "Help topic" }).selectOption({ label: details.topic });
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("combobox", { name: "Campus" }).selectOption({ label: details.campus });
+  await page.getByLabel("Room").fill(details.room);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("Issue summary").fill(details.subject);
+  await page.getByLabel("Please describe your issue").fill(details.body);
+  await page.getByRole("button", { name: "Continue" }).click();
+  if (details.file) await page.locator('input[type="file"][name="files"]').setInputFiles(details.file);
+}

@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { AGENT, openTicketPanel, PNG, sessionFor, shot, STUDENT } from "./helpers";
+import { AGENT, fillNewTicket, openTicketPanel, PNG, sessionFor, shot, STUDENT } from "./helpers";
 
 // Assertions on the conversation only, never on text still sitting in the composer.
 const thread = (page: Page) => page.getByRole("list", { name: "Conversation" });
@@ -13,20 +13,14 @@ test("student opens a ticket, agent works it, student closes it", async ({ brows
   await expect(student.getByRole("heading", { name: /^Hi, / })).toBeVisible();
   await shot(student, testInfo, "01-my-tickets");
 
-  await student.goto("/tickets/new");
-  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Student Wifi" });
-  await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await student.getByLabel("Room").fill("204");
-  await student.getByLabel("Issue Summary").fill(subject);
-  await student.getByLabel("Please Describe Your Issue").fill("In room 204 the wifi disconnects every few minutes.");
-  await student.locator('input[type="file"][name="files"]').setInputFiles({ name: "error.png", mimeType: "image/png", buffer: PNG });
+  await fillNewTicket(student, { topic: "Student Wifi", campus: "Main Campus", room: "204", subject, body: "In room 204 the wifi disconnects every few minutes.", file: { name: "error.png", mimeType: "image/png", buffer: PNG } });
   await shot(student, testInfo, "02-new-ticket");
   await student.getByRole("button", { name: "Submit ticket" }).click();
 
   await student.waitForURL(/\/tickets\/TKT-\d{6}\?created=1/);
   const ticketNumber = student.url().match(/TKT-\d{6}/)![0];
   await expect(student.getByText(`Ticket ${ticketNumber} has been sent`)).toBeVisible();
-  await expect(student.getByText("Room: 204")).toBeVisible();
+  await expect(student.getByText("204", { exact: true }).first()).toBeVisible();
   await expect(thread(student).getByRole("img", { name: "error.png" })).toBeVisible();
   await shot(student, testInfo, "03-ticket-created");
 
@@ -89,12 +83,7 @@ test("student opens a ticket, agent works it, student closes it", async ({ brows
 test("requesters can't open someone else's ticket or the staff console", async ({ browser }, testInfo) => {
   const agent = await sessionFor(browser, testInfo, AGENT);
   // The agent's own ticket, opened through the portal, belongs to someone other than the student.
-  await agent.goto("/tickets/new");
-  await agent.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Printer Setup" });
-  await agent.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await agent.getByLabel("Room").fill("Office");
-  await agent.getByLabel("Issue Summary").fill(`Agent's own printer ${Date.now()}`);
-  await agent.getByLabel("Please Describe Your Issue").fill("Toner light is on.");
+  await fillNewTicket(agent, { topic: "Printer Setup", campus: "Main Campus", room: "Office", subject: `Agent's own printer ${Date.now()}`, body: "Toner light is on." });
   await agent.getByRole("button", { name: "Submit ticket" }).click();
   await agent.waitForURL(/\/tickets\/TKT-\d{6}/);
   const ticketNumber = agent.url().match(/TKT-\d{6}/)![0];
