@@ -241,8 +241,12 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
         <>
           <BulkBar agents={options.agents} teams={options.teams} />
 
-          {/* Phones: rows */}
-          <TicketList className="md:hidden">
+          {/* Phones, tablets and laptops beside the sidebar: rows. The seven-column table needs ~900px of content width. */}
+          <label className="mb-2 flex min-h-11 w-fit cursor-pointer items-center gap-3 pl-3.5 text-sm font-bold text-muted xl:hidden">
+            <SelectAllCheckbox />
+            Select all on this page
+          </label>
+          <TicketList className="xl:hidden">
             {tickets.map((t) => (
               <li key={t.id} className="flex items-stretch">
                 <label className="grid w-12 shrink-0 cursor-pointer place-items-center border-r border-border">
@@ -255,8 +259,8 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
             ))}
           </TicketList>
 
-          {/* Tablets and up: table */}
-          <Card className="hidden overflow-x-auto md:block">
+          {/* Wide screens: table */}
+          <Card className="hidden overflow-x-auto xl:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-surface-2/60 text-xs text-muted">
                 <tr>
@@ -286,7 +290,8 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
                           className="relative z-10 size-5 cursor-pointer rounded accent-primary"
                         />
                       </td>
-                      <td className="max-w-md px-3 py-3">
+                      {/* w-full + max-w-0 lets this column absorb the leftover width and truncate, instead of pushing the table wider. */}
+                      <td className="w-full max-w-0 px-3 py-3">
                         <Link href={`/staff/tickets/${t.ticketNumber}`} className="block after:absolute after:inset-0 after:left-12">
                           <span className="flex items-center gap-2 text-xs text-muted">
                             <span className="font-mono tracking-tight">{t.ticketNumber}</span>
@@ -309,7 +314,7 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
                       <td className="px-3 py-3">
                         <SlaBadge ticket={t} compact />
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <span className="block font-bold">{t.assignedAgent?.name ?? <span className="text-muted">Unassigned</span>}</span>
                         <span className="block text-muted">{t.assignedTeam?.name}</span>
                       </td>

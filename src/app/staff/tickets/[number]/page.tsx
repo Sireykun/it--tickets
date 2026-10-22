@@ -87,12 +87,14 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
         <ArrowLeft className="size-4" aria-hidden /> Queue
       </Link>
 
-      <div className="mb-5">
-        <p className="text-sm font-bold text-muted tabular-nums">
-          {n} · {ticket.campus?.name ?? "No campus"} · via {SOURCE_LABEL[ticket.source]}
-        </p>
-        <h1 className="text-xl font-bold tracking-tight break-words sm:text-2xl">{ticket.subject}</h1>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 flex-1 basis-80">
+          <p className="text-sm font-bold text-muted tabular-nums">
+            {n} · {ticket.campus?.name ?? "No campus"} · via {SOURCE_LABEL[ticket.source]}
+          </p>
+          <h1 className="text-xl font-bold tracking-tight break-words sm:text-2xl">{ticket.subject}</h1>
+        </div>
+        <div className="flex gap-2">
           <TicketActionsMenu
             ticketNumber={n}
             isRequesterView={asRequester}

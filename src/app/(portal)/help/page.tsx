@@ -78,7 +78,7 @@ export default async function HelpPage({ searchParams }: PageProps<"/help">) {
                 <span className="min-w-0 flex-1">
                   <span className="block text-xs font-bold text-muted">{a.helpTopic?.name ?? "General"}</span>
                   <span className="block font-bold">{a.title}</span>
-                  <span className="mt-1 line-clamp-2 block text-sm text-muted">{a.body}</span>
+                  <span className="mt-1 line-clamp-2 text-sm text-muted">{a.body}</span>
                 </span>
                 <ChevronRight className="mt-3 size-5 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
               </Link>
