@@ -69,8 +69,10 @@ test("CC: requester adds and removes someone, staff can add people by name", asy
   const student = await sessionFor(browser, testInfo, STUDENT);
   await student.goto("/tickets/new");
   await student.getByText("Printer Setup", { exact: true }).click();
-  await student.getByLabel("Subject").fill(`Printer for class ${stamp}`);
-  await student.getByLabel("Describe the problem").fill("The class printer needs setting up.");
+  await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
+  await student.getByLabel("Room").fill("Classroom");
+  await student.getByLabel("Issue Summary").fill(`Printer for class ${stamp}`);
+  await student.getByLabel("Please Describe Your Issue").fill("The class printer needs setting up.");
   await student.getByRole("button", { name: "Submit ticket" }).click();
   await student.waitForURL(/\/tickets\/TKT-\d{6}/);
   const ticketNumber = student.url().match(/TKT-\d{6}/)![0];

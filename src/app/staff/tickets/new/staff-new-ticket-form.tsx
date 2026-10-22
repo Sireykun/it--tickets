@@ -70,6 +70,9 @@ export function StaffNewTicketForm({ topics, campuses, accept }: { topics: Optio
       <Field label="Subject" htmlFor="subject">
         <Input id="subject" name="subject" required minLength={3} maxLength={200} />
       </Field>
+      <Field label="Room" htmlFor="room" hint="Optional room or location reported by the requester.">
+        <Input id="room" name="room" maxLength={100} />
+      </Field>
       <Field label="What's the problem?" htmlFor="body" hint="Write it as the requester described it. It's shown as their message.">
         <Textarea id="body" name="body" required rows={6} />
       </Field>

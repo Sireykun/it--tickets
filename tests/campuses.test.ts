@@ -58,6 +58,17 @@ describe("campus visibility", () => {
     expect(t.campusId).toBe(c2);
   });
 
+  it("saves the campus and room chosen on the requester form", async () => {
+    const t = await createTicket(
+      student,
+      { helpTopicId: topicId, subject: `Room ${tag}`, body: "Projector is offline", room: "B-204" },
+      [],
+      { campusId: c1 },
+    );
+    expect(t).toMatchObject({ campusId: c1, room: "B-204" });
+    expect((await getTicketForViewer(student, t.ticketNumber))?.room).toBe("B-204");
+  });
+
   it("hides other campuses' tickets, attachments and counts from staff", async () => {
     const photo = await prepareUploads([new File([new Uint8Array(10)], "p.png")]);
     if (!photo.ok) throw new Error(photo.error);

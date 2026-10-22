@@ -14,6 +14,8 @@ const checkbox = z.preprocess((v) => v === "on" || v === "true" || v === true, z
 
 export const newTicketSchema = z.object({
   helpTopicId: z.uuid({ message: "Please choose a help topic." }),
+  campusId: z.uuid({ message: "Please choose a campus." }),
+  room: z.string().trim().min(1, "Please enter a room.").max(100),
   subject: z.string().trim().min(3, "Subject must be at least 3 characters.").max(200),
   body: z.string().trim().min(1, "Please describe the problem.").max(20_000),
 });
@@ -42,7 +44,7 @@ const ticketNumber = z
 export const ticketPairSchema = z.object({ other: ticketNumber });
 
 // Staff opening a ticket for someone else.
-export const staffNewTicketSchema = newTicketSchema.extend({
+export const staffNewTicketSchema = newTicketSchema.omit({ campusId: true, room: true }).extend({
   requesterEmail: z.email("Enter the requester's email.").max(254),
   requesterName: z
     .string()
@@ -52,6 +54,7 @@ export const staffNewTicketSchema = newTicketSchema.extend({
   source: z.enum(["PHONE", "WALK_IN", "EMAIL", "WEB"]),
   // "" = the requester's home campus (or the agent's own if they don't work there).
   campusId: z.preprocess((v) => (v === "" ? undefined : v), z.uuid().optional()),
+  room: z.string().trim().max(100).optional(),
 });
 
 // Accepts datetime-local strings (read in the school's timezone), Dates, or empty.

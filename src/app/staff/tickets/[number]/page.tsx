@@ -192,6 +192,12 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
                 <dt className="text-muted">Home campus</dt>
                 <dd>{ticket.requester.campus?.name ?? "None"}</dd>
               </div>
+              {ticket.room && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted">Room</dt>
+                  <dd className="text-right">{ticket.room}</dd>
+                </div>
+              )}
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">Department</dt>
                 <dd>{ticket.department.name}</dd>

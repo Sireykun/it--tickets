@@ -3,18 +3,21 @@
 import clsx from "clsx";
 import { Paperclip } from "lucide-react";
 import { useActionState, useState } from "react";
-import { Field, Input, Textarea } from "@/components/ui/field";
+import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { initialActionState } from "@/lib/action-state";
 import { createTicketAction } from "../../actions";
 
 type Topic = { id: string; name: string; description: string | null };
+type Campus = { id: string; name: string };
 
-export function NewTicketForm({ topics, accept }: { topics: Topic[]; accept: string }) {
+export function NewTicketForm({ topics, campuses, requester, accept }: { topics: Topic[]; campuses: Campus[]; requester: { name: string; email: string }; accept: string }) {
   const [state, action] = useActionState(createTicketAction, initialActionState);
   // Controlled so typed text survives a validation error.
   const [topicId, setTopicId] = useState("");
+  const [campusId, setCampusId] = useState("");
+  const [room, setRoom] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [fileCount, setFileCount] = useState(0);
@@ -22,6 +25,14 @@ export function NewTicketForm({ topics, accept }: { topics: Topic[]; accept: str
   return (
     <form action={action} className="space-y-6">
       {state.error && <Alert>{state.error}</Alert>}
+
+      <section aria-label="Your details" className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+        <p className="mb-2 font-bold">Your details</p>
+        <div className="grid gap-1 sm:grid-cols-[6rem_1fr]">
+          <span className="text-muted">Email</span><span className="break-all">{requester.email}</span>
+          <span className="text-muted">Client</span><span>{requester.name}</span>
+        </div>
+      </section>
 
       <fieldset>
         <legend className="mb-2 text-sm font-bold">What do you need help with?</legend>
@@ -51,11 +62,23 @@ export function NewTicketForm({ topics, accept }: { topics: Topic[]; accept: str
         </div>
       </fieldset>
 
-      <Field label="Subject" htmlFor="subject" hint="A short summary, e.g. “Projector in room 12 won't turn on”.">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Campus" htmlFor="campusId" hint="Choose where the issue is happening.">
+          <Select id="campusId" name="campusId" required value={campusId} onChange={(e) => setCampusId(e.target.value)}>
+            <option value="" disabled>Choose a campus</option>
+            {campuses.map((campus) => <option key={campus.id} value={campus.id}>{campus.name}</option>)}
+          </Select>
+        </Field>
+        <Field label="Room" htmlFor="room" hint="Room number or location.">
+          <Input id="room" name="room" required maxLength={100} value={room} onChange={(e) => setRoom(e.target.value)} placeholder="e.g. Room 204" />
+        </Field>
+      </div>
+
+      <Field label="Issue Summary" htmlFor="subject" hint="A short summary, e.g. “Projector in room 12 won't turn on”.">
         <Input id="subject" name="subject" required minLength={3} maxLength={200} value={subject} onChange={(e) => setSubject(e.target.value)} />
       </Field>
 
-      <Field label="Describe the problem" htmlFor="body" hint="Where are you, what device, and what have you tried?">
+      <Field label="Please Describe Your Issue" htmlFor="body" hint="What happened, what device is affected, and what have you tried?">
         <Textarea id="body" name="body" required rows={6} value={body} onChange={(e) => setBody(e.target.value)} />
       </Field>
 

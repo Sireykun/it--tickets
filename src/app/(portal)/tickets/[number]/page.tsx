@@ -56,6 +56,8 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/t
         <h1 className="text-xl leading-tight font-bold tracking-tight text-balance break-words sm:text-2xl">{ticket.subject}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
           <StatusChip status={ticket.status} />
+          {ticket.campus && <span>Campus: {ticket.campus.name}</span>}
+          {ticket.room && <span>Room: {ticket.room}</span>}
           <span>Opened {formatDateTime(ticket.createdAt)}</span>
           {ticket.assignedAgent && <span>Handled by {ticket.assignedAgent.name}</span>}
         </div>

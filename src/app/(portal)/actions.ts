@@ -29,7 +29,8 @@ export async function createTicketAction(_prev: ActionState, formData: FormData)
 
   let ticketNumber = "";
   const result = await runAction(async () => {
-    ticketNumber = (await createTicket(user, parsed.data, uploads.files)).ticketNumber;
+    const { campusId, ...input } = parsed.data;
+    ticketNumber = (await createTicket(user, input, uploads.files, { campusId })).ticketNumber;
   });
   if (result.error) return result;
   revalidatePath("/");

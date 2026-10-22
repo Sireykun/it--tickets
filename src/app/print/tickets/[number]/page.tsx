@@ -29,6 +29,8 @@ export default async function PrintTicketPage({ params }: PageProps<"/print/tick
     ["Source", SOURCE_LABEL[ticket.source]],
     ["Requester", `${ticket.requester.name} <${ticket.requester.email}>`],
     ["Department", ticket.department.name],
+    ["Campus", ticket.campus?.name ?? "None"],
+    ["Room", ticket.room ?? "None"],
     ["Help topic", ticket.helpTopic?.name ?? "None"],
     ["Team", ticket.assignedTeam?.name ?? "None"],
     ["Assignee", ticket.assignedAgent?.name ?? "Unassigned"],

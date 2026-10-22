@@ -80,7 +80,7 @@ type CreateOptions = {
 
 export async function createTicket(
   actor: Actor,
-  input: { helpTopicId: string; subject: string; body: string },
+  input: { helpTopicId: string; subject: string; body: string; room?: string },
   files: PreparedFile[] = [],
   opts: CreateOptions = {},
 ) {
@@ -101,7 +101,9 @@ export async function createTicket(
 
   let campusId: string | null;
   if (opts.campusId) {
-    if (!isStaff(actor.role) || !inScope(actor.campusScope, opts.campusId)) throw new TicketError("You can't file tickets at that campus.");
+    const campus = await prisma.campus.findUnique({ where: { id: opts.campusId }, select: { isActive: true } });
+    if (!campus?.isActive) throw new TicketError("Please choose an active campus.");
+    if (isStaff(actor.role) && !inScope(actor.campusScope, opts.campusId)) throw new TicketError("You can't file tickets at that campus.");
     campusId = opts.campusId;
   } else {
     const requester = await prisma.user.findUniqueOrThrow({ where: { id: requesterId }, select: { campusId: true, email: true } });
@@ -118,6 +120,7 @@ export async function createTicket(
       const ticket = await tx.ticket.create({
         data: {
           subject: input.subject,
+          room: input.room?.trim() || null,
           campusId,
           source: opts.source ?? "WEB",
           priority: topic.defaultPriority,
