@@ -111,6 +111,9 @@ model User {
   campusId       String?   @map("campus_id") @db.Uuid
   // Staff alert emails (new ticket, assigned, requester replied). Requester emails always go out.
   emailAlerts    Boolean   @default(true) @map("email_alerts")
+  avatarStorageKey String?  @map("avatar_storage_key")
+  avatarMimeType   String?  @map("avatar_mime_type")
+  themePreference  String   @default("ocean") @map("theme_preference")
   lastLoginAt    DateTime? @map("last_login_at") @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -135,6 +138,8 @@ model User {
   campus             Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
   staffCampuses      StaffCampus[]
   kbArticles         KbArticle[]
+  kudosGiven         TicketKudo[]         @relation("KudoRequester")
+  kudosReceived      TicketKudo[]         @relation("KudoRecipient")
 
   @@index([role, isActive])
   @@index([organizationId])
@@ -263,6 +268,7 @@ model Ticket {
   firstRespondedAt   DateTime? @map("first_responded_at") @db.Timestamptz(3)
   resolvedAt         DateTime? @map("resolved_at") @db.Timestamptz(3)
   closedAt           DateTime? @map("closed_at") @db.Timestamptz(3)
+  closedByStaff      Boolean   @default(false) @map("closed_by_staff")
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -282,6 +288,7 @@ model Ticket {
   emails        EmailOutbox[]
   inboundEmails InboundEmail[]
   campus        Campus?              @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  kudo          TicketKudo?
 
   @@index([campusId, status])
   @@index([status, priorityLevel])
@@ -295,6 +302,20 @@ model Ticket {
 }
 
 // One row per entry in a ticket's conversation.
+model TicketKudo {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  ticketId    String   @unique @map("ticket_id") @db.Uuid
+  requesterId String   @map("requester_id") @db.Uuid
+  recipientId String?  @map("recipient_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  requester   User   @relation("KudoRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient   User?  @relation("KudoRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@map("ticket_kudos")
+}
+
 model TicketThread {
   id        String          @id @default(uuid(7)) @db.Uuid
   ticketId  String          @map("ticket_id") @db.Uuid

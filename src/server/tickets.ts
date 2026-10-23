@@ -238,6 +238,7 @@ export async function getTicketForViewer(actor: Actor, ticketNumber: string, opt
       assignedTeam: { select: { id: true, name: true } },
       helpTopic: { select: { id: true, name: true } },
       department: { select: { id: true, name: true } },
+      kudo: { select: { id: true, createdAt: true } },
       slaPolicy: { select: { name: true, responseTimeHours: true, resolutionTimeHours: true } },
       linksFrom: { include: { toTicket: { select: { ticketNumber: true, subject: true, status: true } } } },
       linksTo: { include: { fromTicket: { select: { ticketNumber: true, subject: true, status: true } } } },
@@ -271,12 +272,12 @@ export async function listMyTickets(
   filter: "open" | "closed",
   opts: { q?: string; sort?: "updated" | "newest" | "oldest" } = {},
 ) {
-  const q = opts.q?.trim();
+  const q = opts.q?.trim().slice(0, 100);
   return prisma.ticket.findMany({
     where: {
       OR: [{ requesterId: actor.id }, { collaborators: { some: { userId: actor.id } } }],
       status: filter === "open" ? { in: ACTIVE_STATUSES } : "CLOSED",
-      ...(q && { AND: [{ OR: [{ ticketNumber: { contains: q, mode: "insensitive" } }, { subject: { contains: q, mode: "insensitive" } }] }] }),
+      ...(q && { AND: [{ OR: [{ ticketNumber: { contains: q, mode: "insensitive" } }, { subject: { contains: q, mode: "insensitive" } }, { helpTopic: { name: { contains: q, mode: "insensitive" } } }] }] }),
     },
     orderBy: opts.sort === "newest" ? { createdAt: "desc" } : opts.sort === "oldest" ? { createdAt: "asc" } : { updatedAt: "desc" },
     take: 100,
@@ -477,7 +478,7 @@ export async function addMessage(
 
       const data: Prisma.TicketUpdateInput = { updatedAt: now };
       if (type === "CLIENT_MESSAGE" && ticket.status === "RESOLVED") {
-        Object.assign(data, { status: "OPEN", ...statusTimestamps("OPEN", ticket, now) });
+        Object.assign(data, { status: "OPEN", closedByStaff: false, ...statusTimestamps("OPEN", ticket, now) });
         await systemEvent(tx, ticket.id, actor, "Reopened by the requester's reply");
       }
       if (type === "AGENT_REPLY") {
@@ -507,8 +508,39 @@ export async function closeAsRequester(actor: Actor, ticketNumber: string) {
     await audit(tx, actor, "ticket.close", { type: "ticket", id: ticket.id });
     return tx.ticket.update({
       where: { id: ticket.id },
-      data: { status: "CLOSED", ...statusTimestamps("CLOSED", ticket, now) },
+      data: { status: "CLOSED", closedByStaff: false, ...statusTimestamps("CLOSED", ticket, now) },
     });
+  });
+}
+
+export async function reopenAsRequester(actor: Actor, ticketNumber: string) {
+  return prisma.$transaction(async (tx) => {
+    const ticket = await tx.ticket.findUnique({ where: { ticketNumber: normalizeNumber(ticketNumber) } });
+    if (!ticket || ticket.requesterId !== actor.id) throw new TicketError("Ticket not found.");
+    if (ticket.status !== "CLOSED") return ticket;
+
+    const now = new Date();
+    const updated = await tx.ticket.updateMany({
+      where: { id: ticket.id, status: "CLOSED" },
+      data: { status: "OPEN", closedByStaff: false, updatedAt: now, ...statusTimestamps("OPEN", ticket, now) },
+    });
+    if (updated.count === 0) return tx.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+    await systemEvent(tx, ticket.id, actor, "Reopened by the requester");
+    await audit(tx, actor, "ticket.reopen", { type: "ticket", id: ticket.id });
+    return tx.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+  });
+}
+
+export async function giveKudo(actor: Actor, ticketNumber: string) {
+  return prisma.$transaction(async (tx) => {
+    const ticket = await tx.ticket.findUnique({ where: { ticketNumber: normalizeNumber(ticketNumber) } });
+    if (!ticket || ticket.requesterId !== actor.id) throw new TicketError("Ticket not found.");
+    if (ticket.status !== "CLOSED" || !ticket.closedByStaff) throw new TicketError("Kudos are available after the IT team closes your ticket.");
+    const existing = await tx.ticketKudo.findUnique({ where: { ticketId: ticket.id } });
+    if (existing) return existing;
+    const kudo = await tx.ticketKudo.create({ data: { ticketId: ticket.id, requesterId: actor.id, recipientId: ticket.assignedAgentId } });
+    await audit(tx, actor, "ticket.kudo", { type: "ticket", id: ticket.id });
+    return kudo;
   });
 }
 
@@ -554,7 +586,7 @@ export async function updateTicketFields(
   }
 
   if (patch.status !== ticket.status) {
-    Object.assign(data, { status: patch.status, ...statusTimestamps(patch.status, ticket, now) });
+    Object.assign(data, { status: patch.status, closedByStaff: patch.status === "CLOSED", ...statusTimestamps(patch.status, ticket, now) });
     events.push(`Status changed from ${STATUS_LABEL[ticket.status]} to ${STATUS_LABEL[patch.status]}`);
   }
   if (patch.priority !== ticket.priority) {

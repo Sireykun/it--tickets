@@ -1,6 +1,5 @@
 "use client";
 
-import clsx from "clsx";
 import { BookOpen, ExternalLink, Paperclip } from "lucide-react";
 import { useActionState, useState } from "react";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -54,25 +53,12 @@ export function NewTicketForm({
         </div>
       </section>
 
-      <fieldset>
-        <legend className="mb-2 text-sm font-bold">What do you need help with?</legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {topics.map((t) => (
-            <label
-              key={t.id}
-              className={clsx(
-                // The radio is visually hidden, so the tile carries its focus ring.
-                "flex min-h-16 cursor-pointer flex-col justify-center rounded-lg border bg-surface px-4 py-3 shadow-card transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus",
-                topicId === t.id ? "border-primary bg-primary-soft ring-1 ring-primary" : "border-border hover:border-border-strong",
-              )}
-            >
-              <input type="radio" name="helpTopicId" value={t.id} checked={topicId === t.id} onChange={() => setTopicId(t.id)} required className="sr-only" />
-              <span className="font-bold">{t.name}</span>
-              {t.description && <span className="text-sm text-muted">{t.description}</span>}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <Field label="Help Topic" htmlFor="helpTopicId" hint={topics.find((topic) => topic.id === topicId)?.description ?? "Choose the type of IT help you need."}>
+        <Select id="helpTopicId" name="helpTopicId" required value={topicId} onChange={(e) => setTopicId(e.target.value)}>
+          <option value="" disabled>Choose a help topic</option>
+          {topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.name}</option>)}
+        </Select>
+      </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Campus" htmlFor="campusId" hint="Choose where the issue is happening.">

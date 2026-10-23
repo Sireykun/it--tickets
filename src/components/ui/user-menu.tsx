@@ -3,8 +3,8 @@
 import { Headset, LogOut, Monitor, Moon, Sun, UserRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { logoutAction } from "@/app/actions/auth";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuLinkItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/dropdown-menu";
-import { Avatar } from "@/components/ui/misc";
 import { applyTheme, type Theme } from "@/lib/theme";
 
 export const THEME_OPTIONS = [
@@ -16,13 +16,14 @@ export const THEME_OPTIONS = [
 type Props = {
   name: string;
   email: string;
+  hasPhoto?: boolean;
   theme: Theme;
   // Where the "switch app" link goes: staff see the portal from the console and vice versa.
   switchTo: "portal" | "staff" | null;
   showName?: boolean;
 };
 
-export function UserMenu({ name, email, theme, switchTo, showName }: Props) {
+export function UserMenu({ name, email, hasPhoto = false, theme, switchTo, showName }: Props) {
   const [current, setCurrent] = useState(theme);
   const [, startTransition] = useTransition();
 
@@ -39,7 +40,7 @@ export function UserMenu({ name, email, theme, switchTo, showName }: Props) {
           className="flex min-h-11 min-w-11 items-center gap-3 rounded-lg px-1 text-left hover:bg-surface-2 data-[state=open]:bg-surface-2"
           aria-label={`Account menu for ${name}`}
         >
-          <Avatar name={name} />
+          <ProfileAvatar name={name} hasPhoto={hasPhoto} className="size-9" />
           {showName && <span className="min-w-0 flex-1 truncate font-bold">{name}</span>}
         </button>
       </MenuTrigger>

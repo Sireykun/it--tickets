@@ -8,7 +8,8 @@ import { runAction } from "@/server/action-utils";
 import { requireUser } from "@/server/authz";
 import { prisma } from "@/server/prisma";
 import { prepareUploads } from "@/server/storage";
-import { addCollaborator, addMessage, closeAsRequester, createTicket, removeCollaborator } from "@/server/tickets";
+import { removeAvatar, saveAvatar, saveTheme } from "@/server/profile";
+import { addCollaborator, addMessage, closeAsRequester, createTicket, giveKudo, removeCollaborator, reopenAsRequester } from "@/server/tickets";
 import {
   changePasswordSchema,
   collaboratorSchema,
@@ -57,6 +58,19 @@ export async function closeTicketAction(ticketNumber: string) {
   revalidatePath("/");
 }
 
+export async function reopenTicketAction(ticketNumber: string) {
+  const user = await requireUser();
+  await reopenAsRequester(user, ticketNumber);
+  revalidatePath(`/tickets/${ticketNumber}`);
+  revalidatePath("/");
+}
+
+export async function giveKudoAction(ticketNumber: string) {
+  const user = await requireUser();
+  await giveKudo(user, ticketNumber);
+  revalidatePath(`/tickets/${ticketNumber}`);
+}
+
 export async function updateProfileAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const parsed = profileSchema.safeParse(formToObject(formData));
@@ -77,6 +91,30 @@ export async function changePasswordAction(_prev: ActionState, formData: FormDat
   }
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(parsed.data.newPassword, 12) } });
   return { ok: true, nonce: Date.now() };
+}
+
+export async function uploadAvatarAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const file = formData.get("photo");
+  if (!(file instanceof File)) return { error: "Choose a photo to upload." };
+  const result = await runAction(async () => { await saveAvatar(user.id, file); });
+  if (result.error) return result;
+  revalidatePath("/", "layout");
+  redirect("/account?photo=saved");
+}
+
+export async function removeAvatarAction() {
+  const user = await requireUser();
+  await removeAvatar(user.id);
+  revalidatePath("/", "layout");
+  redirect("/account?photo=removed");
+}
+
+export async function updateThemeAction(theme: string) {
+  const user = await requireUser();
+  await saveTheme(user.id, theme);
+  revalidatePath("/", "layout");
+  redirect("/account?theme=saved");
 }
 
 export async function addCcAction(ticketNumber: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

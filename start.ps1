@@ -4,14 +4,29 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
+# Through cmd so PowerShell 5.1 doesn't turn docker's stderr into a terminating error.
+function Test-Docker { cmd /c "docker info >nul 2>&1"; return $LASTEXITCODE -eq 0 }
+
 function Invoke-Step($label, [scriptblock]$command) {
     Write-Host "==> $label" -ForegroundColor Cyan
     & $command
     if ($LASTEXITCODE -ne 0) { throw "Failed: $label" }
 }
 
-docker info *> $null
-if ($LASTEXITCODE -ne 0) { throw "Docker is not running. Start Docker Desktop and try again." }
+if (-not (Test-Docker)) {
+    $dockerDesktop = @(
+        "$env:LOCALAPPDATA\Programs\DockerDesktop\Docker Desktop.exe",
+        "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $dockerDesktop) { throw "Docker is not running. Start Docker Desktop and try again." }
+    Write-Host "==> Starting Docker Desktop (first start can take a minute)" -ForegroundColor Cyan
+    Start-Process $dockerDesktop
+    for ($i = 0; $i -lt 90; $i++) {
+        Start-Sleep -Seconds 2
+        if (Test-Docker) { break }
+    }
+    if (-not (Test-Docker)) { throw "Docker Desktop did not start in time. Open it manually and re-run .\dev" }
+}
 
 Invoke-Step "Starting database and mail server" { docker compose up -d --build db mail }
 Invoke-Step "Installing packages" { docker compose run --rm app npm install --no-audit --no-fund }

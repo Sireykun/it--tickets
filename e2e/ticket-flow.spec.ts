@@ -14,7 +14,7 @@ test("student opens a ticket, agent works it, student closes it", async ({ brows
   await shot(student, testInfo, "01-my-tickets");
 
   await student.goto("/tickets/new");
-  await student.getByText("Student Wifi", { exact: true }).click();
+  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Student Wifi" });
   await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
   await student.getByLabel("Room", { exact: true }).fill("204");
   await student.getByLabel("Issue Summary").fill(subject);
@@ -90,7 +90,7 @@ test("requesters can't open someone else's ticket or the staff console", async (
   const agent = await sessionFor(browser, testInfo, AGENT);
   // The agent's own ticket, opened through the portal, belongs to someone other than the student.
   await agent.goto("/tickets/new");
-  await agent.getByText("Printer Setup", { exact: true }).click();
+  await agent.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Printer Setup" });
   await agent.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
   await agent.getByLabel("Room", { exact: true }).fill("Office");
   await agent.getByLabel("Issue Summary").fill(`Agent's own printer ${Date.now()}`);

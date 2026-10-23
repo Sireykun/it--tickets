@@ -55,7 +55,7 @@ test("an agent from another campus can't see this campus's tickets", async ({ br
   const subject = `Main campus only ${testInfo.project.name}-${Date.now()}`;
   const student = await sessionFor(browser, testInfo, STUDENT);
   await student.goto("/tickets/new");
-  await student.getByText("Printer Setup", { exact: true }).click();
+  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Printer Setup" });
   await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
   await student.getByLabel("Room", { exact: true }).fill("101");
   await student.getByLabel("Issue Summary").fill(subject);

@@ -50,6 +50,10 @@
   --warn-soft: #fff1e6;
   /* Dims the page behind dialogs and drawers. */
   --scrim: rgb(15 27 38 / 0.45);
+  /* Secondary accent for staff replies and kudos. */
+  --mauve: #c98bb3;
+  --mauve-soft: #fbeef5;
+  --mauve-fg: #8e2d63;
 }
 
 
@@ -92,6 +96,9 @@
   --warn: #f0a66b;
   --warn-soft: #3a2412;
   --scrim: rgb(2 6 14 / 0.65);
+  --mauve: #b56b9b;
+  --mauve-soft: #42263e;
+  --mauve-fg: #f7a2ca;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -132,6 +139,9 @@
     --warn: #f0a66b;
     --warn-soft: #3a2412;
     --scrim: rgb(2 6 14 / 0.65);
+    --mauve: #b56b9b;
+    --mauve-soft: #42263e;
+    --mauve-fg: #f7a2ca;
   }
 }
 
@@ -170,6 +180,9 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-scrim: var(--scrim);
+  --color-mauve: var(--mauve);
+  --color-mauve-soft: var(--mauve-soft);
+  --color-mauve-fg: var(--mauve-fg);
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
   /* Shadows are tinted with the page hue, never pure black on light. */
@@ -212,4 +225,85 @@ body {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+}
+
+/* Per-user accent (profile "theme"), layered on top of the light/dark mode. Ocean is the base palette.
+   Light values first; the dark-mode selectors below are more specific and win when dark is active. */
+[data-portal-theme="violet"] {
+  --primary: #5b3a9e;
+  --primary-hover: #472c80;
+  --primary-fg: #ffffff;
+  --primary-soft: #ece6f8;
+  --focus: #6b4bc2;
+}
+
+[data-portal-theme="rose"] {
+  --primary: #a3305f;
+  --primary-hover: #82244b;
+  --primary-fg: #ffffff;
+  --primary-soft: #fbe6ef;
+  --focus: #b83d6e;
+}
+
+:root[data-theme="dark"] [data-portal-theme="violet"] {
+  --bg: #0d0b1b;
+  --surface: #1a1730;
+  --surface-2: #26213e;
+  --border: #453b60;
+  --border-strong: #655879;
+  --primary: #c4a7ff;
+  --primary-hover: #ddc8ff;
+  --primary-fg: #170d2a;
+  --primary-soft: #33254e;
+  --focus: #c4a7ff;
+}
+
+:root[data-theme="dark"] [data-portal-theme="rose"] {
+  --bg: #190d19;
+  --surface: #2a1928;
+  --surface-2: #3a2436;
+  --border: #66405c;
+  --border-strong: #865671;
+  --primary: #f7a2ca;
+  --primary-hover: #ffc2df;
+  --primary-fg: #29111f;
+  --primary-soft: #4b2940;
+  --focus: #f7a2ca;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] [data-portal-theme="violet"] {
+    --bg: #0d0b1b;
+    --surface: #1a1730;
+    --surface-2: #26213e;
+    --border: #453b60;
+    --border-strong: #655879;
+    --primary: #c4a7ff;
+    --primary-hover: #ddc8ff;
+    --primary-fg: #170d2a;
+    --primary-soft: #33254e;
+    --focus: #c4a7ff;
+  }
+
+  :root[data-theme="system"] [data-portal-theme="rose"] {
+    --bg: #190d19;
+    --surface: #2a1928;
+    --surface-2: #3a2436;
+    --border: #66405c;
+    --border-strong: #865671;
+    --primary: #f7a2ca;
+    --primary-hover: #ffc2df;
+    --primary-fg: #29111f;
+    --primary-soft: #4b2940;
+    --focus: #f7a2ca;
+  }
+}
+
+@keyframes conversation-glow {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 6%, transparent); }
+  50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--mauve) 28%, transparent), 0 0 24px color-mix(in srgb, var(--mauve) 8%, transparent); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .conversation-panel { animation: conversation-glow 8s ease-in-out infinite; }
 }

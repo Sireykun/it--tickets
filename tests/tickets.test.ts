@@ -8,11 +8,13 @@ import {
   addMessage,
   closeAsRequester,
   createTicket,
+  giveKudo,
   getAttachmentForViewer,
   getTicketForViewer,
   listQueue,
   type QueueView,
   queueCounts,
+  reopenAsRequester,
   TicketError,
   updateTicketFields,
 } from "@/server/tickets";
@@ -140,6 +142,34 @@ describe("ticket lifecycle", () => {
     expect(closed.status).toBe("CLOSED");
     expect(closed.closedAt).not.toBeNull();
     await expect(addMessage(alice, t.ticketNumber, { body: "x", mode: "client" })).rejects.toThrow("closed");
+  });
+
+  it("lets the requester reopen a ticket closed by staff", async () => {
+    const t = await createTicket(alice, { helpTopicId: wifiTopicId, subject: "Reopen after closure", body: "Still broken" });
+    await updateTicketFields(admin, t.ticketNumber, { ...update(t), status: "CLOSED" });
+    await expect(reopenAsRequester(bob, t.ticketNumber)).rejects.toThrow("Ticket not found");
+
+    const reopened = await reopenAsRequester(alice, t.ticketNumber);
+    expect(reopened.status).toBe("OPEN");
+    expect(reopened.closedAt).toBeNull();
+    expect(reopened.resolvedAt).toBeNull();
+    await reopenAsRequester(alice, t.ticketNumber);
+    const events = await prisma.ticketThread.findMany({ where: { ticketId: t.id, body: "Reopened by the requester" } });
+    expect(events).toHaveLength(1);
+    await addMessage(alice, t.ticketNumber, { body: "Here are more details", mode: "client" });
+  });
+
+  it("accepts one kudo after staff closes a ticket, without a rating", async () => {
+    const t = await createTicket(alice, { helpTopicId: wifiTopicId, subject: "Kudos", body: "Help" });
+    await closeAsRequester(alice, t.ticketNumber);
+    await expect(giveKudo(alice, t.ticketNumber)).rejects.toThrow("after the IT team closes");
+    await reopenAsRequester(alice, t.ticketNumber);
+    await updateTicketFields(admin, t.ticketNumber, { ...update(t), status: "CLOSED" });
+    await expect(giveKudo(bob, t.ticketNumber)).rejects.toThrow("Ticket not found");
+    const first = await giveKudo(alice, t.ticketNumber);
+    const second = await giveKudo(alice, t.ticketNumber);
+    expect(second.id).toBe(first.id);
+    expect(await prisma.ticketKudo.count({ where: { ticketId: t.id } })).toBe(1);
   });
 });
 

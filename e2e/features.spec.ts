@@ -3,7 +3,7 @@ import { ADMIN, AGENT, sessionFor, shot, STUDENT } from "./helpers";
 
 async function openTicket(student: Page, subject: string) {
   await student.goto("/tickets/new");
-  await student.getByText("Student Wifi", { exact: true }).click();
+  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Student Wifi" });
   await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
   await student.getByLabel("Room", { exact: true }).fill("101");
   await student.getByLabel("Issue Summary").fill(subject);
@@ -37,7 +37,7 @@ test("superadmin bulk-assigns tickets from the queue", async ({ browser }, testI
 test("requester gets help-article suggestions and can browse Help", async ({ browser }, testInfo) => {
   const student = await sessionFor(browser, testInfo, STUDENT);
   await student.goto("/tickets/new");
-  await student.getByText("Printer Setup", { exact: true }).click();
+  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Printer Setup" });
   await student.getByLabel("Issue Summary").fill("Printer is offline");
   const suggestions = student.getByRole("region", { name: "Suggested help articles" });
   await expect(suggestions.getByRole("link", { name: /Printer shows offline/ })).toBeVisible();
