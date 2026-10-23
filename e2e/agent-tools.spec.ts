@@ -69,6 +69,8 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
 
   // ── A duplicate from the same student gets merged into the main ticket ──
   const dup = await openOnBehalf(agent, `Same laptop again ${stamp}`, "PHONE");
+  await agent.getByRole("button", { name: "Actions" }).click();
+  await agent.getByRole("menuitem", { name: "Merge into…" }).click();
   await agent.getByLabel("Merge into ticket number").fill(main);
   await agent.getByRole("button", { name: "Merge", exact: true }).click();
   await agent.getByRole("button", { name: "Yes, merge" }).click();

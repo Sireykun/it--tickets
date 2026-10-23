@@ -1,8 +1,9 @@
+import { UsersRound } from "lucide-react";
 import { requireSuperadmin } from "@/server/authz";
 import type { Metadata } from "next";
 import { prisma } from "@/server/prisma";
 import { TeamForm } from "../admin-forms";
-import { AdminPage, editTarget } from "../entity-list";
+import { AdminPage, IconTile, editTarget } from "../entity-list";
 
 export const metadata: Metadata = { title: "Teams" };
 
@@ -21,15 +22,21 @@ export default async function TeamsPage({ searchParams }: PageProps<"/staff/admi
   return (
     <AdminPage
       title="Teams"
-      subtitle="Groups of agents that tickets are assigned to. Add members from the Users page."
+      subtitle="Groups of agents who share tickets. Members see their team's tickets under My teams. Add members on a user's page in People."
       newLabel="New team"
       basePath="/staff/admin/teams"
       saved={sp.saved === "1"}
+      selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New team"}
       form={target.show ? <TeamForm key={target.item?.id ?? "new"} team={target.item} departments={departments} /> : undefined}
       rows={teams.map((t) => ({
         id: t.id,
         title: t.name,
+        leading: (
+          <IconTile>
+            <UsersRound aria-hidden />
+          </IconTile>
+        ),
         subtitle: t.department?.name ?? "No department",
         meta: `${t._count.members} member${t._count.members === 1 ? "" : "s"}`,
         inactive: !t.isActive,

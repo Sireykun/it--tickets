@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/action-state";
 import { runAction } from "@/server/action-utils";
+import { safeRedirectPath } from "@/server/auth-rules";
 import { requireStaff } from "@/server/authz";
 import { acquireLock, type LockHolder, releaseLock } from "@/server/locks";
 import { prisma } from "@/server/prisma";
@@ -12,6 +13,8 @@ import { addTaskComment, createTask, updateTask } from "@/server/tasks";
 import {
   addCollaborator,
   addMessage,
+  type BulkChange,
+  bulkUpdateTickets,
   createTicket,
   findOrCreateRequester,
   linkTickets,
@@ -22,6 +25,7 @@ import {
   updateTicketFields,
 } from "@/server/tickets";
 import {
+  bulkUpdateSchema,
   collaboratorSchema,
   firstError,
   formToObject,
@@ -76,6 +80,40 @@ export async function assignToMeAction(ticketNumber: string) {
     assignedAgentId: user.id,
   });
   revalidateTicket(ticketNumber);
+}
+
+// ─── Bulk queue actions ─────────────────────────────────────────────────────
+
+export async function bulkUpdateAction(formData: FormData) {
+  const user = await requireStaff();
+  const returnTo = safeRedirectPath(formData.get("returnTo"), "/staff");
+  const back = new URL(returnTo.startsWith("/staff") ? returnTo : "/staff", "http://local");
+  back.searchParams.delete("bulk");
+  back.searchParams.delete("skipped");
+  back.searchParams.delete("bulkError");
+
+  const parsed = bulkUpdateSchema.safeParse({ ...formToObject(formData), tickets: formData.getAll("tickets") });
+  if (!parsed.success) {
+    back.searchParams.set("bulkError", firstError(parsed.error));
+  } else {
+    const { tickets, ...rest } = parsed.data;
+    const change: BulkChange =
+      rest.field === "status"
+        ? { status: rest.value }
+        : rest.field === "priority"
+          ? { priority: rest.value }
+          : rest.field === "agent"
+            ? { assignedAgentId: rest.value === "me" ? user.id : rest.value }
+            : { assignedTeamId: rest.value };
+    const result = await runAction(async () => {
+      const { updated, skipped } = await bulkUpdateTickets(user, tickets, change);
+      back.searchParams.set("bulk", String(updated));
+      if (skipped.length) back.searchParams.set("skipped", skipped.map((s) => `${s.ticketNumber}: ${s.reason}`).join("\n"));
+    });
+    if (result.error) back.searchParams.set("bulkError", result.error);
+    revalidatePath("/staff", "layout");
+  }
+  redirect(`${back.pathname}${back.search}`);
 }
 
 // ─── Collision lock (called by the composer while an agent is typing) ───────

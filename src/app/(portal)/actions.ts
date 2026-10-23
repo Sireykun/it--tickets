@@ -1,5 +1,6 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/action-state";
@@ -10,6 +11,7 @@ import { prepareUploads } from "@/server/storage";
 import { removeAvatar, saveAvatar, saveTheme } from "@/server/profile";
 import { addCollaborator, addMessage, closeAsRequester, createTicket, giveKudo, removeCollaborator, reopenAsRequester } from "@/server/tickets";
 import {
+  changePasswordSchema,
   collaboratorSchema,
   emailAlertsSchema,
   firstError,
@@ -75,6 +77,19 @@ export async function updateProfileAction(_prev: ActionState, formData: FormData
   if (!parsed.success) return { error: firstError(parsed.error) };
   await prisma.user.update({ where: { id: user.id }, data: { name: parsed.data.name } });
   revalidatePath("/account");
+  return { ok: true, nonce: Date.now() };
+}
+
+export async function changePasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const parsed = changePasswordSchema.safeParse(formToObject(formData));
+  if (!parsed.success) return { error: firstError(parsed.error) };
+
+  const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+  if (!row.passwordHash || !(await bcrypt.compare(parsed.data.currentPassword, row.passwordHash))) {
+    return { error: "Your current password is incorrect." };
+  }
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(parsed.data.newPassword, 12) } });
   return { ok: true, nonce: Date.now() };
 }
 

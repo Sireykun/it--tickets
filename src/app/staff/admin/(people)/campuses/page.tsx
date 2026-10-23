@@ -1,10 +1,11 @@
+import { School } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ROLE_LABEL } from "@/lib/labels";
 import { requireSuperadmin } from "@/server/authz";
 import { prisma } from "@/server/prisma";
-import { CampusForm } from "../admin-forms";
-import { AdminPage, editTarget } from "../entity-list";
+import { CampusForm } from "../../admin-forms";
+import { AdminPage, IconTile, editTarget } from "../../entity-list";
 
 export const metadata: Metadata = { title: "Campuses" };
 
@@ -28,6 +29,8 @@ export default async function CampusesPage({ searchParams }: PageProps<"/staff/a
       newLabel="New campus"
       basePath="/staff/admin/campuses"
       saved={sp.saved === "1"}
+      nested
+      selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New campus"}
       form={
         target.show ? (
@@ -78,6 +81,11 @@ export default async function CampusesPage({ searchParams }: PageProps<"/staff/a
         return {
           id: c.id,
           title: c.name,
+          leading: (
+            <IconTile>
+              <School aria-hidden />
+            </IconTile>
+          ),
           subtitle: `${admins} campus admin${admins === 1 ? "" : "s"} · ${agents} agent${agents === 1 ? "" : "s"}${c.emailDomains.length ? ` · ${c.emailDomains.join(", ")}` : ""}`,
           meta: `${c._count.tickets} tickets · ${c._count.users} users`,
           inactive: !c.isActive,

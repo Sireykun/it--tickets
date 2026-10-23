@@ -141,3 +141,11 @@ export async function notifyStatus(tx: Tx, ticketId: string, actor: { id: string
   const t = await loadTicket(tx, ticketId);
   await enqueue(tx, status === "RESOLVED" ? "ticket.resolved" : "ticket.closed", t, participants(t), actor.id, {});
 }
+
+// The requester closed or reopened their own ticket, so the staff working it should know.
+export async function notifyRequesterStatus(tx: Tx, ticketId: string, actor: { id: string }, status: "CLOSED" | "OPEN") {
+  if (!emailEnabled()) return;
+  const t = await loadTicket(tx, ticketId);
+  const message = status === "CLOSED" ? "Closed by the requester" : "Reopened by the requester";
+  await enqueue(tx, "ticket.requester.status", t, await staffToAlert(tx, t), actor.id, { message });
+}

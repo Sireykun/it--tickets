@@ -106,7 +106,6 @@ model User {
   role           Role      @default(USER)
   isActive       Boolean   @default(true) @map("is_active")
   departmentId   String?   @map("department_id") @db.Uuid
-  organizationId String?   @map("organization_id") @db.Uuid
   // Home campus: new tickets from this user go here.
   campusId       String?   @map("campus_id") @db.Uuid
   // Staff alert emails (new ticket, assigned, requester replied). Requester emails always go out.
@@ -132,16 +131,15 @@ model User {
   ticketLocks        TicketLock[]
   ticketLinks        TicketLink[]
   auditEvents        AuditEvent[]
-  organization       Organization?        @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   collaborations     TicketCollaborator[] @relation("CollaboratorUser")
   addedCollaborators TicketCollaborator[] @relation("CollaboratorAddedBy")
   campus             Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
   staffCampuses      StaffCampus[]
+  kbArticles         KbArticle[]
   kudosGiven         TicketKudo[]         @relation("KudoRequester")
   kudosReceived      TicketKudo[]         @relation("KudoRecipient")
 
   @@index([role, isActive])
-  @@index([organizationId])
   @@index([campusId])
   @@map("users")
 }
@@ -230,6 +228,7 @@ model HelpTopic {
   defaultTeam       Team?       @relation(fields: [defaultTeamId], references: [id], onDelete: SetNull)
   slaPolicy         SlaPolicy?  @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
   tickets           Ticket[]
+  kbArticles        KbArticle[]
 
   @@map("help_topics")
 }
@@ -460,7 +459,6 @@ model TicketCollaborator {
   @@map("ticket_collaborators")
 }
 
-// Groups of users (campus, grade, staff). `domains` auto-assigns new users by email domain.
 // The school's campuses. Tickets, requesters and staff belong to campuses; settings are shared.
 model Campus {
   id           String   @id @default(uuid(7)) @db.Uuid
@@ -494,19 +492,6 @@ model StaffCampus {
   @@map("staff_campuses")
 }
 
-model Organization {
-  id        String   @id @default(uuid(7)) @db.Uuid
-  name      String   @unique
-  domains   String[] @default([])
-  notes     String?
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-
-  users User[]
-
-  @@map("organizations")
-}
 
 // ─── Email ──────────────────────────────────────────────────────────────────
 
@@ -580,4 +565,24 @@ model AuditEvent {
   @@index([createdAt])
   @@index([actorId])
   @@map("audit_events")
+}
+
+// ─── Knowledge base ─────────────────────────────────────────────────────────
+
+// Self-service help articles, shared across campuses like help topics. Bodies are plain text.
+model KbArticle {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  title       String   @db.VarChar(200)
+  body        String
+  helpTopicId String?  @map("help_topic_id") @db.Uuid
+  isPublished Boolean  @default(false) @map("is_published")
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  helpTopic HelpTopic? @relation(fields: [helpTopicId], references: [id], onDelete: SetNull)
+  createdBy User       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([isPublished, helpTopicId])
+  @@map("kb_articles")
 }

@@ -1,15 +1,79 @@
 @import "tailwindcss";
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────
-   CIA FIRST Digital Nexus dark palette: near-black slate canvas, navy cards,
-   cyan links, teal actions, and muted gold accents. Status and priority remain
-   semantic.
+   Light: cool neutral base + the helpdesk blue. Dark (the default, see
+   src/lib/theme.ts): CIA FIRST Digital Nexus palette — near-black slate canvas,
+   navy cards, cyan links, teal actions, and muted gold accents. Status and
+   priority hues are semantic, never decorative.
 
    Shape rule (keep it consistent):
      controls (buttons, inputs, nav items, segmented tabs) → rounded-lg (8px)
      surfaces (cards, panels, message bubbles, dialogs)    → rounded-xl (12px)
      chips, counts, avatars                                 → rounded-full */
 :root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --border: #e0e5ea;
+  --border-strong: #c5cdd6;
+  --text: #0f1b26;
+  --muted: #55626e;
+  --primary: #17587f;
+  --primary-hover: #104562;
+  --primary-fg: #ffffff;
+  --primary-soft: #e3eef6;
+  --action: #17587f;
+  --action-hover: #104562;
+  --action-fg: #ffffff;
+  --focus: #2b7bba;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --shadow: 16 32 48;
+  /* Solid brand surface (login panel); stays deep blue in both themes. */
+  --brand: #17587f;
+  --brand-fg: #ffffff;
+  --gold: #a88a3d;
+  --gold-text: #7a5d12;
+  --accent-green: #12704a;
+  --accent-green-soft: #e2f4eb;
+  /* Staff replies and kudos. */
+  --reply-bg: #fbf6e9;
+  --reply-border: #d9c48a;
+
+  --open: #1c5fa8;
+  --open-soft: #e3eefa;
+  --progress: #6a3fb5;
+  --progress-soft: #efe8fa;
+  --resolved: #12704a;
+  --resolved-soft: #e2f4eb;
+  --closed: #4f5b66;
+  --closed-soft: #eceff2;
+
+  --p-low: #55626e;
+  --p-normal: #1c5fa8;
+  --p-high: #a64708;
+  --p-emergency: #b42318;
+
+  --note: #6b4e00;
+  --note-bg: #fff7dc;
+  --note-border: #ecc94b;
+  --warn: #a64708;
+  --warn-soft: #fff1e6;
+  /* Dims the page behind dialogs and drawers. */
+  --scrim: rgb(15 27 38 / 0.45);
+  /* Campus identity (categorical, fixed order, validated for colour-blind separation).
+     Always shown next to the campus name; never used for status. */
+  --campus-1: #2a78d6;
+  --campus-2: #eb6834;
+  --campus-3: #1baf7a;
+  --campus-4: #eda100;
+  --campus-5: #e87ba4;
+  --campus-6: #008300;
+}
+
+/* Kept as two identical blocks because a media query can't share a selector list. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #020617;
   --surface: #0f172a;
   --surface-2: #17243a;
@@ -36,7 +100,6 @@
   --accent-green-soft: #123628;
   --reply-bg: #211f24;
   --reply-border: #6b5c30;
-
   --open: #7db3ea;
   --open-soft: #16304d;
   --progress: #b99af0;
@@ -45,17 +108,78 @@
   --resolved-soft: #123628;
   --closed: #a5b1bc;
   --closed-soft: #252f39;
-
   --p-low: #cbd5e1;
   --p-normal: #7db3ea;
   --p-high: #f0a66b;
   --p-emergency: #f2837a;
-
   --note: #f3d77a;
   --note-bg: #2a2410;
   --note-border: #6e5a1c;
   --warn: #f0a66b;
   --warn-soft: #3a2412;
+  --scrim: rgb(2 6 14 / 0.65);
+  --campus-1: #3987e5;
+  --campus-2: #d95926;
+  --campus-3: #199e70;
+  --campus-4: #c98500;
+  --campus-5: #d55181;
+  --campus-6: #008300;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --bg: #020617;
+    --surface: #0f172a;
+    --surface-2: #17243a;
+    --border: #1e293b;
+    --border-strong: #334155;
+    --text: #f1f5f9;
+    --muted: #cbd5e1;
+    --primary: #5cc8e8;
+    --primary-hover: #8cddf2;
+    --primary-fg: #05151d;
+    --primary-soft: #0b3042;
+    --action: #015f7a;
+    --action-hover: #017596;
+    --action-fg: #ffffff;
+    --focus: #5cc8e8;
+    --danger: #f2837a;
+    --danger-soft: #3a1714;
+    --shadow: 0 0 0;
+    --brand: #015f7a;
+    --brand-fg: #ffffff;
+    --gold: #bca560;
+    --gold-text: #d4bc84;
+    --accent-green: #6fd0a2;
+    --accent-green-soft: #123628;
+    --reply-bg: #211f24;
+    --reply-border: #6b5c30;
+    --open: #7db3ea;
+    --open-soft: #16304d;
+    --progress: #b99af0;
+    --progress-soft: #2c2048;
+    --resolved: #6fd0a2;
+    --resolved-soft: #123628;
+    --closed: #a5b1bc;
+    --closed-soft: #252f39;
+    --p-low: #cbd5e1;
+    --p-normal: #7db3ea;
+    --p-high: #f0a66b;
+    --p-emergency: #f2837a;
+    --note: #f3d77a;
+    --note-bg: #2a2410;
+    --note-border: #6e5a1c;
+    --warn: #f0a66b;
+    --warn-soft: #3a2412;
+    --scrim: rgb(2 6 14 / 0.65);
+    --campus-1: #3987e5;
+    --campus-2: #d95926;
+    --campus-3: #199e70;
+    --campus-4: #c98500;
+    --campus-5: #d55181;
+    --campus-6: #008300;
+  }
 }
 
 @theme inline {
@@ -101,6 +225,13 @@
   --color-note-border: var(--note-border);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-scrim: var(--scrim);
+  --color-campus-1: var(--campus-1);
+  --color-campus-2: var(--campus-2);
+  --color-campus-3: var(--campus-3);
+  --color-campus-4: var(--campus-4);
+  --color-campus-5: var(--campus-5);
+  --color-campus-6: var(--campus-6);
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
   /* Shadows are tinted with the page hue, never pure black on light. */
@@ -109,7 +240,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   font-size: 17px;
   -webkit-tap-highlight-color: transparent;
 }
@@ -150,7 +281,29 @@ body {
   }
 }
 
+/* Per-user accent (profile "theme"), layered on top of the light/dark mode. Ocean is the base palette.
+   Light values first; the dark-mode selectors below are more specific and win when dark is active. */
 [data-portal-theme="violet"] {
+  --primary: #5b3a9e;
+  --primary-hover: #472c80;
+  --primary-fg: #ffffff;
+  --primary-soft: #ece6f8;
+  --action: #5b3a9e;
+  --action-hover: #472c80;
+  --focus: #6b4bc2;
+}
+
+[data-portal-theme="rose"] {
+  --primary: #a3305f;
+  --primary-hover: #82244b;
+  --primary-fg: #ffffff;
+  --primary-soft: #fbe6ef;
+  --action: #a3305f;
+  --action-hover: #82244b;
+  --focus: #b83d6e;
+}
+
+:root[data-theme="dark"] [data-portal-theme="violet"] {
   --bg: #0d0b1b;
   --surface: #1a1730;
   --surface-2: #26213e;
@@ -158,13 +311,14 @@ body {
   --border-strong: #655879;
   --primary: #c4a7ff;
   --primary-hover: #ddc8ff;
+  --primary-fg: #170d2a;
   --primary-soft: #33254e;
   --action: #68449a;
   --action-hover: #7955ac;
   --focus: #c4a7ff;
 }
 
-[data-portal-theme="rose"] {
+:root[data-theme="dark"] [data-portal-theme="rose"] {
   --bg: #190d19;
   --surface: #2a1928;
   --surface-2: #3a2436;
@@ -172,15 +326,48 @@ body {
   --border-strong: #865671;
   --primary: #f7a2ca;
   --primary-hover: #ffc2df;
+  --primary-fg: #29111f;
   --primary-soft: #4b2940;
   --action: #8b3561;
   --action-hover: #a54373;
   --focus: #f7a2ca;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] [data-portal-theme="violet"] {
+    --bg: #0d0b1b;
+    --surface: #1a1730;
+    --surface-2: #26213e;
+    --border: #453b60;
+    --border-strong: #655879;
+    --primary: #c4a7ff;
+    --primary-hover: #ddc8ff;
+    --primary-fg: #170d2a;
+    --primary-soft: #33254e;
+    --action: #68449a;
+    --action-hover: #7955ac;
+    --focus: #c4a7ff;
+  }
+
+  :root[data-theme="system"] [data-portal-theme="rose"] {
+    --bg: #190d19;
+    --surface: #2a1928;
+    --surface-2: #3a2436;
+    --border: #66405c;
+    --border-strong: #865671;
+    --primary: #f7a2ca;
+    --primary-hover: #ffc2df;
+    --primary-fg: #29111f;
+    --primary-soft: #4b2940;
+    --action: #8b3561;
+    --action-hover: #a54373;
+    --focus: #f7a2ca;
+  }
+}
+
 @keyframes conversation-glow {
-  0%, 100% { box-shadow: 0 0 0 1px rgb(188 165 96 / 0.07); }
-  50% { box-shadow: 0 0 0 1px rgb(188 165 96 / 0.22), 0 0 20px rgb(188 165 96 / 0.07); }
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 7%, transparent); }
+  50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent), 0 0 20px color-mix(in srgb, var(--gold) 7%, transparent); }
 }
 
 @media (prefers-reduced-motion: no-preference) {

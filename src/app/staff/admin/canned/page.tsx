@@ -26,6 +26,7 @@ export default async function CannedPage({ searchParams }: PageProps<"/staff/adm
       newLabel="New reply"
       basePath="/staff/admin/canned"
       saved={sp.saved === "1"}
+      selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.title}` : "New canned reply"}
       form={
         target.show ? (

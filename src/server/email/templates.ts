@@ -75,6 +75,13 @@ Ticket {{ticket.number}} is now closed. If you need more help, open a new ticket
 
 CIA FIRST IT Help Desk`,
   },
+  "ticket.requester.status": {
+    label: "Requester closed or reopened: alert to staff",
+    subject: "{{message}}: {{ticket.number}} {{ticket.subject}}",
+    body: `{{requester.name}} changed {{ticket.number}}: {{message}}.
+
+Open it: {{ticket.staffUrl}}`,
+  },
 } as const satisfies Record<string, { label: string; subject: string; body: string }>;
 
 export type TemplateKey = keyof typeof TEMPLATE_DEFS;

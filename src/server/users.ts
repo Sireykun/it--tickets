@@ -6,22 +6,6 @@ import { type AppUser, campusAccess } from "@/server/roles";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
-// Most specific organization whose domains match the email, e.g. "staff.ciaschool.edu.kh"
-// beats "ciaschool.edu.kh".
-export async function matchOrganization(db: Db, email: string): Promise<string | null> {
-  const domain = normalizeEmail(email).split("@")[1];
-  if (!domain) return null;
-  const orgs = await db.organization.findMany({ where: { isActive: true, domains: { isEmpty: false } }, select: { id: true, domains: true } });
-  let best: { id: string; len: number } | null = null;
-  for (const org of orgs) {
-    for (const d of org.domains) {
-      const dom = d.toLowerCase().replace(/^@/, "");
-      if ((domain === dom || domain.endsWith(`.${dom}`)) && (!best || dom.length > best.len)) best = { id: org.id, len: dom.length };
-    }
-  }
-  return best?.id ?? null;
-}
-
 function domainMatches(domain: string, candidates: string[]): number {
   let best = -1;
   for (const d of candidates) {
@@ -83,7 +67,7 @@ export async function ensureUser(
   const name = input.name?.trim() || email.split("@")[0];
   return prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
-      data: { email, name, organizationId: await matchOrganization(tx, email), campusId: await matchCampus(tx, email) },
+      data: { email, name, campusId: await matchCampus(tx, email) },
     });
     await audit(tx, ctx.actorId ? { id: ctx.actorId } : null, "user.create", { type: "user", id: user.id }, { email, via: ctx.via });
     return { user, created: true };

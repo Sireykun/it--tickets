@@ -2,7 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import type { ThreadEntryType, TicketPriority, TicketSource, TicketStatus } from "@/generated/prisma/enums";
 import { PRIORITY_LABEL, SOURCE_LABEL, STATUS_LABEL } from "@/lib/labels";
 import { audit } from "@/server/audit";
-import { notifyAssigned, notifyMessage, notifyStatus, notifyTicketCreated } from "@/server/email/notify";
+import { notifyAssigned, notifyMessage, notifyRequesterStatus, notifyStatus, notifyTicketCreated } from "@/server/email/notify";
 import { type AppUser, canViewTicket, canWorkTicket, hasFullQueue, inScope, isParticipant, isStaff } from "@/server/roles";
 import { prisma } from "@/server/prisma";
 import { campusForRequester, ensureUser } from "@/server/users";
@@ -12,7 +12,7 @@ import { type PreparedFile, type StoredFile, withStoredFiles } from "@/server/st
 export type Actor = Pick<AppUser, "id" | "name" | "role" | "campusScope">;
 
 // Only tickets in the actor's campuses (no filter for superadmins).
-function campusWhere(actor: Pick<AppUser, "campusScope">): Prisma.TicketWhereInput {
+export function campusWhere(actor: Pick<AppUser, "campusScope">): Prisma.TicketWhereInput {
   return actor.campusScope === "all" ? {} : { campusId: { in: actor.campusScope } };
 }
 
@@ -232,7 +232,7 @@ export async function getTicketForViewer(actor: Actor, ticketNumber: string, opt
     include: {
       campus: { select: { id: true, name: true } },
       requester: {
-        select: { id: true, name: true, email: true, organization: { select: { id: true, name: true } }, campus: { select: { name: true } } },
+        select: { id: true, name: true, email: true, campus: { select: { name: true } } },
       },
       assignedAgent: { select: { id: true, name: true } },
       assignedTeam: { select: { id: true, name: true } },
@@ -267,15 +267,19 @@ const lastConversationEntry = {
   select: { type: true, createdAt: true },
 };
 
-export async function listMyTickets(actor: Actor, filter: "open" | "closed", query = "") {
-  const q = query.trim().slice(0, 100);
+export async function listMyTickets(
+  actor: Actor,
+  filter: "open" | "closed",
+  opts: { q?: string; sort?: "updated" | "newest" | "oldest" } = {},
+) {
+  const q = opts.q?.trim().slice(0, 100);
   return prisma.ticket.findMany({
     where: {
       OR: [{ requesterId: actor.id }, { collaborators: { some: { userId: actor.id } } }],
       status: filter === "open" ? { in: ACTIVE_STATUSES } : "CLOSED",
-      ...(q ? { AND: [{ OR: [{ subject: { contains: q, mode: "insensitive" } }, { ticketNumber: { contains: q, mode: "insensitive" } }, { helpTopic: { name: { contains: q, mode: "insensitive" } } }] }] } : {}),
+      ...(q && { AND: [{ OR: [{ ticketNumber: { contains: q, mode: "insensitive" } }, { subject: { contains: q, mode: "insensitive" } }, { helpTopic: { name: { contains: q, mode: "insensitive" } } }] }] }),
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: opts.sort === "newest" ? { createdAt: "desc" } : opts.sort === "oldest" ? { createdAt: "asc" } : { updatedAt: "desc" },
     take: 100,
     include: {
       helpTopic: { select: { name: true } },
@@ -288,20 +292,30 @@ export async function listMyTickets(actor: Actor, filter: "open" | "closed", que
 export const QUEUE_VIEWS = ["personal", "unassigned", "mine", "teams", "open", "overdue", "all"] as const;
 export type QueueView = (typeof QUEUE_VIEWS)[number];
 
+export const QUEUE_SORTS = ["priority", "newest", "oldest", "updated"] as const;
+export type QueueSort = (typeof QUEUE_SORTS)[number];
+
 export type QueueParams = {
   view: QueueView;
   status?: TicketStatus;
   priority?: TicketPriority;
   teamId?: string;
   topicId?: string;
-  orgId?: string;
   campusId?: string;
   q?: string;
+  sort?: QueueSort; // defaults to "priority"
   page?: number;
   limit?: number; // defaults to QUEUE_PAGE_SIZE; CSV export asks for more
 };
 
 export const QUEUE_PAGE_SIZE = 50;
+
+const QUEUE_ORDER: Record<QueueSort, Prisma.TicketOrderByWithRelationInput[]> = {
+  priority: [{ priorityLevel: "desc" }, { resolutionDueAt: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+  newest: [{ createdAt: "desc" }],
+  oldest: [{ createdAt: "asc" }],
+  updated: [{ updatedAt: "desc" }],
+};
 
 async function myTeamIds(actor: Actor): Promise<string[]> {
   const rows = await prisma.teamMember.findMany({ where: { userId: actor.id }, select: { teamId: true } });
@@ -344,7 +358,6 @@ export async function listQueue(actor: Actor, params: QueueParams) {
   if (params.priority) filters.push({ priority: params.priority });
   if (params.teamId) filters.push({ assignedTeamId: params.teamId });
   if (params.topicId) filters.push({ helpTopicId: params.topicId });
-  if (params.orgId) filters.push({ requester: { organizationId: params.orgId } });
   const q = params.q?.trim();
   if (q) {
     filters.push({
@@ -361,7 +374,7 @@ export async function listQueue(actor: Actor, params: QueueParams) {
   const [tickets, total] = await Promise.all([
     prisma.ticket.findMany({
       where,
-      orderBy: [{ priorityLevel: "desc" }, { resolutionDueAt: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+      orderBy: QUEUE_ORDER[params.sort ?? "priority"],
       skip: page * (params.limit ?? QUEUE_PAGE_SIZE),
       take: params.limit ?? QUEUE_PAGE_SIZE,
       include: {
@@ -474,6 +487,9 @@ export async function addMessage(
         }
       }
       await tx.ticket.update({ where: { id: ticket.id }, data });
+      if (type !== "CLIENT_MESSAGE") {
+        await audit(tx, actor, type === "AGENT_REPLY" ? "ticket.reply" : "ticket.note", { type: "ticket", id: ticket.id }, { entryId: entry.id });
+      }
       await notifyMessage(tx, ticket.id, actor, type, input.body);
       return entry;
     }),
@@ -491,10 +507,12 @@ export async function closeAsRequester(actor: Actor, ticketNumber: string) {
   return prisma.$transaction(async (tx) => {
     await systemEvent(tx, ticket.id, actor, "Closed by the requester");
     await audit(tx, actor, "ticket.close", { type: "ticket", id: ticket.id });
-    return tx.ticket.update({
+    const closed = await tx.ticket.update({
       where: { id: ticket.id },
       data: { status: "CLOSED", closedByStaff: false, ...statusTimestamps("CLOSED", ticket, now) },
     });
+    await notifyRequesterStatus(tx, ticket.id, actor, "CLOSED");
+    return closed;
   });
 }
 
@@ -512,6 +530,7 @@ export async function reopenAsRequester(actor: Actor, ticketNumber: string) {
     if (updated.count === 0) return tx.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
     await systemEvent(tx, ticket.id, actor, "Reopened by the requester");
     await audit(tx, actor, "ticket.reopen", { type: "ticket", id: ticket.id });
+    await notifyRequesterStatus(tx, ticket.id, actor, "OPEN");
     return tx.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
   });
 }
@@ -520,7 +539,7 @@ export async function giveKudo(actor: Actor, ticketNumber: string) {
   return prisma.$transaction(async (tx) => {
     const ticket = await tx.ticket.findUnique({ where: { ticketNumber: normalizeNumber(ticketNumber) } });
     if (!ticket || ticket.requesterId !== actor.id) throw new TicketError("Ticket not found.");
-    if (ticket.status !== "CLOSED") throw new TicketError("Kudos are available on closed tickets.");
+    if (ticket.status !== "CLOSED" || !ticket.closedByStaff) throw new TicketError("Kudos are available once staff close your ticket.");
     const existing = await tx.ticketKudo.findUnique({ where: { ticketId: ticket.id } });
     if (existing) return existing;
     const kudo = await tx.ticketKudo.create({ data: { ticketId: ticket.id, requesterId: actor.id, recipientId: ticket.assignedAgentId } });
@@ -612,6 +631,44 @@ export async function updateTicketFields(
   });
 }
 
+export const BULK_LIMIT = 50;
+
+export type BulkChange =
+  | { status: TicketStatus }
+  | { priority: TicketPriority }
+  | { assignedAgentId: string | null }
+  | { assignedTeamId: string | null };
+
+// Applies one change to many tickets through `updateTicketFields`, so each ticket gets the same
+// campus/assignment checks, system events, audit row and emails as a single edit.
+export async function bulkUpdateTickets(actor: Actor, ticketNumbers: string[], change: BulkChange) {
+  if (!isStaff(actor.role)) throw new TicketError("Not allowed.");
+  const numbers = [...new Set(ticketNumbers.map(normalizeNumber))];
+  if (numbers.length === 0) throw new TicketError("Select at least one ticket.");
+  if (numbers.length > BULK_LIMIT) throw new TicketError(`Select at most ${BULK_LIMIT} tickets at a time.`);
+
+  let updated = 0;
+  const skipped: { ticketNumber: string; reason: string }[] = [];
+  for (const ticketNumber of numbers) {
+    const ticket = await prisma.ticket.findUnique({ where: { ticketNumber } });
+    try {
+      if (!ticket) throw new TicketError("Ticket not found.");
+      await updateTicketFields(actor, ticketNumber, {
+        status: ticket.status,
+        priority: ticket.priority,
+        assignedTeamId: ticket.assignedTeamId,
+        assignedAgentId: ticket.assignedAgentId,
+        ...change,
+      });
+      updated++;
+    } catch (err) {
+      if (!(err instanceof TicketError)) throw err;
+      skipped.push({ ticketNumber, reason: err.message });
+    }
+  }
+  return { updated, skipped };
+}
+
 // ─── Links & merges ─────────────────────────────────────────────────────────
 
 // Both tickets must be at campuses the actor works at; others look like they don't exist.
@@ -656,6 +713,7 @@ export async function unlinkTickets(actor: Actor, ticketNumber: string, otherNum
     if (count === 0) return;
     await systemEvent(tx, from.id, actor, `Unlinked from ${to.ticketNumber}`);
     await systemEvent(tx, to.id, actor, `Unlinked from ${from.ticketNumber}`);
+    await audit(tx, actor, "ticket.unlink", { type: "ticket", id: from.id }, { to: to.ticketNumber });
   });
 }
 
@@ -686,7 +744,7 @@ export async function mergeTickets(actor: Actor, sourceNumber: string, targetNum
     await systemEvent(tx, source.id, actor, `Merged into ${target.ticketNumber}`);
     await tx.ticket.update({
       where: { id: source.id },
-      data: { status: "CLOSED", ...statusTimestamps("CLOSED", source, now) },
+      data: { status: "CLOSED", closedByStaff: true, ...statusTimestamps("CLOSED", source, now) },
     });
     await tx.ticket.update({ where: { id: target.id }, data: { updatedAt: now } });
     await audit(tx, actor, "ticket.merge", { type: "ticket", id: source.id }, { into: target.ticketNumber });

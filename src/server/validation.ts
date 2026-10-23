@@ -44,6 +44,18 @@ const ticketNumber = z
 
 export const ticketPairSchema = z.object({ other: ticketNumber });
 
+// "me" for the agent value is resolved to the acting user by the action.
+export const bulkUpdateSchema = z
+  .object({ tickets: z.array(ticketNumber).min(1, "Select at least one ticket.").max(50, "Select at most 50 tickets at a time.") })
+  .and(
+    z.discriminatedUnion("field", [
+      z.object({ field: z.literal("status"), value: status }),
+      z.object({ field: z.literal("priority"), value: priority }),
+      z.object({ field: z.literal("agent"), value: z.union([z.literal("me"), optionalId]) }),
+      z.object({ field: z.literal("team"), value: optionalId }),
+    ]),
+  );
+
 // Staff opening a ticket for someone else.
 export const staffNewTicketSchema = newTicketSchema.omit({ campusId: true, room: true }).extend({
   requesterEmail: z.email("Enter the requester's email.").max(254),
@@ -112,17 +124,12 @@ export const campusSchema = z.object({
   isActive: checkbox,
 });
 
-export const organizationSchema = z.object({
+export const kbArticleSchema = z.object({
   id: optionalId,
-  name: z.string().trim().min(1, "Name is required.").max(100),
-  domains: domainList,
-  notes: z
-    .string()
-    .trim()
-    .max(2000)
-    .optional()
-    .transform((v) => v || null),
-  isActive: checkbox,
+  title: z.string().trim().min(3, "Title must be at least 3 characters.").max(200),
+  body: z.string().trim().min(1, "Write the article.").max(50_000),
+  helpTopicId: optionalId,
+  isPublished: checkbox,
 });
 
 export const emailTemplateSchema = z.object({
@@ -144,6 +151,14 @@ export const cannedSchema = z.object({
 
 const password = z.string().min(10, "Password must be at least 10 characters.").max(200);
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().max(200),
+    newPassword: password,
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, { message: "Passwords don't match.", path: ["confirmPassword"] });
+
 export const profileSchema = z.object({ name: z.string().trim().min(1).max(100) });
 
 export const adminUserSchema = z.object({
@@ -153,7 +168,6 @@ export const adminUserSchema = z.object({
   role,
   departmentId: optionalId,
   // "auto" = match by email domain; "" = none.
-  organizationId: z.union([z.literal("auto"), optionalId]).default("auto"),
   campusId: z.union([z.literal("auto"), optionalId]).default("auto"),
   isActive: checkbox,
   password: z

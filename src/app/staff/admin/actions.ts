@@ -11,22 +11,22 @@ import {
   saveDepartment,
   saveEmailTemplate,
   saveHelpTopic,
-  saveOrganization,
   saveSlaPolicy,
   saveTeam,
   saveUser,
 } from "@/server/admin";
 import { type AppUser, requireSuperadmin, requireUserManager } from "@/server/authz";
 import { saveCanned } from "@/server/canned";
+import { saveArticle } from "@/server/kb";
 import {
   adminUserSchema,
   campusSchema,
   cannedSchema,
   emailTemplateSchema,
-  organizationSchema,
   firstError,
   formToObject,
   helpTopicSchema,
+  kbArticleSchema,
   namedEntitySchema,
   slaSchema,
   teamSchema,
@@ -76,10 +76,6 @@ export async function saveHelpTopicAction(_prev: ActionState, formData: FormData
   return save(formData, helpTopicSchema, saveHelpTopic, "/staff/admin/help-topics");
 }
 
-export async function saveOrganizationAction(_prev: ActionState, formData: FormData) {
-  return save(formData, organizationSchema, saveOrganization, "/staff/admin/organizations");
-}
-
 export async function saveEmailTemplateAction(_prev: ActionState, formData: FormData) {
   return save(formData, emailTemplateSchema, saveEmailTemplate, "/staff/admin/email");
 }
@@ -93,4 +89,8 @@ export async function resetEmailTemplateAction(key: string) {
 
 export async function saveCampusAction(_prev: ActionState, formData: FormData) {
   return save(formData, campusSchema, saveCampus, "/staff/admin/campuses");
+}
+
+export async function saveArticleAction(_prev: ActionState, formData: FormData) {
+  return save(formData, kbArticleSchema, saveArticle, "/staff/admin/knowledge-base");
 }

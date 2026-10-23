@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Circle, Eye, EyeOff, Heart, Link2, Printer, UserPlus, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Heart, Link2, UserPlus, X } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -31,7 +31,8 @@ import {
   staffRemoveCcAction,
 } from "../../actions";
 import { CcPanel } from "@/components/tickets/cc-panel";
-import { LinkTicketForm, MergeTicketForm, QuickTaskForm } from "./related-forms";
+import { QuickTaskForm } from "./related-forms";
+import { TicketActionsMenu } from "./ticket-actions-menu";
 import { CollapsiblePanel, TicketFieldsForm } from "./ticket-panel";
 
 export async function generateMetadata({ params }: PageProps<"/staff/tickets/[number]">): Promise<Metadata> {
@@ -86,23 +87,22 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
         <ArrowLeft className="size-4" aria-hidden /> Queue
       </Link>
 
-      <div className="mb-5">
-        <p className="text-sm font-bold text-muted tabular-nums">
-          {n} · {ticket.campus?.name ?? "No campus"} · via {SOURCE_LABEL[ticket.source]}
-        </p>
-        <h1 className="text-xl font-bold tracking-tight break-words sm:text-2xl">{ticket.subject}</h1>
-        <AccentRule />
-        <div className="mt-2 flex flex-wrap gap-x-4">
-          <Link
-            href={asRequester ? `/staff/tickets/${n}` : `/staff/tickets/${n}?view=requester`}
-            className="inline-flex min-h-10 items-center gap-1.5 text-sm font-bold text-primary hover:underline"
-          >
-            {asRequester ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
-            {asRequester ? "Back to staff view" : "Preview as requester"}
-          </Link>
-          <Link href={`/print/tickets/${n}`} target="_blank" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-bold text-primary hover:underline">
-            <Printer className="size-4" aria-hidden /> Print / PDF
-          </Link>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 flex-1 basis-80">
+          <p className="text-sm font-bold text-muted tabular-nums">
+            {n} · {ticket.campus?.name ?? "No campus"} · via {SOURCE_LABEL[ticket.source]}
+          </p>
+          <h1 className="text-xl font-bold tracking-tight break-words sm:text-2xl">{ticket.subject}</h1>
+          <AccentRule />
+        </div>
+        <div className="flex gap-2">
+          <TicketActionsMenu
+            ticketNumber={n}
+            isRequesterView={asRequester}
+            assignToMe={ticket.assignedAgentId ? undefined : assignToMeAction.bind(null, n)}
+            linkAction={linkAction.bind(null, n)}
+            mergeAction={!mergedInto && ticket.status !== "CLOSED" ? mergeAction.bind(null, n) : undefined}
+          />
         </div>
       </div>
 
@@ -208,10 +208,6 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
                 <dd>{ticket.department.name}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-muted">Organization</dt>
-                <dd>{ticket.requester.organization?.name ?? "None"}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
                 <dt className="text-muted">Help topic</dt>
                 <dd>{ticket.helpTopic?.name ?? "None"}</dd>
               </div>
@@ -282,8 +278,7 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
                 ))}
               </ul>
             )}
-            <LinkTicketForm action={linkAction.bind(null, n)} />
-            {!mergedInto && ticket.status !== "CLOSED" && <MergeTicketForm action={mergeAction.bind(null, n)} ticketNumber={n} />}
+            {links.length === 0 && <p className="text-muted">None yet. Use Actions → Link ticket to add one.</p>}
           </Card>
         </aside>
 

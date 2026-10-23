@@ -25,7 +25,7 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const filter = params.show === "closed" ? "closed" : "open";
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 100) : "";
-  const tickets = await listMyTickets(user, filter, q);
+  const tickets = await listMyTickets(user, filter, { q });
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] xl:gap-8">
       <section aria-label={filter === "closed" ? "Support history" : "Active tickets"} className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-card sm:p-5">

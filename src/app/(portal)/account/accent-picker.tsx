@@ -9,7 +9,7 @@ const choices = [
   { id: "rose", label: "Rose", swatch: "bg-[#f7a2ca]" },
 ] as const;
 
-export function ThemePicker({ initialTheme }: { initialTheme: string }) {
+export function AccentPicker({ initialTheme }: { initialTheme: string }) {
   const [selected, setSelected] = useState(initialTheme);
   useEffect(() => {
     setSelected(initialTheme);
