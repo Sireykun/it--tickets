@@ -1,8 +1,9 @@
 "use server";
 
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
 import type { ActionState } from "@/lib/action-state";
+import { recordSignOut } from "@/server/audit-log";
 import { safeRedirectPath } from "@/server/auth-rules";
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -32,5 +33,7 @@ export async function googleLoginAction(formData: FormData) {
 }
 
 export async function logoutAction() {
+  const userId = (await auth())?.user?.id;
+  if (userId) await recordSignOut(userId);
   await signOut({ redirectTo: "/login" });
 }

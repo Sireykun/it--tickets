@@ -53,3 +53,17 @@ export async function saveCanned(
     throw err;
   }
 }
+
+// Deactivates rather than deletes, like the other admin settings.
+export async function deleteCanned(actor: AppUser, id: string) {
+  if (actor.role !== "SUPERADMIN") throw new TicketError("Not allowed.");
+  try {
+    await prisma.$transaction(async (tx) => {
+      const row = await tx.cannedResponse.update({ where: { id }, data: { isActive: false } });
+      await audit(tx, actor, "canned.delete", { type: "canned", id }, { title: row.title });
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") throw new TicketError("Not found.");
+    throw err;
+  }
+}

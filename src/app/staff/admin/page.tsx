@@ -131,7 +131,7 @@ export default async function AdminDashboardPage() {
           )}
         </Card>
 
-        <SummaryCard title="People" icon={<Users />} chip="bg-progress-soft text-progress" href="/staff/admin/users" linkLabel="Manage people">
+        <SummaryCard title="User management" icon={<Users />} chip="bg-progress-soft text-progress" href="/staff/admin/users" linkLabel="Manage users">
           {ROLES.map((role) => (
             <Row key={role} label={<span className={clsx("rounded-full px-2 py-0.5 text-xs font-bold", ROLE_CHIP[role])}>{ROLE_LABEL[role]}</span>} value={d.people.activeByRole[role] ?? 0} />
           ))}
@@ -173,9 +173,14 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section aria-labelledby="activity-heading">
-        <h2 id="activity-heading" className="mb-2 text-lg font-bold">
-          Recent activity
-        </h2>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h2 id="activity-heading" className="text-lg font-bold">
+            Recent activity
+          </h2>
+          <Link href="/staff/admin/audit-log" className="inline-flex min-h-11 items-center gap-1 font-bold text-primary hover:underline">
+            View full log <ChevronRight className="size-4" aria-hidden />
+          </Link>
+        </div>
         <Card>
           <ul className="divide-y divide-border text-sm">
             {d.activity.map((e) => (

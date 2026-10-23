@@ -10,6 +10,7 @@ export const metadata: Metadata = { title: "Canned replies" };
 export default async function CannedPage({ searchParams }: PageProps<"/staff/admin/canned">) {
   await requireSuperadmin();
   const sp = await searchParams;
+  const showInactive = sp.inactive === "1";
   const [replies, departments] = await Promise.all([
     prisma.cannedResponse.findMany({
       orderBy: [{ isActive: "desc" }, { title: "asc" }],
@@ -26,6 +27,8 @@ export default async function CannedPage({ searchParams }: PageProps<"/staff/adm
       newLabel="New reply"
       basePath="/staff/admin/canned"
       saved={sp.saved === "1"}
+      deleted={sp.deleted === "1"}
+      inactiveToggle={{ count: replies.filter((r) => !r.isActive).length, isShown: showInactive, href: showInactive ? "/staff/admin/canned" : "/staff/admin/canned?inactive=1" }}
       selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.title}` : "New canned reply"}
       form={
@@ -38,7 +41,7 @@ export default async function CannedPage({ searchParams }: PageProps<"/staff/adm
           />
         ) : undefined
       }
-      rows={replies.map((r) => ({
+      rows={replies.filter((r) => showInactive || r.isActive).map((r) => ({
         id: r.id,
         title: r.title,
         subtitle: r.body.length > 90 ? `${r.body.slice(0, 90)}…` : r.body,

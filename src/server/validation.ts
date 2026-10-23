@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AUDIT_CATEGORIES } from "@/lib/labels";
 import { parseLocalDateTime } from "@/lib/time";
 
 // Missing field, "" (an empty <select> option) and null all mean "none".
@@ -179,6 +180,25 @@ export const adminUserSchema = z.object({
   manageCampusIds: z.array(z.uuid()).default([]),
 });
 
+export const userBulkSchema = z
+  .object({ users: z.array(z.uuid()).min(1, "Select at least one user.").max(50, "Select at most 50 users at a time.") })
+  .and(
+    z.discriminatedUnion("field", [
+      z.object({ field: z.literal("homeCampus"), value: optionalId }),
+      z.object({ field: z.literal("addCampus"), value: z.uuid() }),
+      z.object({ field: z.literal("removeCampus"), value: z.uuid() }),
+      z.object({ field: z.literal("active"), value: z.enum(["true", "false"]) }),
+    ]),
+  );
+
+export const idSchema = z.object({ id: z.uuid() });
+
+export const campusMemberSchema = z.object({
+  campusId: z.uuid(),
+  userId: z.uuid({ message: "Choose someone to add." }),
+  canManageUsers: checkbox,
+});
+
 export const namedEntitySchema = z.object({
   id: optionalId,
   name: z.string().trim().min(1, "Name is required.").max(100),
@@ -202,6 +222,16 @@ export const helpTopicSchema = namedEntitySchema.extend({
   defaultDepartmentId: optionalId,
   defaultTeamId: optionalId,
   slaPolicyId: optionalId,
+});
+
+// System log search params. Anything malformed is dropped rather than rejected, so a bad link still shows the log.
+const dayParam = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined);
+export const auditLogParamsSchema = z.object({
+  q: z.string().trim().max(100).optional().catch(undefined),
+  category: z.enum(AUDIT_CATEGORIES).optional().catch(undefined),
+  from: dayParam,
+  to: dayParam,
+  page: z.coerce.number().int().min(0).max(10_000).catch(0),
 });
 
 // FormData → plain object; repeated keys (e.g. checkboxes) become arrays only where listed.

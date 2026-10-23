@@ -10,10 +10,10 @@ const TABS = [
   { href: "/staff/admin/campuses", label: "Campuses", icon: School },
 ];
 
-export function PeopleTabs() {
+export function UserManagementTabs() {
   const pathname = usePathname();
   return (
-    <nav aria-label="People" className="mb-6 overflow-x-auto border-b border-border">
+    <nav aria-label="User management" className="mb-6 overflow-x-auto border-b border-border">
       <ul className="flex min-w-max gap-1">
         {TABS.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);

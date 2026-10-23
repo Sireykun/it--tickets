@@ -10,6 +10,7 @@ export const metadata: Metadata = { title: "Departments" };
 export default async function DepartmentsPage({ searchParams }: PageProps<"/staff/admin/departments">) {
   await requireSuperadmin();
   const sp = await searchParams;
+  const showInactive = sp.inactive === "1";
   const departments = await prisma.department.findMany({
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
     include: { _count: { select: { tickets: true, teams: true } } },
@@ -23,10 +24,12 @@ export default async function DepartmentsPage({ searchParams }: PageProps<"/staf
       newLabel="New department"
       basePath="/staff/admin/departments"
       saved={sp.saved === "1"}
+      deleted={sp.deleted === "1"}
+      inactiveToggle={{ count: departments.filter((r) => !r.isActive).length, isShown: showInactive, href: showInactive ? "/staff/admin/departments" : "/staff/admin/departments?inactive=1" }}
       selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New department"}
       form={target.show ? <DepartmentForm key={target.item?.id ?? "new"} department={target.item} /> : undefined}
-      rows={departments.map((d) => ({
+      rows={departments.filter((r) => showInactive || r.isActive).map((d) => ({
         id: d.id,
         title: d.name,
         leading: (

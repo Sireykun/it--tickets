@@ -16,29 +16,6 @@ const tabs = [
   { href: "/account", label: "Account", icon: UserRound, match: (p: string) => p.startsWith("/account") },
 ];
 
-export function DesktopNav() {
-  const pathname = usePathname();
-  const closed = useSearchParams().get("show") === "closed";
-  return (
-    <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
-      {tabs.map(({ href, label, icon: Icon, match }) => (
-        <Link
-          key={href}
-          href={href}
-          aria-current={match(pathname, closed) ? "page" : undefined}
-          className={clsx(
-            "inline-flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg border-b-2 px-2 text-base font-bold transition-colors",
-            match(pathname, closed) ? "border-gold bg-primary-soft text-primary" : "border-gold/40 text-muted hover:border-gold hover:bg-surface-2 hover:text-text",
-          )}
-        >
-          <Icon className="size-4" aria-hidden />
-          {label}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
 export function PortalSidebar({ name, roleLabel, hasPhoto, staff }: { name: string; roleLabel: string; hasPhoto: boolean; staff: boolean }) {
   const pathname = usePathname();
   const closed = useSearchParams().get("show") === "closed";
@@ -80,7 +57,7 @@ export function TabBar() {
   const pathname = usePathname();
   const closed = useSearchParams().get("show") === "closed";
   return (
-    <nav aria-label="Main" className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/90 backdrop-blur-md md:hidden">
+    <nav aria-label="Main" className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/90 backdrop-blur-md lg:hidden">
       <ul className="grid grid-cols-5">
         {tabs.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname, closed);

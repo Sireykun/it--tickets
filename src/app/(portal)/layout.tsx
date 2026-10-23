@@ -5,7 +5,7 @@ import { ROLE_LABEL } from "@/lib/labels";
 import { isStaff, requireUser } from "@/server/authz";
 import { prisma } from "@/server/prisma";
 import { readTheme } from "@/server/theme";
-import { DesktopNav, PortalSidebar, TabBar } from "./portal-nav";
+import { PortalSidebar, TabBar } from "./portal-nav";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const [user, theme] = await Promise.all([requireUser(), readTheme()]);
@@ -20,11 +20,10 @@ export default async function PortalLayout({ children }: { children: React.React
             <Link href="/" className="mr-auto rounded-lg">
               <Brand />
             </Link>
-            <DesktopNav />
             <UserMenu name={user.name} email={user.email} hasPhoto={hasPhoto} theme={theme} switchTo={isStaff(user.role) ? "staff" : null} />
           </div>
         </header>
-        <main className="pb-tabbar mx-auto max-w-7xl px-4 py-8 md:pb-12 lg:px-6 lg:pt-6">{children}</main>
+        <main className="pb-tabbar mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6">{children}</main>
         <TabBar />
       </div>
     </div>

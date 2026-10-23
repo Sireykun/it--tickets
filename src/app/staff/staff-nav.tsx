@@ -16,6 +16,7 @@ import {
   Menu,
   MessageSquareText,
   PlusCircle,
+  ScrollText,
   Settings,
   Tags,
   Timer,
@@ -51,13 +52,13 @@ const views = [
   { view: "overdue", label: "Overdue", icon: AlarmClock },
 ] as const;
 
-// The People hub's tabs: Users and Campuses share one sidebar entry.
-const PEOPLE_PATHS = ["/staff/admin/users", "/staff/admin/campuses"];
+// The User management hub's tabs: Users and Campuses share one sidebar entry.
+const USER_MANAGEMENT_PATHS = ["/staff/admin/users", "/staff/admin/campuses"];
 
 const SETTINGS_GROUPS: { label: string; links: { href: string; label: string; icon: typeof Users; match?: string[] }[] }[] = [
   {
     label: "Directory",
-    links: [{ href: "/staff/admin/users", label: "People", icon: Users, match: PEOPLE_PATHS }],
+    links: [{ href: "/staff/admin/users", label: "User management", icon: Users, match: USER_MANAGEMENT_PATHS }],
   },
   {
     label: "Helpdesk",
@@ -71,6 +72,7 @@ const SETTINGS_GROUPS: { label: string; links: { href: string; label: string; ic
     ],
   },
   { label: "Messaging", links: [{ href: "/staff/admin/email", label: "Email", icon: Mail }] },
+  { label: "System", links: [{ href: "/staff/admin/audit-log", label: "System log", icon: ScrollText }] },
 ];
 
 const itemClass = (active: boolean) =>
@@ -127,7 +129,7 @@ function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProp
               aria-current={pathname.startsWith("/staff/admin/users") ? "page" : undefined}
               className={itemClass(pathname.startsWith("/staff/admin/users"))}
             >
-              <Users className="size-[1.125rem]" aria-hidden /> People
+              <Users className="size-[1.125rem]" aria-hidden /> User management
             </Link>
           </div>
         )}

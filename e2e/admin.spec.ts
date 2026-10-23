@@ -56,3 +56,25 @@ test("admin manages help topics and users; deactivation signs a user out", async
   await teacher.getByRole("button", { name: "Login" }).click();
   await expect(teacher.getByText("don't match an active account")).toBeVisible();
 });
+
+test("deleting a department hides it until Show deleted", async ({ browser }, testInfo) => {
+  const name = `Dept ${testInfo.project.name}-${Date.now()}`;
+  const admin = await sessionFor(browser, testInfo, ADMIN);
+
+  await admin.goto("/staff/admin/departments?edit=new");
+  await admin.getByLabel("Name").fill(name);
+  await admin.getByRole("button", { name: "Create" }).click();
+  await admin.waitForURL(/departments\?saved=1/);
+
+  await admin.getByRole("link", { name: new RegExp(name) }).click();
+  await admin.getByRole("button", { name: "Delete" }).click();
+  const dialog = admin.getByRole("dialog");
+  await expect(dialog.getByText(`Delete ${name}?`)).toBeVisible();
+  await dialog.getByRole("button", { name: "Delete" }).click();
+  await admin.waitForURL(/departments\?deleted=1/);
+  await expect(admin.getByText("Deleted.")).toBeVisible();
+  await expect(admin.getByRole("link", { name: new RegExp(name) })).toHaveCount(0);
+
+  await admin.getByRole("link", { name: /Show deleted/ }).click();
+  await expect(admin.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+});

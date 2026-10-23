@@ -13,12 +13,12 @@ import type {
   slaSchema,
   teamSchema,
 } from "@/server/validation";
-import { TicketError } from "@/server/tickets";
+import { ACTIVE_STATUSES, campusWhere, TicketError } from "@/server/tickets";
 import { audit } from "@/server/audit";
 import { TEMPLATE_KEYS, type TemplateKey } from "@/server/email/templates";
 import { matchCampus } from "@/server/users";
 
-// Admin settings: create/update only. Records are deactivated, not deleted, so ticket history stays intact.
+// Admin settings. "Delete" deactivates a record instead of removing it, so ticket history stays intact.
 
 // Shared settings (departments, teams, topics, SLAs, email) are superadmin-only.
 function assertAdmin(actor: Pick<AppUser, "role">) {
@@ -80,7 +80,8 @@ export async function saveUser(actor: AppUser, input: UserInput) {
     throw new TicketError("Only agents and admins can be team members.");
   }
 
-  const homeCampusId = (input.campusId ?? "auto") === "auto" ? await matchCampus(prisma, email) : (input.campusId ?? null);
+  // Only an omitted or "auto" campus is matched by email domain; null means no home campus.
+  const homeCampusId = input.campusId === undefined || input.campusId === "auto" ? await matchCampus(prisma, email) : (input.campusId ?? null);
   let staffCampusIds = input.role === "USER" || input.role === "SUPERADMIN" ? [] : [...new Set(input.staffCampusIds ?? [])];
   let manageCampusIds = input.role === "ADMIN" ? (input.manageCampusIds ?? []).filter((id) => staffCampusIds.includes(id)) : [];
 
@@ -174,6 +175,130 @@ export async function saveUser(actor: AppUser, input: UserInput) {
   }
 }
 
+export const USER_BULK_LIMIT = 50;
+
+export type UserBulkChange =
+  | { homeCampusId: string | null }
+  | { addCampusId: string }
+  | { removeCampusId: string }
+  | { isActive: boolean };
+
+// Applies one change to many users through `saveUser`, so each gets the same checks,
+// ticket unassignment and audit row as a single edit.
+export async function bulkUpdateUsers(actor: AppUser, userIds: string[], change: UserBulkChange) {
+  assertAdmin(actor);
+  const ids = [...new Set(userIds)];
+  if (ids.length === 0) throw new TicketError("Select at least one user.");
+  if (ids.length > USER_BULK_LIMIT) throw new TicketError(`Select at most ${USER_BULK_LIMIT} users at a time.`);
+
+  let updated = 0;
+  const skipped: { name: string; reason: string }[] = [];
+  for (const id of ids) {
+    const row = await findUserForEdit(id);
+    try {
+      if (!row) throw new TicketError("User not found.");
+      const input = toUserInput(row);
+      if ("homeCampusId" in change) input.campusId = change.homeCampusId;
+      else if ("isActive" in change) input.isActive = change.isActive;
+      else {
+        if (row.role !== "AGENT" && row.role !== "ADMIN") throw new TicketError("Only agents and campus admins work at campuses.");
+        if ("addCampusId" in change) input.staffCampusIds.push(change.addCampusId);
+        else {
+          input.staffCampusIds = input.staffCampusIds.filter((c) => c !== change.removeCampusId);
+          input.manageCampusIds = input.manageCampusIds.filter((c) => c !== change.removeCampusId);
+        }
+      }
+      await saveUser(actor, input);
+      updated++;
+    } catch (err) {
+      if (!(err instanceof TicketError)) throw err;
+      skipped.push({ name: row?.name ?? id, reason: err.message });
+    }
+  }
+  return { updated, skipped };
+}
+
+// Deactivates the user through `saveUser`, so the same reach checks and ticket unassignment apply.
+export async function deleteUser(actor: AppUser, id: string) {
+  const row = await findUserForEdit(id);
+  if (!row) throw new TicketError("User not found.");
+  return saveUser(actor, { ...toUserInput(row), isActive: false });
+}
+
+// From a campus's page: staff start working there; a requester gets it as their home campus.
+export async function addToCampus(actor: AppUser, campusId: string, userId: string, opts: { canManageUsers: boolean }) {
+  assertAdmin(actor);
+  const campus = await prisma.campus.findUnique({ where: { id: campusId } });
+  if (!campus?.isActive) throw new TicketError("Choose an active campus.");
+  const row = await findUserForEdit(userId);
+  if (!row) throw new TicketError("User not found.");
+  if (row.role === "SUPERADMIN") throw new TicketError("Superadmins already work at every campus.");
+  const input = toUserInput(row);
+  if (row.role === "USER") input.campusId = campusId;
+  else {
+    input.staffCampusIds.push(campusId);
+    if (row.role === "ADMIN" && opts.canManageUsers) input.manageCampusIds.push(campusId);
+  }
+  return saveUser(actor, input);
+}
+
+export async function removeFromCampus(actor: AppUser, campusId: string, userId: string) {
+  assertAdmin(actor);
+  const row = await findUserForEdit(userId);
+  if (!row) throw new TicketError("User not found.");
+  const input = toUserInput(row);
+  input.staffCampusIds = input.staffCampusIds.filter((c) => c !== campusId);
+  input.manageCampusIds = input.manageCampusIds.filter((c) => c !== campusId);
+  return saveUser(actor, input);
+}
+
+// The edit panel's side facts: open tickets and recent account changes. Null when the actor
+// can't edit this user; tickets are limited to the actor's own campuses.
+export async function getUserDetail(actor: AppUser, userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, campusId: true, createdAt: true, lastLoginAt: true, staffCampuses: { select: { campusId: true } } },
+  });
+  if (!user) return null;
+  if (actor.manageCampusIds !== "all" && !inReach(actor.manageCampusIds, user)) return null;
+
+  const open = { status: { in: ACTIVE_STATUSES }, ...campusWhere(actor) };
+  const ticketSelect = { ticketNumber: true, subject: true, status: true } as const;
+  const requested = await prisma.ticket.findMany({ where: { ...open, requesterId: userId }, orderBy: { updatedAt: "desc" }, take: 10, select: ticketSelect });
+  const assigned = await prisma.ticket.findMany({ where: { ...open, assignedAgentId: userId }, orderBy: { updatedAt: "desc" }, take: 10, select: ticketSelect });
+  const history = await prisma.auditEvent.findMany({
+    where: { entityType: "user", entityId: userId },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    select: { id: true, action: true, createdAt: true, actor: { select: { name: true } } },
+  });
+  return { createdAt: user.createdAt, lastLoginAt: user.lastLoginAt, requested, assigned, history };
+}
+
+function findUserForEdit(id: string) {
+  return prisma.user.findUnique({
+    where: { id },
+    include: { staffCampuses: { select: { campusId: true, permissions: true } }, teamMemberships: { select: { teamId: true } } },
+  });
+}
+
+// The user as currently saved, so a caller can change one field and pass it to `saveUser`.
+function toUserInput(row: NonNullable<Awaited<ReturnType<typeof findUserForEdit>>>) {
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    departmentId: row.departmentId,
+    campusId: row.campusId,
+    isActive: row.isActive,
+    password: null,
+    teamIds: row.teamMemberships.map((m) => m.teamId),
+    staffCampusIds: row.staffCampuses.map((s) => s.campusId),
+    manageCampusIds: row.staffCampuses.filter((s) => s.permissions.includes("users.manage")).map((s) => s.campusId),
+  } satisfies UserInput;
+}
+
 export async function saveDepartment(actor: AppUser, input: z.infer<typeof namedEntitySchema>) {
   assertAdmin(actor);
   const { id, ...data } = input;
@@ -230,4 +355,37 @@ export async function saveCampus(actor: AppUser, input: z.infer<typeof campusSch
   assertAdmin(actor);
   const { id, ...data } = input;
   return friendly("campus", actor, (tx) => (id ? tx.campus.update({ where: { id }, data }) : tx.campus.create({ data })));
+}
+
+export type SettingKind = "campus" | "department" | "team" | "sla_policy" | "help_topic";
+
+export async function deleteSetting(actor: AppUser, kind: SettingKind, id: string) {
+  assertAdmin(actor);
+  try {
+    await prisma.$transaction(async (tx) => {
+      const row = await deactivateSetting(tx, kind, id);
+      await audit(tx, actor, `${kind}.delete`, { type: kind, id }, { name: row.name });
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") throw new TicketError("Not found.");
+    throw err;
+  }
+}
+
+function deactivateSetting(tx: Prisma.TransactionClient, kind: SettingKind, id: string) {
+  const where = { id };
+  const data = { isActive: false };
+  const select = { name: true } as const;
+  switch (kind) {
+    case "campus":
+      return tx.campus.update({ where, data, select });
+    case "department":
+      return tx.department.update({ where, data, select });
+    case "team":
+      return tx.team.update({ where, data, select });
+    case "sla_policy":
+      return tx.slaPolicy.update({ where, data, select });
+    case "help_topic":
+      return tx.helpTopic.update({ where, data, select });
+  }
 }
