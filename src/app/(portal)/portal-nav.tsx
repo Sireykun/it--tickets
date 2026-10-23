@@ -23,7 +23,7 @@ export function PortalSidebar({ name, roleLabel, hasPhoto, staff }: { name: stri
     { href: "/", label: "Active tickets", icon: Inbox, active: (pathname === "/" && !closed) || (pathname.startsWith("/tickets/") && pathname !== "/tickets/new") },
     { href: "/?show=closed", label: "Support history", icon: History, active: pathname === "/" && closed },
     { href: "/tickets/new", label: "New ticket", icon: PlusCircle, active: pathname === "/tickets/new" },
-    { href: "/help", label: "Help center & guides", icon: BookOpen, active: pathname.startsWith("/help") },
+    { href: "/help", label: "Help center", icon: BookOpen, active: pathname.startsWith("/help") },
     { href: "/account", label: "Settings", icon: Settings, active: pathname === "/account" },
   ];
   return (
@@ -32,7 +32,7 @@ export function PortalSidebar({ name, roleLabel, hasPhoto, staff }: { name: stri
         <Link href="/" className="mb-8 block rounded-lg px-1 py-1"><Brand /></Link>
         <nav aria-label="Requester sidebar" className="space-y-1">
           {links.map(({ href, label, icon: Icon, active }) => <Link key={href} href={href} aria-current={active ? "page" : undefined}
-            className={clsx("flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold transition-colors", label === "Help center & guides" && "text-lg", active ? "border-gold bg-primary-soft text-primary" : label === "Help center & guides" ? "border-transparent text-gold-text hover:bg-surface-2" : "border-transparent text-muted hover:bg-surface-2 hover:text-text")}>
+            className={clsx("flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold transition-colors", active ? label === "Help center" ? "border-gold bg-primary-soft text-text" : "border-gold bg-primary-soft text-primary" : label === "Help center" ? "border-transparent text-text hover:bg-surface-2" : "border-transparent text-muted hover:bg-surface-2 hover:text-text")}>
             <Icon className="size-4" aria-hidden />{label}
           </Link>)}
           <a href="https://nexus.ciaschool.edu.kh/knowledge-base" target="_blank" rel="noopener noreferrer"
@@ -46,7 +46,7 @@ export function PortalSidebar({ name, roleLabel, hasPhoto, staff }: { name: stri
           <span className="min-w-0"><span className="block break-words text-base font-bold leading-tight">{name}</span><span className="mt-1 block text-sm text-muted">{roleLabel}</span></span>
         </div>
         <form action={logoutAction} className="pt-3">
-          <button type="submit" className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-base font-bold text-danger transition-colors hover:bg-danger-soft"><LogOut className="size-4" aria-hidden />Sign out</button>
+          <button type="submit" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-danger/50 bg-danger-soft px-3 text-base font-bold text-danger transition-colors hover:border-danger hover:bg-danger-soft/70"><LogOut className="size-4" aria-hidden />Sign out</button>
         </form>
       </div>
     </aside>

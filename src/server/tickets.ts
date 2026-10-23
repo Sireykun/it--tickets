@@ -539,7 +539,7 @@ export async function giveKudo(actor: Actor, ticketNumber: string) {
   return prisma.$transaction(async (tx) => {
     const ticket = await tx.ticket.findUnique({ where: { ticketNumber: normalizeNumber(ticketNumber) } });
     if (!ticket || ticket.requesterId !== actor.id) throw new TicketError("Ticket not found.");
-    if (ticket.status !== "CLOSED" || !ticket.closedByStaff) throw new TicketError("Kudos are available once staff close your ticket.");
+    if (ticket.status !== "CLOSED") throw new TicketError("Kudos are available on closed tickets.");
     const existing = await tx.ticketKudo.findUnique({ where: { ticketId: ticket.id } });
     if (existing) return existing;
     const kudo = await tx.ticketKudo.create({ data: { ticketId: ticket.id, requesterId: actor.id, recipientId: ticket.assignedAgentId } });
