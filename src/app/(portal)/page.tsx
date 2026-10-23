@@ -6,7 +6,7 @@ import { TicketCard } from "@/components/tickets/ticket-card";
 import { LinkButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { ChoiceMenu } from "@/components/ui/list-controls";
-import { Card, EmptyState } from "@/components/ui/misc";
+import { AccentRule, Card, EmptyState } from "@/components/ui/misc";
 import { requireUser } from "@/server/authz";
 import { listMyTickets } from "@/server/tickets";
 
@@ -16,10 +16,16 @@ const SORTS = { updated: "Recently updated", newest: "Newest", oldest: "Oldest" 
 type Sort = keyof typeof SORTS;
 
 const helpLinks = [
-  { label: "Wi-Fi issues", detail: "Connection and network help", icon: Wifi, href: "/help?q=wi-fi" },
-  { label: "Reset password", detail: "Accounts and sign-in help", icon: Mail, href: "/help?q=password" },
-  { label: "Device support", detail: "Computers and classroom devices", icon: Laptop, href: "/tickets/new" },
-];
+  { label: "Wi-Fi issues", detail: "Connection and network help", icon: Wifi, href: "/help?q=wi-fi", accent: "green" },
+  { label: "Reset password", detail: "Accounts and sign-in help", icon: Mail, href: "/help?q=password", accent: "gold" },
+  { label: "Device support", detail: "Computers and classroom devices", icon: Laptop, href: "/tickets/new", accent: "cyan" },
+] as const;
+
+const helpAccent = {
+  green: "bg-accent-green-soft text-accent-green",
+  gold: "bg-gold/10 text-gold-text",
+  cyan: "bg-primary-soft text-primary",
+} as const;
 
 export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
   const user = await requireUser();
@@ -47,7 +53,8 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{filter === "closed" ? "Support history" : `Hi, ${user.name.split(" ")[0]}`}</h1>
-            <p className="mt-1 text-muted">{filter === "closed" ? "Your completed IT requests." : "Here are your IT requests."}</p>
+            <AccentRule />
+            <p className="mt-3 text-muted">{filter === "closed" ? "Your completed IT requests." : "Here are your IT requests."}</p>
           </div>
           <LinkButton href="/tickets/new">
             <Plus className="size-5" aria-hidden /> New ticket
@@ -114,11 +121,7 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
           </Card>
         ) : (
           <ul className="space-y-2">
-            {tickets.map((t) => (
-              <li key={t.id}>
-                <TicketCard ticket={t} href={`/tickets/${t.ticketNumber}`} variant="requester" />
-              </li>
-            ))}
+            {tickets.map((t, index) => <li key={t.id}><TicketCard ticket={t} href={`/tickets/${t.ticketNumber}`} variant="requester" accent={(["gold", "green", "cyan"] as const)[index % 3]} /></li>)}
           </ul>
         )}
       </section>
@@ -126,7 +129,8 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
       <aside aria-label="Help and updates" className="grid content-start gap-4 sm:grid-cols-2 lg:grid-cols-1">
         <section className="rounded-xl border border-border bg-surface p-4 shadow-card">
           <h2 className="text-lg font-bold">Support &amp; announcements</h2>
-          <div className="mt-4 rounded-lg border border-border bg-surface-2 p-3">
+          <AccentRule className="mt-2 w-10" />
+          <div className="mt-4 rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2 p-3">
             <p className="text-base font-bold">Need help from IT?</p>
             <p className="mt-1 text-base text-muted">Create a ticket and include your campus, room, and device.</p>
             <Link href="/tickets/new" className="mt-2 inline-flex items-center gap-1 text-base font-bold text-primary hover:underline">Open a request <ArrowRight className="size-4" aria-hidden /></Link>
@@ -134,10 +138,11 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
         </section>
         <section className="rounded-xl border border-border bg-surface p-4 shadow-card">
           <h2 className="text-lg font-bold">Quick help</h2>
+          <AccentRule className="mt-2 w-10" />
           <ul className="mt-3 space-y-2">
-            {helpLinks.map(({ label, detail, icon: Icon, href }) => <li key={label}>
-              <Link href={href} className="flex items-start gap-3 rounded-lg border border-border bg-surface-2 p-3 transition-colors hover:border-primary/50 hover:bg-primary-soft">
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary"><Icon className="size-5" aria-hidden /></span>
+            {helpLinks.map(({ label, detail, icon: Icon, href, accent }) => <li key={label}>
+              <Link href={href} className="flex items-start gap-3 rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2 p-3 transition-colors hover:border-primary/50 hover:bg-primary-soft">
+                <span className={`grid size-10 shrink-0 place-items-center rounded-lg ${helpAccent[accent]}`}><Icon className="size-5" aria-hidden /></span>
                 <span><span className="block text-base font-bold">{label}</span><span className="block text-sm text-muted">{detail}</span></span>
               </Link>
             </li>)}
@@ -146,6 +151,7 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
         </section>
         <section className="rounded-xl border border-border bg-surface p-4 shadow-card sm:col-span-2 lg:col-span-1">
           <h2 className="text-lg font-bold">IT status</h2>
+          <AccentRule className="mt-2 w-10" />
           <p className="mt-2 text-base text-muted">For a service issue or outage, submit a ticket so the IT team can investigate.</p>
           <Link href="/tickets/new" className="mt-3 inline-flex items-center gap-1 text-base font-bold text-primary hover:underline"><CircleHelp className="size-4" aria-hidden /> Report an issue</Link>
         </section>

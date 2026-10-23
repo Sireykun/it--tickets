@@ -27,8 +27,8 @@ export function DesktopNav() {
           href={href}
           aria-current={match(pathname, closed) ? "page" : undefined}
           className={clsx(
-            "inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-base font-bold transition-colors",
-            match(pathname, closed) ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface-2 hover:text-text",
+            "inline-flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg border-b-2 px-2 text-base font-bold transition-colors",
+            match(pathname, closed) ? "border-gold bg-primary-soft text-primary" : "border-gold/40 text-muted hover:border-gold hover:bg-surface-2 hover:text-text",
           )}
         >
           <Icon className="size-4" aria-hidden />
@@ -59,7 +59,7 @@ export function PortalSidebar({ name, roleLabel, hasPhoto, staff }: { name: stri
         </div>
         <nav aria-label="Requester sidebar" className="space-y-1">
           {links.map(({ href, label, icon: Icon, active }) => <Link key={href} href={href} aria-current={active ? "page" : undefined}
-            className={clsx("flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-bold transition-colors", active ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface-2 hover:text-text")}>
+            className={clsx("flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold transition-colors", active ? "border-gold bg-primary-soft text-primary" : "border-transparent text-muted hover:bg-surface-2 hover:text-text")}>
             <Icon className="size-4" aria-hidden />{label}
           </Link>)}
           <a href="https://nexus.ciaschool.edu.kh/knowledge-base" target="_blank" rel="noopener noreferrer"
@@ -89,7 +89,7 @@ export function TabBar() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={clsx("flex min-h-16 flex-col items-center justify-center gap-1 text-sm font-bold", active ? "text-primary" : "text-muted")}
+                className={clsx("flex min-h-16 flex-col items-center justify-center gap-1 border-t-2 text-sm font-bold", active ? "border-gold text-primary" : "border-transparent text-muted")}
               >
                 <span className={clsx("grid h-7 w-12 place-items-center rounded-full transition-colors", active && "bg-primary-soft")}>
                   <Icon className="size-5" aria-hidden strokeWidth={active ? 2.4 : 1.8} />

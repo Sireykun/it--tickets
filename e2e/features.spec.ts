@@ -1,13 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
-import { ADMIN, AGENT, sessionFor, shot, STUDENT } from "./helpers";
+import { ADMIN, AGENT, fillNewTicket, sessionFor, shot, STUDENT } from "./helpers";
 
 async function openTicket(student: Page, subject: string) {
-  await student.goto("/tickets/new");
-  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Student Wifi" });
-  await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await student.getByLabel("Room", { exact: true }).fill("101");
-  await student.getByLabel("Issue Summary").fill(subject);
-  await student.getByLabel("Please Describe Your Issue").fill("Details.");
+  await fillNewTicket(student, { topic: "Student Wifi", campus: "Main Campus", room: "101", subject, body: "Details." });
   await student.getByRole("button", { name: "Submit ticket" }).click();
   await student.waitForURL(/\/tickets\/TKT-\d{6}\?created=1/);
   return student.url().match(/TKT-\d{6}/)![0];
@@ -37,8 +32,13 @@ test("superadmin bulk-assigns tickets from the queue", async ({ browser }, testI
 test("requester gets help-article suggestions and can browse Help", async ({ browser }, testInfo) => {
   const student = await sessionFor(browser, testInfo, STUDENT);
   await student.goto("/tickets/new");
-  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Printer Setup" });
-  await student.getByLabel("Issue Summary").fill("Printer is offline");
+  await student.getByRole("combobox", { name: "Help topic" }).selectOption({ label: "Printer Setup" });
+  await student.getByRole("button", { name: "Continue" }).click();
+  await student.getByRole("button", { name: "Continue" }).click();
+  await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
+  await student.getByLabel("Room").fill("101");
+  await student.getByRole("button", { name: "Continue" }).click();
+  await student.getByLabel("Issue summary").fill("Printer is offline");
   const suggestions = student.getByRole("region", { name: "Suggested help articles" });
   await expect(suggestions.getByRole("link", { name: /Printer shows offline/ })).toBeVisible();
   await shot(student, testInfo, "21-kb-suggestions");

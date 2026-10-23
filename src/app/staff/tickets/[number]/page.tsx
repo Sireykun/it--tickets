@@ -6,7 +6,7 @@ import { PriorityBadge, SlaBadge, StatusChip } from "@/components/tickets/badges
 import { Composer } from "@/components/tickets/composer";
 import { Thread } from "@/components/tickets/thread";
 import { Button } from "@/components/ui/button";
-import { Alert, Card } from "@/components/ui/misc";
+import { AccentRule, Alert, Card } from "@/components/ui/misc";
 import { formatDateTime } from "@/lib/format";
 import { SOURCE_LABEL } from "@/lib/labels";
 import { requireStaff } from "@/server/authz";
@@ -93,6 +93,7 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
             {n} · {ticket.campus?.name ?? "No campus"} · via {SOURCE_LABEL[ticket.source]}
           </p>
           <h1 className="text-xl font-bold tracking-tight break-words sm:text-2xl">{ticket.subject}</h1>
+          <AccentRule />
         </div>
         <div className="flex gap-2">
           <TicketActionsMenu
@@ -181,8 +182,8 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
         </aside>
 
         <aside aria-label="Requester, tasks and links" className="order-last space-y-4 lg:order-none lg:col-start-2 lg:row-start-2">
-          {ticket.kudo && <Card className="border-mauve/50 bg-mauve-soft p-4">
-            <h2 className="flex items-center gap-2 font-bold text-mauve-fg"><Heart className="size-5 fill-current" aria-hidden />Kudos from the requester</h2>
+          {ticket.kudo && <Card className="border-gold/60 bg-reply-bg p-4">
+            <h2 className="flex items-center gap-2 font-bold text-gold-text"><Heart className="size-5 fill-current" aria-hidden />Kudos from the requester</h2>
             <p className="mt-1 text-sm text-muted">A thank-you gift from {ticket.requester.name}. No rating attached.</p>
           </Card>}
           <Card className="p-4 text-sm">

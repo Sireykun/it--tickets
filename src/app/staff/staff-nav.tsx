@@ -77,8 +77,8 @@ const SETTINGS_GROUPS = [
 
 const itemClass = (active: boolean) =>
   clsx(
-    "flex min-h-10 items-center gap-3 rounded-lg px-3 font-bold transition-colors",
-    active ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface-2 hover:text-text",
+    "flex min-h-10 items-center gap-3 rounded-lg border-l-[3px] px-3 font-bold transition-colors",
+    active ? "border-gold bg-primary-soft text-primary" : "border-transparent text-muted hover:bg-surface-2 hover:text-text",
   );
 
 function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProps) {

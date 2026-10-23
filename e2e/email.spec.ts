@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { ADMIN, AGENT, sessionFor, shot, STUDENT } from "./helpers";
+import { ADMIN, AGENT, fillNewTicket, sessionFor, shot, STUDENT } from "./helpers";
 import { plainText, sendMail, waitForMail } from "./mail";
 
 const thread = (page: Page) => page.getByRole("list", { name: "Conversation" });
@@ -7,9 +7,10 @@ const composer = (page: Page) => page.getByRole("textbox", { name: /^(Message|In
 
 test("email round trip: email opens a ticket, agent reply is emailed, emailed reply lands in the thread", async ({ browser }, testInfo) => {
   const subject = `Smartboard frozen ${testInfo.project.name}-${Date.now()}`;
+  const requesterEmail = `mailflow-${Date.now()}@ciaschool.edu.kh`;
 
   // ── A student emails the helpdesk ──
-  await sendMail({ from: `Sample Student <${STUDENT.email}>`, subject, text: "The smartboard in room 7 is frozen." });
+  await sendMail({ from: `Sample Student <${requesterEmail}>`, subject, text: "The smartboard in room 7 is frozen." });
 
   // ── It shows up as a ticket (the worker polls the mailbox); admins see the shared queue ──
   const admin = await sessionFor(browser, testInfo, ADMIN);
@@ -31,20 +32,20 @@ test("email round trip: email opens a ticket, agent reply is emailed, emailed re
   await expect(agent.getByText(/via Email/)).toBeVisible();
 
   // ── The student got a confirmation email ──
-  const confirmation = await waitForMail(STUDENT.email, new RegExp(`^\\[${ticketNumber}\\]`));
+  const confirmation = await waitForMail(requesterEmail, new RegExp(`^\\[${ticketNumber}\\]`));
   expect(plainText(confirmation)).toContain("Auto-Submitted: auto-replied");
 
   // ── Agent replies on the web; the student receives it by email ──
   await composer(agent).fill("Please hold the power button for 10 seconds.");
   await agent.getByRole("button", { name: "Send" }).click();
   await expect(thread(agent).getByText("hold the power button")).toBeVisible();
-  const reply = await waitForMail(STUDENT.email, new RegExp(`^Re: \\[${ticketNumber}\\]`));
+  const reply = await waitForMail(requesterEmail, new RegExp(`^Re: \\[${ticketNumber}\\]`));
   expect(plainText(reply)).toContain("hold the power button");
   expect(plainText(reply)).not.toContain("Auto-Submitted");
 
   // ── The student answers from their mail client; quoted history is stripped ──
   await sendMail({
-    from: STUDENT.email,
+    from: requesterEmail,
     subject: `Re: ${reply.subject}`,
     inReplyTo: reply["Message-ID"],
     references: [reply["Message-ID"]],
@@ -67,12 +68,7 @@ test("email round trip: email opens a ticket, agent reply is emailed, emailed re
 test("CC: requester adds and removes someone, staff can add people by name", async ({ browser }, testInfo) => {
   const stamp = `${testInfo.project.name}-${Date.now()}`;
   const student = await sessionFor(browser, testInfo, STUDENT);
-  await student.goto("/tickets/new");
-  await student.getByRole("combobox", { name: "Help Topic" }).selectOption({ label: "Printer Setup" });
-  await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await student.getByLabel("Room", { exact: true }).fill("Classroom");
-  await student.getByLabel("Issue Summary").fill(`Printer for class ${stamp}`);
-  await student.getByLabel("Please Describe Your Issue").fill("The class printer needs setting up.");
+  await fillNewTicket(student, { topic: "Printer Setup", campus: "Main Campus", room: "Classroom", subject: `Printer for class ${stamp}`, body: "The class printer needs setting up." });
   await student.getByRole("button", { name: "Submit ticket" }).click();
   await student.waitForURL(/\/tickets\/TKT-\d{6}/);
   const ticketNumber = student.url().match(/TKT-\d{6}/)![0];

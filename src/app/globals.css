@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────
-   Cool neutral base + one brand accent (the helpdesk blue). Status and
-   priority hues are semantic, never decorative. Every pair used for text
-   meets WCAG AA in both themes.
+   Light: cool neutral base + the helpdesk blue. Dark (the default, see
+   src/lib/theme.ts): CIA FIRST Digital Nexus palette — near-black slate canvas,
+   navy cards, cyan links, teal actions, and muted gold accents. Status and
+   priority hues are semantic, never decorative.
 
    Shape rule (keep it consistent):
      controls (buttons, inputs, nav items, segmented tabs) → rounded-lg (8px)
@@ -21,6 +22,9 @@
   --primary-hover: #104562;
   --primary-fg: #ffffff;
   --primary-soft: #e3eef6;
+  --action: #17587f;
+  --action-hover: #104562;
+  --action-fg: #ffffff;
   --focus: #2b7bba;
   --danger: #b42318;
   --danger-soft: #fdecea;
@@ -28,6 +32,13 @@
   /* Solid brand surface (login panel); stays deep blue in both themes. */
   --brand: #17587f;
   --brand-fg: #ffffff;
+  --gold: #a88a3d;
+  --gold-text: #7a5d12;
+  --accent-green: #12704a;
+  --accent-green-soft: #e2f4eb;
+  /* Staff replies and kudos. */
+  --reply-bg: #fbf6e9;
+  --reply-border: #d9c48a;
 
   --open: #1c5fa8;
   --open-soft: #e3eefa;
@@ -50,34 +61,37 @@
   --warn-soft: #fff1e6;
   /* Dims the page behind dialogs and drawers. */
   --scrim: rgb(15 27 38 / 0.45);
-  /* Secondary accent for staff replies and kudos. */
-  --mauve: #c98bb3;
-  --mauve-soft: #fbeef5;
-  --mauve-fg: #8e2d63;
 }
 
-
-/* CIA FIRST Digital Nexus palette: the dark theme (and the default, see src/lib/theme.ts).
-   Kept as two identical blocks because a media query can't share a selector list. */
+/* Kept as two identical blocks because a media query can't share a selector list. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #071225;
-  --surface: #101e34;
-  --surface-2: #182b43;
-  --border: #30445e;
-  --border-strong: #48617a;
-  --text: #eef6ff;
-  --muted: #b0c4d8;
-  --primary: #79d9ed;
-  --primary-hover: #a1eafa;
-  --primary-fg: #061624;
-  --primary-soft: #18364d;
-  --focus: #79d9ed;
-  --shadow: 0 0 0;
-  --brand: #0a2b43;
-  --brand-fg: #f3faff;
+  --bg: #020617;
+  --surface: #0f172a;
+  --surface-2: #17243a;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --text: #f1f5f9;
+  --muted: #cbd5e1;
+  --primary: #5cc8e8;
+  --primary-hover: #8cddf2;
+  --primary-fg: #05151d;
+  --primary-soft: #0b3042;
+  --action: #015f7a;
+  --action-hover: #017596;
+  --action-fg: #ffffff;
+  --focus: #5cc8e8;
   --danger: #f2837a;
   --danger-soft: #3a1714;
+  --shadow: 0 0 0;
+  --brand: #015f7a;
+  --brand-fg: #ffffff;
+  --gold: #bca560;
+  --gold-text: #d4bc84;
+  --accent-green: #6fd0a2;
+  --accent-green-soft: #123628;
+  --reply-bg: #211f24;
+  --reply-border: #6b5c30;
   --open: #7db3ea;
   --open-soft: #16304d;
   --progress: #b99af0;
@@ -86,7 +100,7 @@
   --resolved-soft: #123628;
   --closed: #a5b1bc;
   --closed-soft: #252f39;
-  --p-low: #b0c4d8;
+  --p-low: #cbd5e1;
   --p-normal: #7db3ea;
   --p-high: #f0a66b;
   --p-emergency: #f2837a;
@@ -96,31 +110,37 @@
   --warn: #f0a66b;
   --warn-soft: #3a2412;
   --scrim: rgb(2 6 14 / 0.65);
-  --mauve: #b56b9b;
-  --mauve-soft: #42263e;
-  --mauve-fg: #f7a2ca;
 }
 
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     color-scheme: dark;
-    --bg: #071225;
-    --surface: #101e34;
-    --surface-2: #182b43;
-    --border: #30445e;
-    --border-strong: #48617a;
-    --text: #eef6ff;
-    --muted: #b0c4d8;
-    --primary: #79d9ed;
-    --primary-hover: #a1eafa;
-    --primary-fg: #061624;
-    --primary-soft: #18364d;
-    --focus: #79d9ed;
-    --shadow: 0 0 0;
-    --brand: #0a2b43;
-    --brand-fg: #f3faff;
+    --bg: #020617;
+    --surface: #0f172a;
+    --surface-2: #17243a;
+    --border: #1e293b;
+    --border-strong: #334155;
+    --text: #f1f5f9;
+    --muted: #cbd5e1;
+    --primary: #5cc8e8;
+    --primary-hover: #8cddf2;
+    --primary-fg: #05151d;
+    --primary-soft: #0b3042;
+    --action: #015f7a;
+    --action-hover: #017596;
+    --action-fg: #ffffff;
+    --focus: #5cc8e8;
     --danger: #f2837a;
     --danger-soft: #3a1714;
+    --shadow: 0 0 0;
+    --brand: #015f7a;
+    --brand-fg: #ffffff;
+    --gold: #bca560;
+    --gold-text: #d4bc84;
+    --accent-green: #6fd0a2;
+    --accent-green-soft: #123628;
+    --reply-bg: #211f24;
+    --reply-border: #6b5c30;
     --open: #7db3ea;
     --open-soft: #16304d;
     --progress: #b99af0;
@@ -129,7 +149,7 @@
     --resolved-soft: #123628;
     --closed: #a5b1bc;
     --closed-soft: #252f39;
-    --p-low: #b0c4d8;
+    --p-low: #cbd5e1;
     --p-normal: #7db3ea;
     --p-high: #f0a66b;
     --p-emergency: #f2837a;
@@ -139,9 +159,6 @@
     --warn: #f0a66b;
     --warn-soft: #3a2412;
     --scrim: rgb(2 6 14 / 0.65);
-    --mauve: #b56b9b;
-    --mauve-soft: #42263e;
-    --mauve-fg: #f7a2ca;
   }
 }
 
@@ -157,9 +174,18 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-fg: var(--primary-fg);
   --color-primary-soft: var(--primary-soft);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-fg: var(--action-fg);
   --color-focus: var(--focus);
   --color-brand: var(--brand);
   --color-brand-fg: var(--brand-fg);
+  --color-gold: var(--gold);
+  --color-gold-text: var(--gold-text);
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-soft: var(--accent-green-soft);
+  --color-reply-bg: var(--reply-bg);
+  --color-reply-border: var(--reply-border);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-open: var(--open);
@@ -180,9 +206,6 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-scrim: var(--scrim);
-  --color-mauve: var(--mauve);
-  --color-mauve-soft: var(--mauve-soft);
-  --color-mauve-fg: var(--mauve-fg);
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
   /* Shadows are tinted with the page hue, never pure black on light. */
@@ -192,7 +215,12 @@
 
 html {
   color-scheme: light;
+  font-size: 17px;
   -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 768px) {
+  html { font-size: 18px; }
 }
 
 body {
@@ -234,6 +262,8 @@ body {
   --primary-hover: #472c80;
   --primary-fg: #ffffff;
   --primary-soft: #ece6f8;
+  --action: #5b3a9e;
+  --action-hover: #472c80;
   --focus: #6b4bc2;
 }
 
@@ -242,6 +272,8 @@ body {
   --primary-hover: #82244b;
   --primary-fg: #ffffff;
   --primary-soft: #fbe6ef;
+  --action: #a3305f;
+  --action-hover: #82244b;
   --focus: #b83d6e;
 }
 
@@ -255,6 +287,8 @@ body {
   --primary-hover: #ddc8ff;
   --primary-fg: #170d2a;
   --primary-soft: #33254e;
+  --action: #68449a;
+  --action-hover: #7955ac;
   --focus: #c4a7ff;
 }
 
@@ -268,6 +302,8 @@ body {
   --primary-hover: #ffc2df;
   --primary-fg: #29111f;
   --primary-soft: #4b2940;
+  --action: #8b3561;
+  --action-hover: #a54373;
   --focus: #f7a2ca;
 }
 
@@ -282,6 +318,8 @@ body {
     --primary-hover: #ddc8ff;
     --primary-fg: #170d2a;
     --primary-soft: #33254e;
+    --action: #68449a;
+    --action-hover: #7955ac;
     --focus: #c4a7ff;
   }
 
@@ -295,13 +333,15 @@ body {
     --primary-hover: #ffc2df;
     --primary-fg: #29111f;
     --primary-soft: #4b2940;
+    --action: #8b3561;
+    --action-hover: #a54373;
     --focus: #f7a2ca;
   }
 }
 
 @keyframes conversation-glow {
-  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 6%, transparent); }
-  50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--mauve) 28%, transparent), 0 0 24px color-mix(in srgb, var(--mauve) 8%, transparent); }
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 7%, transparent); }
+  50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent), 0 0 20px color-mix(in srgb, var(--gold) 7%, transparent); }
 }
 
 @media (prefers-reduced-motion: no-preference) {

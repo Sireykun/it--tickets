@@ -14,7 +14,7 @@ export default async function NewTicketPage({ searchParams }: PageProps<"/ticket
     prisma.helpTopic.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, description: true },
+      select: { id: true, name: true, description: true, defaultPriority: true },
     }),
     prisma.campus.findMany({
       where: { isActive: true },
@@ -33,7 +33,7 @@ export default async function NewTicketPage({ searchParams }: PageProps<"/ticket
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="New ticket" subtitle="Tell us what's wrong and we'll get back to you." />
+      <PageHeader title="New ticket" subtitle="Answer a few questions, one step at a time." />
       <NewTicketForm
         topics={topics}
         campuses={campuses}

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export async function generateViewport(): Promise<Viewport> {
   const theme = await readTheme();
   const light = "#f4f6f8";
-  const dark = "#071225";
+  const dark = "#020617";
   return {
     width: "device-width",
     initialScale: 1,
@@ -38,7 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const theme = await readTheme();
   return (
     <html lang="en" data-theme={theme} className={`${body.variable} ${code.variable}`}>
-      <body className="min-h-dvh font-sans text-[15px] leading-relaxed antialiased">{children}</body>
+      <body className="min-h-dvh font-sans text-base leading-relaxed antialiased">{children}</body>
     </html>
   );
 }
