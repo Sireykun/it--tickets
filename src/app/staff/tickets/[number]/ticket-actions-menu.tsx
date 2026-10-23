@@ -1,8 +1,8 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { ChevronDown, Eye, EyeOff, GitMerge, Link2, Printer, UserPlus, X } from "lucide-react";
-import { type ReactNode, useState, useTransition } from "react";
+import { ChevronDown, Eye, EyeOff, GitMerge, Link2, Printer, X } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuContent, MenuItem, MenuLinkItem, MenuSeparator, MenuTrigger } from "@/components/ui/dropdown-menu";
 import type { ActionState } from "@/lib/action-state";
@@ -13,18 +13,15 @@ type FormAction = (prev: ActionState, formData: FormData) => Promise<ActionState
 export function TicketActionsMenu({
   ticketNumber,
   isRequesterView,
-  assignToMe,
   linkAction,
   mergeAction,
 }: {
   ticketNumber: string;
   isRequesterView: boolean;
-  assignToMe?: () => Promise<void>; // omitted when already assigned
   linkAction: FormAction;
   mergeAction?: FormAction; // omitted once merged or closed
 }) {
   const [dialog, setDialog] = useState<"link" | "merge" | null>(null);
-  const [, startTransition] = useTransition();
 
   return (
     <>
@@ -35,11 +32,6 @@ export function TicketActionsMenu({
           </Button>
         </MenuTrigger>
         <MenuContent align="start">
-          {assignToMe && (
-            <MenuItem icon={<UserPlus />} onSelect={() => startTransition(() => assignToMe())}>
-              Assign to me
-            </MenuItem>
-          )}
           <MenuLinkItem
             href={isRequesterView ? `/staff/tickets/${ticketNumber}` : `/staff/tickets/${ticketNumber}?view=requester`}
             icon={isRequesterView ? <EyeOff /> : <Eye />}

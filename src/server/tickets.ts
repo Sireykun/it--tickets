@@ -425,7 +425,7 @@ export async function assignmentOptions(actor: Pick<AppUser, "campusScope">, cam
   const [departments, teams, agents, campuses] = await Promise.all([
     prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.team.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.user.findMany({ where: agentWhere, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: agentWhere, orderBy: { name: "asc" }, select: { id: true, name: true, role: true } }),
     prisma.campus.findMany({
       where: { isActive: true, ...(actor.campusScope === "all" ? {} : { id: { in: actor.campusScope } }) },
       orderBy: { name: "asc" },
@@ -442,7 +442,7 @@ export type MessageMode = "client" | "reply" | "note";
 export async function addMessage(
   actor: Actor,
   ticketNumber: string,
-  input: { body: string; mode: MessageMode },
+  input: { body: string; mode: MessageMode; closeAfterReply?: boolean },
   files: PreparedFile[] = [],
 ) {
   const ticket = await prisma.ticket.findUnique({
@@ -453,6 +453,8 @@ export async function addMessage(
 
   // Requesters and CCs post client messages; staff of the ticket's campus post replies/notes.
   if (input.mode === "client" ? !isParticipant(actor.id, ticket) : !canWorkTicket(actor, ticket)) throw new TicketError("Not allowed.");
+  if (input.closeAfterReply && input.mode !== "reply") throw new TicketError("A closure message must be a reply to the requester.");
+  if (input.closeAfterReply && ticket.status === "CLOSED") throw new TicketError("This ticket is already closed.");
   if (input.mode === "client" && ticket.status === "CLOSED") {
     throw new TicketError("This ticket is closed. Please open a new ticket if you still need help.");
   }
@@ -481,7 +483,10 @@ export async function addMessage(
       }
       if (type === "AGENT_REPLY") {
         if (!ticket.firstRespondedAt) data.firstRespondedAt = now;
-        if (ticket.status === "OPEN") {
+        if (input.closeAfterReply) {
+          Object.assign(data, { status: "CLOSED", closedByStaff: true, ...statusTimestamps("CLOSED", ticket, now) });
+          await systemEvent(tx, ticket.id, actor, `Status changed from ${STATUS_LABEL[ticket.status]} to Closed`);
+        } else if (ticket.status === "OPEN") {
           data.status = "IN_PROGRESS";
           await systemEvent(tx, ticket.id, actor, `Status changed from Open to In progress`);
         }
@@ -490,6 +495,7 @@ export async function addMessage(
       if (type !== "CLIENT_MESSAGE") {
         await audit(tx, actor, type === "AGENT_REPLY" ? "ticket.reply" : "ticket.note", { type: "ticket", id: ticket.id }, { entryId: entry.id });
       }
+      if (input.closeAfterReply) await audit(tx, actor, "ticket.close", { type: "ticket", id: ticket.id }, { entryId: entry.id });
       await notifyMessage(tx, ticket.id, actor, type, input.body);
       return entry;
     }),

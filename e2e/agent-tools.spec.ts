@@ -44,6 +44,7 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
   await shot(agent, testInfo, "08-agent-ticket-tools");
 
   // ── Task on the ticket: add, comment, complete ──
+  await openTicketPanel(agent);
   await agent.getByLabel("New task").fill(`Re-image laptop ${stamp}`);
   await agent.getByLabel("Assign task to agent").selectOption({ label: "Sample Agent" });
   await agent.getByRole("button", { name: "Add task" }).click();
@@ -69,6 +70,7 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
 
   // ── A duplicate from the same student gets merged into the main ticket ──
   const dup = await openOnBehalf(agent, `Same laptop again ${stamp}`, "PHONE");
+  await openTicketPanel(agent);
   await agent.getByRole("button", { name: "Actions" }).click();
   await agent.getByRole("menuitem", { name: "Merge into…" }).click();
   await agent.getByLabel("Merge into ticket number").fill(main);
@@ -76,6 +78,7 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
   await agent.getByRole("button", { name: "Yes, merge" }).click();
   await agent.waitForURL(new RegExp(`/staff/tickets/${main}$`));
   await expect(thread(agent).getByText(`Merged ${dup}`)).toBeVisible();
+  await openTicketPanel(agent);
   await expect(agent.getByRole("link", { name: new RegExp(dup) })).toBeVisible();
 
   // ── Print view and CSV export ──

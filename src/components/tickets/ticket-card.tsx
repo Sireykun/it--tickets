@@ -18,6 +18,8 @@ type CardTicket = {
   thread: { type: string }[];
   requester?: { name: string };
   assignedAgent?: { name: string } | null;
+  assignedTeam?: { name: string } | null;
+  campus?: { name: string } | null;
 };
 
 // A row inside a <TicketList>. `variant` decides who the "waiting on you" hint is for.
@@ -60,20 +62,21 @@ export function TicketCard({ ticket, href, variant, accent = "cyan" }: { ticket:
     <Link
       href={href}
       className={clsx(
-        "group relative flex items-center gap-3 px-4 py-4 transition-colors hover:bg-surface-2/70 sm:px-5",
+        "group relative flex items-start gap-3 px-4 py-4 transition-colors hover:bg-primary-soft/50 sm:px-5",
         // Accent bar marks rows that need the viewer's attention; the text hint below carries the same meaning.
         waiting && "before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:rounded-r-full before:bg-primary",
       )}
     >
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary"><Ticket className="size-5" aria-hidden /></span>
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex items-center gap-2 text-xs text-muted">
-          <span className="font-mono tracking-tight">{ticket.ticketNumber}</span>
+          <span className="font-mono font-bold tracking-tight text-gold-text">{ticket.ticketNumber}</span>
           {ticket.helpTopic && <span className="truncate">{ticket.helpTopic.name}</span>}
-          <span className="ml-auto shrink-0">{formatRelative(ticket.updatedAt)}</span>
+          <span className="ml-auto shrink-0 rounded-md border border-gold/40 bg-gold/10 px-2 py-1 font-semibold text-gold-text">{formatRelative(ticket.updatedAt)}</span>
         </div>
-        <p className="truncate text-base font-bold">{ticket.subject}</p>
-        <p className="truncate text-sm text-muted">
-          {ticket.requester?.name} · {ticket.assignedAgent?.name ?? "Unassigned"}
+        <p className="break-words text-base font-bold">{ticket.subject}</p>
+        <p className="text-sm text-muted">
+          {[ticket.campus?.name, ticket.requester?.name, ticket.assignedAgent?.name ?? "Unassigned", ticket.assignedTeam?.name].filter(Boolean).join(" · ")}
         </p>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-0.5">
           <StatusChip status={ticket.status} />
@@ -93,5 +96,5 @@ export function TicketCard({ ticket, href, variant, accent = "cyan" }: { ticket:
 }
 
 export function TicketList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <ul className={clsx("divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface shadow-card", className)}>{children}</ul>;
+  return <ul className={clsx("space-y-2", className)}>{children}</ul>;
 }

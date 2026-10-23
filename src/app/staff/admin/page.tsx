@@ -1,20 +1,14 @@
 import clsx from "clsx";
 import {
-  AlarmClock,
   BarChart3,
   BookOpen,
   Building2,
-  CheckCircle2,
   ChevronRight,
-  Flame,
-  Inbox,
-  ListTodo,
   Mail,
   MessageSquareText,
   School,
   Tags,
   Timer,
-  TrendingUp,
   UserRound,
   Users,
   UsersRound,
@@ -24,7 +18,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { LinkButton } from "@/components/ui/button";
 import { Card, PageHeader } from "@/components/ui/misc";
-import { StatTile } from "@/components/ui/stats";
 import { formatRelative } from "@/lib/format";
 import { ROLE_LABEL, ROLES } from "@/lib/labels";
 import { type AdminDashboard, getAdminDashboard } from "@/server/admin-dashboard";
@@ -54,6 +47,27 @@ export default async function AdminDashboardPage() {
   const d = await getAdminDashboard(user);
   const t = d.tickets;
   const { outbox, inbound } = d.email;
+  const healthGroups = [
+    {
+      title: "Current workload",
+      rows: [
+        { label: "Open tickets", value: t.open, color: "bg-open", href: "/staff?view=open" },
+        { label: "Unassigned", value: t.unassigned, color: "bg-warn", href: "/staff?view=unassigned" },
+        { label: "Overdue", value: t.overdue, color: "bg-danger", href: "/staff?view=overdue" },
+        { label: "High / emergency", value: t.urgent, color: "bg-gold", href: null },
+      ],
+    },
+    {
+      title: "Activity & people",
+      rows: [
+        { label: "New · 24h", value: t.createdDay, color: "bg-primary", href: null },
+        { label: "Resolved · 24h", value: t.resolvedDay, color: "bg-resolved", href: null },
+        { label: "Open tasks", value: t.openTasks, color: "bg-progress", href: "/staff/tasks" },
+        { label: "Signed in · 7d", value: d.people.recentLogins, color: "bg-gold", href: null },
+      ],
+    },
+  ];
+  const chartMax = Math.max(1, ...healthGroups.flatMap((group) => group.rows.map((row) => row.value)));
 
   const configLinks: { href: string; label: string; icon: ReactNode; chip: string; active: number; total: number; activeLabel?: string }[] = [
     { href: "/staff/admin/campuses", label: "Campuses", icon: <School />, chip: "bg-open-soft text-open", ...d.config.campuses },
@@ -84,15 +98,30 @@ export default async function AdminDashboardPage() {
         }
       />
 
-      <section aria-label="Ticket health, all campuses" className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile accent="open" icon={<Inbox />} label="Open tickets" value={t.open} href="/staff?view=open" />
-        <StatTile accent="warn" icon={<UserRound />} label="Unassigned" value={t.unassigned} tone={t.unassigned > 0 ? "warn" : undefined} href="/staff?view=unassigned" />
-        <StatTile accent="danger" icon={<AlarmClock />} label="Overdue" value={t.overdue} tone={t.overdue > 0 ? "danger" : undefined} href="/staff?view=overdue" />
-        <StatTile accent="warn" icon={<Flame />} label="High / emergency" value={t.urgent} hint="Open tickets" tone={t.urgent > 0 ? "warn" : undefined} />
-        <StatTile accent="primary" icon={<TrendingUp />} label="New" value={t.createdDay} hint="Last 24 hours" />
-        <StatTile accent="resolved" icon={<CheckCircle2 />} label="Resolved" value={t.resolvedDay} hint="Last 24 hours" />
-        <StatTile accent="progress" icon={<ListTodo />} label="Open tasks" value={t.openTasks} href="/staff/tasks" />
-        <StatTile accent="gold" icon={<Users />} label="Signed in" value={d.people.recentLogins} hint="Users, last 7 days" />
+      <section aria-label="Ticket health, all campuses" className="mb-6 rounded-xl border border-border bg-surface p-4 shadow-card sm:p-5">
+        <div className="mb-5 flex items-center gap-2">
+          <BarChart3 className="size-5 text-gold-text" aria-hidden />
+          <h2 className="text-lg font-bold">Ticket health</h2>
+        </div>
+        <div className="grid gap-7 lg:grid-cols-2 lg:gap-8">
+          {healthGroups.map((group) => (
+            <div key={group.title}>
+              <h3 className="mb-3 text-sm font-bold text-muted">{group.title}</h3>
+              <ul className="space-y-3">
+                {group.rows.map((row) => {
+                  const content = (
+                    <>
+                      <span className="flex items-center justify-between gap-3 text-sm"><span>{row.label}</span><strong className="tabular-nums">{row.value}</strong></span>
+                      <span className="mt-1.5 block h-3 overflow-hidden rounded-full bg-surface-2"><span className={clsx("block h-full rounded-full", row.color)} style={{ width: `${(row.value / chartMax) * 100}%` }} /></span>
+                    </>
+                  );
+                  return <li key={row.label}>{row.href ? <Link href={row.href} className="block rounded-md font-semibold hover:text-primary focus-visible:outline-2 focus-visible:outline-focus">{content}</Link> : <div className="font-semibold">{content}</div>}</li>;
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p className="mt-5 text-xs text-muted">Bar lengths share one scale across both groups.</p>
       </section>
 
       <section aria-labelledby="campuses-heading" className="mb-6">

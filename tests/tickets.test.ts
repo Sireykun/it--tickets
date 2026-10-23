@@ -118,6 +118,22 @@ describe("ticket lifecycle", () => {
     expect(again.firstRespondedAt).toEqual(firstRespondedAt);
   });
 
+  it("sends a public closure reply and closes the ticket together", async () => {
+    const t = await createTicket(alice, { helpTopicId: wifiTopicId, subject: "Close with reply", body: "Please help" });
+    await expect(addMessage(agent, t.ticketNumber, { body: "private", mode: "note", closeAfterReply: true })).rejects.toThrow("reply");
+    await addMessage(agent, t.ticketNumber, { body: "The issue is fixed. This ticket is closed.", mode: "reply", closeAfterReply: true });
+    const after = await prisma.ticket.findUniqueOrThrow({ where: { id: t.id }, include: { thread: true } });
+    expect(after.status).toBe("CLOSED");
+    expect(after.closedByStaff).toBe(true);
+    expect(after.closedAt).not.toBeNull();
+    expect(after.firstRespondedAt).not.toBeNull();
+    expect(after.thread.some((entry) => entry.type === "AGENT_REPLY" && entry.body.includes("This ticket is closed"))).toBe(true);
+    expect(after.thread.some((entry) => entry.type === "SYSTEM_EVENT" && entry.body === "Status changed from Open to Closed")).toBe(true);
+    const requesterView = await getTicketForViewer(alice, t.ticketNumber);
+    expect(requesterView?.thread.some((entry) => entry.type === "AGENT_REPLY" && entry.body.includes("This ticket is closed"))).toBe(true);
+    await expect(addMessage(agent, t.ticketNumber, { body: "Again", mode: "reply", closeAfterReply: true })).rejects.toThrow("already closed");
+  });
+
   it("only assigns tickets to active staff", async () => {
     const t = await createTicket(alice, { helpTopicId: wifiTopicId, subject: "Assign", body: "x" });
     await expect(updateTicketFields(agent, t.ticketNumber, { ...update(t), assignedAgentId: bob.id })).rejects.toThrow(

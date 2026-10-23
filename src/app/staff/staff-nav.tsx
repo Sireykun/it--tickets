@@ -12,6 +12,7 @@ import {
   Inbox,
   LayoutDashboard,
   ListTodo,
+  LogOut,
   Mail,
   Menu,
   MessageSquareText,
@@ -29,6 +30,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Brand } from "@/components/brand";
+import { logoutAction } from "@/app/actions/auth";
 import { UserMenu } from "@/components/ui/user-menu";
 import type { Theme } from "@/lib/theme";
 
@@ -39,7 +41,7 @@ type NavProps = {
   counts: Counts;
   fullQueue: boolean;
   admin: "super" | "users" | null;
-  user: { name: string; email: string };
+  user: { name: string; email: string; hasPhoto: boolean };
   theme: Theme;
   onNavigate?: () => void;
 };
@@ -77,7 +79,7 @@ const SETTINGS_GROUPS: { label: string; links: { href: string; label: string; ic
 
 const itemClass = (active: boolean) =>
   clsx(
-    "flex min-h-10 items-center gap-3 rounded-lg border-l-[3px] px-3 font-bold transition-colors",
+    "flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold transition-colors",
     active ? "border-gold bg-primary-soft text-primary" : "border-transparent text-muted hover:bg-surface-2 hover:text-text",
   );
 
@@ -88,13 +90,13 @@ function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProp
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center px-4">
+      <div className="px-4 pb-4 pt-6">
         <Link href="/staff" onClick={onNavigate}>
           <Brand subtitle="Staff console" />
         </Link>
       </div>
 
-      <nav aria-label="Staff" className="flex-1 space-y-6 overflow-y-auto px-3 pt-2 pb-4">
+      <nav aria-label="Staff" className="flex-1 space-y-6 overflow-y-auto px-3 pb-4 pt-1">
         {fullQueue ? (
           <FullQueueLinks counts={counts} currentView={currentView} pathname={pathname} showReports={admin === "super"} onNavigate={onNavigate} />
         ) : (
@@ -113,7 +115,7 @@ function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProp
             </li>
             <li>
               <Link href="/help" onClick={onNavigate} className={itemClass(false)}>
-                <BookOpen className="size-[1.125rem]" aria-hidden /> Knowledge base
+                <BookOpen className="size-[1.125rem]" aria-hidden /> Help center
               </Link>
             </li>
           </ul>
@@ -122,7 +124,7 @@ function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProp
         {admin === "super" && <SettingsLinks pathname={pathname} onNavigate={onNavigate} />}
         {admin === "users" && (
           <div>
-            <p className="mb-1.5 px-3 text-xs font-bold text-muted">Admin</p>
+            <p className="mb-1.5 px-3 text-xs font-bold uppercase tracking-wide text-gold-text">Admin</p>
             <Link
               href="/staff/admin/users"
               onClick={onNavigate}
@@ -135,8 +137,14 @@ function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProp
         )}
       </nav>
 
-      <div className="border-t border-border p-3">
-        <UserMenu name={user.name} email={user.email} theme={theme} switchTo="portal" showName />
+      <div className="space-y-3 px-3 pb-6 pt-3">
+        <div className="rounded-xl border border-border bg-surface-2 p-2">
+          <UserMenu name={user.name} email={user.email} hasPhoto={user.hasPhoto} theme={theme} switchTo="portal" showName />
+          <p className="pl-12 text-sm text-muted">Staff</p>
+        </div>
+        <form action={logoutAction}>
+          <button type="submit" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-danger/50 bg-danger-soft px-3 text-base font-bold text-danger transition-colors hover:border-danger"><LogOut className="size-4" aria-hidden /> Sign out</button>
+        </form>
       </div>
     </div>
   );
@@ -152,7 +160,7 @@ function FullQueueLinks({
   return (
     <>
       <div>
-        <p className="mb-1.5 px-3 text-xs font-bold text-muted">Queue</p>
+        <p className="mb-1.5 px-3 text-xs font-bold uppercase tracking-wide text-gold-text">Queue</p>
         <ul className="space-y-0.5">
           {showReports && (
             <li>
@@ -176,7 +184,7 @@ function FullQueueLinks({
       </div>
 
       <div>
-        <p className="mb-1.5 px-3 text-xs font-bold text-muted">Work</p>
+        <p className="mb-1.5 px-3 text-xs font-bold uppercase tracking-wide text-gold-text">Work</p>
         <ul className="space-y-0.5">
           <li>
             <Link href="/staff/tickets/new" onClick={onNavigate} aria-current={pathname === "/staff/tickets/new" ? "page" : undefined} className={itemClass(pathname === "/staff/tickets/new")}>
@@ -201,7 +209,7 @@ function FullQueueLinks({
           )}
           <li>
             <Link href="/help" onClick={onNavigate} className={itemClass(false)}>
-              <BookOpen className="size-[1.125rem]" aria-hidden /> Knowledge base
+              <BookOpen className="size-[1.125rem]" aria-hidden /> Help center
             </Link>
           </li>
         </ul>
@@ -230,7 +238,7 @@ function SettingsLinks({ pathname, onNavigate }: { pathname: string; onNavigate?
         <div id="settings-links" className="mt-1 ml-5 space-y-3 border-l border-border pl-2">
           {SETTINGS_GROUPS.map((group) => (
             <div key={group.label}>
-              <p className="mb-0.5 px-3 pt-1 text-xs font-bold text-muted">{group.label}</p>
+              <p className="mb-0.5 px-3 pt-1 text-xs font-bold uppercase tracking-wide text-gold-text">{group.label}</p>
               <ul className="space-y-0.5">
                 {group.links.map(({ href, label, icon: Icon, match = [href] }) => {
                   const isActive = match.some((m) => pathname.startsWith(m));

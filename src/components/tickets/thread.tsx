@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { FileText, Lock } from "lucide-react";
+import { FileText, Lock, Settings2 } from "lucide-react";
 import type { TicketDetail } from "@/server/tickets";
 import { Avatar } from "@/components/ui/misc";
 import { formatBytes, formatDateTime, formatRelative } from "@/lib/format";
@@ -8,8 +8,23 @@ import { INLINE_IMAGE_TYPES } from "@/server/storage";
 type Entry = TicketDetail["thread"][number];
 
 // `perspective` decides which side counts as "mine": the requester's messages, or staff replies and notes.
-export function Thread({ entries, perspective }: { entries: Entry[]; perspective: "requester" | "staff" }) {
+export function Thread({ entries, perspective, layout = "bubbles" }: { entries: Entry[]; perspective: "requester" | "staff"; layout?: "bubbles" | "timeline" }) {
   const now = new Date();
+  if (layout === "timeline") {
+    return (
+      <ol className="relative space-y-5 before:pointer-events-none before:absolute before:inset-y-4 before:left-5 before:w-px before:bg-primary/35" aria-label="Conversation">
+        {entries.map((entry) => entry.type === "SYSTEM_EVENT" ? (
+          <li key={entry.id} className="relative z-10 grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3">
+            <span aria-hidden className="grid size-10 place-items-center rounded-full border border-border-strong bg-surface-2 text-primary"><Settings2 className="size-4" /></span>
+            <div className="min-w-0">
+              <div className="mb-1 flex flex-wrap items-center gap-2 text-sm"><strong>System</strong><time dateTime={entry.createdAt.toISOString()} title={formatDateTime(entry.createdAt)} className="text-xs text-muted">{formatRelative(entry.createdAt, now)}</time></div>
+              <p className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-muted">{entry.body}</p>
+            </div>
+          </li>
+        ) : <TimelineMessage key={entry.id} entry={entry} now={now} />)}
+      </ol>
+    );
+  }
   return (
     <ol className="relative space-y-5 before:pointer-events-none before:absolute before:inset-y-2 before:left-1/2 before:w-px before:bg-primary/25" aria-label="Conversation">
       {entries.map((entry) =>
@@ -28,6 +43,46 @@ export function Thread({ entries, perspective }: { entries: Entry[]; perspective
         ),
       )}
     </ol>
+  );
+}
+
+function TimelineMessage({ entry, now }: { entry: Entry; now: Date }) {
+  const note = entry.type === "INTERNAL_NOTE";
+  const fromStaff = entry.type === "AGENT_REPLY";
+  return (
+    <li className="relative z-10 grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3">
+      <Avatar name={entry.author?.name ?? "?"} className="size-10 border border-border-strong bg-surface-2" />
+      <article className="min-w-0">
+        <header className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <strong>{entry.author?.name ?? "Unknown sender"}</strong>
+          <span className={clsx("rounded-md border px-1.5 py-0.5 text-xs font-semibold", note ? "border-note-border text-note" : fromStaff ? "border-gold/50 text-gold-text" : "border-primary/30 text-primary")}>{note ? "Internal note" : fromStaff ? "IT team" : "Requester"}</span>
+          <time dateTime={entry.createdAt.toISOString()} title={formatDateTime(entry.createdAt)} className="text-xs text-muted">{formatRelative(entry.createdAt, now)}</time>
+        </header>
+        <div className={clsx("rounded-xl border px-4 py-3 shadow-card", note ? "border-note-border border-dashed bg-note-bg" : fromStaff ? "border-primary/30 bg-primary-soft" : "border-border-strong bg-surface-2")}>
+          <div className="whitespace-pre-wrap break-words text-sm leading-relaxed sm:text-base">{entry.body}</div>
+          <EntryAttachments entry={entry} />
+        </div>
+      </article>
+    </li>
+  );
+}
+
+function EntryAttachments({ entry }: { entry: Entry }) {
+  const images = entry.attachments.filter((attachment) => INLINE_IMAGE_TYPES.has(attachment.mimeType));
+  const files = entry.attachments.filter((attachment) => !INLINE_IMAGE_TYPES.has(attachment.mimeType));
+  return (
+    <>
+      {images.length > 0 && <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{images.map((attachment) => (
+        <a key={attachment.id} href={`/api/attachments/${attachment.id}`} target="_blank" rel="noopener" className="block overflow-hidden rounded-lg border border-border bg-surface">
+          {/* eslint-disable-next-line @next/next/no-img-element -- authenticated route, not optimizable */}
+          <img src={`/api/attachments/${attachment.id}`} alt={attachment.fileName} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+          <span className="block truncate px-2 py-1 text-xs">{attachment.fileName}</span>
+        </a>
+      ))}</div>}
+      {files.length > 0 && <ul className="mt-3 flex flex-wrap gap-2">{files.map((attachment) => (
+        <li key={attachment.id}><a href={`/api/attachments/${attachment.id}`} className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm hover:bg-surface-2"><FileText className="size-4 shrink-0 text-muted" aria-hidden /><span className="truncate font-bold">{attachment.fileName}</span><span className="shrink-0 text-muted">{formatBytes(attachment.sizeBytes)}</span></a></li>
+      ))}</ul>}
+    </>
   );
 }
 

@@ -29,10 +29,10 @@ export async function sessionFor(browser: Browser, testInfo: TestInfo, who: { em
   return page;
 }
 
-// On phones the staff ticket panel is collapsed behind an "Edit details" button.
+// Staff controls and side panels open from one compact ticket-tools shortcut.
 export async function openTicketPanel(page: Page) {
-  const toggle = page.getByRole("button", { name: /Edit details/ });
-  if (await toggle.isVisible()) await toggle.click();
+  const toggle = page.locator("summary").filter({ hasText: "Ticket tools" });
+  await toggle.click();
   await expect(page.getByLabel("Status")).toBeVisible();
 }
 
