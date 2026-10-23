@@ -15,7 +15,6 @@ import {
   saveDepartmentAction,
   saveEmailTemplateAction,
   saveHelpTopicAction,
-  saveOrganizationAction,
   saveSlaAction,
   saveTeamAction,
   saveUserAction,
@@ -45,10 +44,10 @@ function AdminForm({
     startTransition(() => formAction(data));
   }
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="@container space-y-4">
       {id && <input type="hidden" name="id" value={id} />}
       {state.error && <Alert>{state.error}</Alert>}
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+      <div className="grid gap-4 @lg:grid-cols-2">{children}</div>
       <div className="flex gap-2 pt-1">
         <SubmitButton disabled={pending}>{submitLabel ?? (id ? "Save changes" : "Create")}</SubmitButton>
         <LinkButton href={cancelHref} variant="ghost">
@@ -65,7 +64,7 @@ function NameAndDescription({ name, description }: { name?: string; description?
       <Field label="Name" htmlFor="name">
         <Input id="name" name="name" required maxLength={100} defaultValue={name} />
       </Field>
-      <Field label="Description" htmlFor="description" className="sm:col-span-2">
+      <Field label="Description" htmlFor="description" className="@lg:col-span-2">
         <Textarea id="description" name="description" rows={2} className="min-h-20" maxLength={500} defaultValue={description ?? ""} />
       </Field>
     </>
@@ -74,7 +73,7 @@ function NameAndDescription({ name, description }: { name?: string; description?
 
 function ActiveToggle({ isActive = true, hint }: { isActive?: boolean; hint: string }) {
   return (
-    <div className="sm:col-span-2">
+    <div className="@lg:col-span-2">
       <Checkbox name="isActive" defaultChecked={isActive} label={<span className="font-bold">Active</span>} />
       <p className="text-sm text-muted">{hint}</p>
     </div>
@@ -104,7 +103,6 @@ type UserRow = {
   email: string;
   role: Role;
   departmentId: string | null;
-  organizationId: string | null;
   campusId: string | null;
   staffCampusIds: string[];
   manageCampusIds: string[];
@@ -117,7 +115,6 @@ export function UserForm({
   user,
   departments,
   teams,
-  organizations,
   campuses,
   roles,
   superadmin,
@@ -125,7 +122,6 @@ export function UserForm({
   user?: UserRow;
   departments: Option[];
   teams: Option[];
-  organizations: Option[];
   campuses: Option[]; // campuses the editor may assign
   roles: Role[]; // roles the editor may assign
   superadmin: boolean;
@@ -159,26 +155,15 @@ export function UserForm({
         </Select>
       </Field>
       <OptionSelect id="departmentId" label="Department" options={departments} value={user?.departmentId} empty="None" />
-      <Field label="Organization" htmlFor="organizationId">
-        <Select id="organizationId" name="organizationId" defaultValue={user ? (user.organizationId ?? "") : "auto"}>
-          <option value="auto">Match by email domain</option>
-          <option value="">None</option>
-          {organizations.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
       <Field
         label={user?.hasPassword ? "New password" : "Password"}
         htmlFor="password"
         hint={user ? "Leave blank to keep the current password. Google users don't need one." : "Optional for Google sign-in users. At least 10 characters."}
-        className="sm:col-span-2"
+        className="@lg:col-span-2"
       >
         <Input id="password" name="password" type="password" autoComplete="new-password" minLength={10} />
       </Field>
-      <fieldset className="sm:col-span-2">
+      <fieldset className="@lg:col-span-2">
         <legend className="mb-1 text-sm font-bold">Campus access</legend>
         <p className="mb-2 text-sm text-muted">
           Agents and campus admins only see tickets from the campuses they work at. Superadmins see every campus.
@@ -196,10 +181,10 @@ export function UserForm({
           ))}
         </div>
       </fieldset>
-      <fieldset className="sm:col-span-2">
+      <fieldset className="@lg:col-span-2">
         <legend className="mb-1 text-sm font-bold">Teams</legend>
         <p className="mb-1 text-sm text-muted">Agents and admins only.</p>
-        <div className="grid sm:grid-cols-2">
+        <div className="grid @sm:grid-cols-2">
           {teams.map((t) => (
             <Checkbox key={t.id} name="teamIds" value={t.id} defaultChecked={user?.teamIds.includes(t.id)} label={t.name} />
           ))}
@@ -270,27 +255,6 @@ export function SlaForm({ sla }: { sla?: Sla }) {
   );
 }
 
-// ─── Organizations ──────────────────────────────────────────────────────────
-
-type Org = { id: string; name: string; domains: string[]; notes: string | null; isActive: boolean };
-
-export function OrganizationForm({ org }: { org?: Org }) {
-  return (
-    <AdminForm action={saveOrganizationAction} cancelHref="/staff/admin/organizations" id={org?.id}>
-      <Field label="Name" htmlFor="name">
-        <Input id="name" name="name" required maxLength={100} defaultValue={org?.name} placeholder="e.g. High School students" />
-      </Field>
-      <Field label="Email domains" htmlFor="domains" hint="New users with these domains join automatically. Separate with commas.">
-        <Input id="domains" name="domains" defaultValue={org?.domains.join(", ")} placeholder="students.ciaschool.edu.kh" autoComplete="off" />
-      </Field>
-      <Field label="Notes" htmlFor="notes" className="sm:col-span-2">
-        <Textarea id="notes" name="notes" rows={3} className="min-h-20" defaultValue={org?.notes ?? ""} />
-      </Field>
-      <ActiveToggle isActive={org?.isActive} hint="Inactive organizations stop auto-assigning new users." />
-    </AdminForm>
-  );
-}
-
 // ─── Email templates ────────────────────────────────────────────────────────
 
 export function EmailTemplateForm({
@@ -309,13 +273,13 @@ export function EmailTemplateForm({
   return (
     <AdminForm action={saveEmailTemplateAction} cancelHref="/staff/admin/email" submitLabel="Save changes">
       <input type="hidden" name="key" value={templateKey} />
-      <Field label="Subject" htmlFor="subject" className="sm:col-span-2">
+      <Field label="Subject" htmlFor="subject" className="@lg:col-span-2">
         <Input id="subject" name="subject" required maxLength={250} defaultValue={subject} />
       </Field>
       <Field
         label="Body"
         htmlFor="body"
-        className="sm:col-span-2"
+        className="@lg:col-span-2"
         hint={<>Placeholders: {variables.map((v) => <code key={v} className="mr-1.5 inline-block rounded bg-surface-2 px-1">{`{{${v}}}`}</code>)}</>}
       >
         <Textarea id="body" name="body" required rows={12} defaultValue={body} className="font-mono text-sm" />
@@ -339,7 +303,7 @@ export function CannedForm({ canned, departments, variables }: { canned?: Canned
       <Field
         label="Reply"
         htmlFor="body"
-        className="sm:col-span-2"
+        className="@lg:col-span-2"
         hint={<>Placeholders: {variables.map((v) => <code key={v} className="mr-1.5 rounded bg-surface-2 px-1">{v}</code>)}</>}
       >
         <Textarea id="body" name="body" required rows={8} defaultValue={canned?.body} />
@@ -385,10 +349,10 @@ export function ArticleForm({ article, topics }: { article?: Article; topics: Op
         <Input id="title" name="title" required minLength={3} maxLength={200} defaultValue={article?.title} placeholder="e.g. How to connect to school Wi‑Fi" />
       </Field>
       <OptionSelect id="helpTopicId" label="Help topic" options={topics} value={article?.helpTopicId} empty="General" />
-      <Field label="Article" htmlFor="body" className="sm:col-span-2" hint="Plain text. Blank lines start a new paragraph; number your steps 1. 2. 3.">
+      <Field label="Article" htmlFor="body" className="@lg:col-span-2" hint="Plain text. Blank lines start a new paragraph; number your steps 1. 2. 3.">
         <Textarea id="body" name="body" required rows={12} defaultValue={article?.body} />
       </Field>
-      <div className="sm:col-span-2">
+      <div className="@lg:col-span-2">
         <Checkbox name="isPublished" defaultChecked={article?.isPublished ?? true} label={<span className="font-bold">Published</span>} />
         <p className="text-sm text-muted">Drafts are only visible to superadmins.</p>
       </div>

@@ -22,6 +22,7 @@ export default async function SlaPage({ searchParams }: PageProps<"/staff/admin/
       newLabel="New policy"
       basePath="/staff/admin/sla"
       saved={sp.saved === "1"}
+      selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New SLA policy"}
       form={target.show ? <SlaForm key={target.item?.id ?? "new"} sla={target.item} /> : undefined}
       rows={policies.map((p) => ({

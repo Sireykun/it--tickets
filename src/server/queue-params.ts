@@ -14,7 +14,6 @@ export function parseQueueParams(sp: Record<string, string | string[] | undefine
     priority: pick<TicketPriority>(sp.priority, PRIORITIES),
     teamId: str(sp.team),
     topicId: str(sp.topic),
-    orgId: str(sp.org),
     campusId: str(sp.campus),
     q: str(sp.q),
     sort: pick(sp.sort, QUEUE_SORTS),

@@ -2,7 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import type { ThreadEntryType, TicketPriority, TicketSource, TicketStatus } from "@/generated/prisma/enums";
 import { PRIORITY_LABEL, SOURCE_LABEL, STATUS_LABEL } from "@/lib/labels";
 import { audit } from "@/server/audit";
-import { notifyAssigned, notifyMessage, notifyStatus, notifyTicketCreated } from "@/server/email/notify";
+import { notifyAssigned, notifyMessage, notifyRequesterStatus, notifyStatus, notifyTicketCreated } from "@/server/email/notify";
 import { type AppUser, canViewTicket, canWorkTicket, hasFullQueue, inScope, isParticipant, isStaff } from "@/server/roles";
 import { prisma } from "@/server/prisma";
 import { campusForRequester, ensureUser } from "@/server/users";
@@ -232,7 +232,7 @@ export async function getTicketForViewer(actor: Actor, ticketNumber: string, opt
     include: {
       campus: { select: { id: true, name: true } },
       requester: {
-        select: { id: true, name: true, email: true, organization: { select: { id: true, name: true } }, campus: { select: { name: true } } },
+        select: { id: true, name: true, email: true, campus: { select: { name: true } } },
       },
       assignedAgent: { select: { id: true, name: true } },
       assignedTeam: { select: { id: true, name: true } },
@@ -301,7 +301,6 @@ export type QueueParams = {
   priority?: TicketPriority;
   teamId?: string;
   topicId?: string;
-  orgId?: string;
   campusId?: string;
   q?: string;
   sort?: QueueSort; // defaults to "priority"
@@ -359,7 +358,6 @@ export async function listQueue(actor: Actor, params: QueueParams) {
   if (params.priority) filters.push({ priority: params.priority });
   if (params.teamId) filters.push({ assignedTeamId: params.teamId });
   if (params.topicId) filters.push({ helpTopicId: params.topicId });
-  if (params.orgId) filters.push({ requester: { organizationId: params.orgId } });
   const q = params.q?.trim();
   if (q) {
     filters.push({
@@ -489,6 +487,9 @@ export async function addMessage(
         }
       }
       await tx.ticket.update({ where: { id: ticket.id }, data });
+      if (type !== "CLIENT_MESSAGE") {
+        await audit(tx, actor, type === "AGENT_REPLY" ? "ticket.reply" : "ticket.note", { type: "ticket", id: ticket.id }, { entryId: entry.id });
+      }
       await notifyMessage(tx, ticket.id, actor, type, input.body);
       return entry;
     }),
@@ -506,10 +507,12 @@ export async function closeAsRequester(actor: Actor, ticketNumber: string) {
   return prisma.$transaction(async (tx) => {
     await systemEvent(tx, ticket.id, actor, "Closed by the requester");
     await audit(tx, actor, "ticket.close", { type: "ticket", id: ticket.id });
-    return tx.ticket.update({
+    const closed = await tx.ticket.update({
       where: { id: ticket.id },
       data: { status: "CLOSED", closedByStaff: false, ...statusTimestamps("CLOSED", ticket, now) },
     });
+    await notifyRequesterStatus(tx, ticket.id, actor, "CLOSED");
+    return closed;
   });
 }
 
@@ -527,6 +530,7 @@ export async function reopenAsRequester(actor: Actor, ticketNumber: string) {
     if (updated.count === 0) return tx.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
     await systemEvent(tx, ticket.id, actor, "Reopened by the requester");
     await audit(tx, actor, "ticket.reopen", { type: "ticket", id: ticket.id });
+    await notifyRequesterStatus(tx, ticket.id, actor, "OPEN");
     return tx.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
   });
 }
@@ -535,7 +539,7 @@ export async function giveKudo(actor: Actor, ticketNumber: string) {
   return prisma.$transaction(async (tx) => {
     const ticket = await tx.ticket.findUnique({ where: { ticketNumber: normalizeNumber(ticketNumber) } });
     if (!ticket || ticket.requesterId !== actor.id) throw new TicketError("Ticket not found.");
-    if (ticket.status !== "CLOSED") throw new TicketError("Kudos are available on closed tickets.");
+    if (ticket.status !== "CLOSED" || !ticket.closedByStaff) throw new TicketError("Kudos are available once staff close your ticket.");
     const existing = await tx.ticketKudo.findUnique({ where: { ticketId: ticket.id } });
     if (existing) return existing;
     const kudo = await tx.ticketKudo.create({ data: { ticketId: ticket.id, requesterId: actor.id, recipientId: ticket.assignedAgentId } });
@@ -709,6 +713,7 @@ export async function unlinkTickets(actor: Actor, ticketNumber: string, otherNum
     if (count === 0) return;
     await systemEvent(tx, from.id, actor, `Unlinked from ${to.ticketNumber}`);
     await systemEvent(tx, to.id, actor, `Unlinked from ${from.ticketNumber}`);
+    await audit(tx, actor, "ticket.unlink", { type: "ticket", id: from.id }, { to: to.ticketNumber });
   });
 }
 
@@ -739,7 +744,7 @@ export async function mergeTickets(actor: Actor, sourceNumber: string, targetNum
     await systemEvent(tx, source.id, actor, `Merged into ${target.ticketNumber}`);
     await tx.ticket.update({
       where: { id: source.id },
-      data: { status: "CLOSED", ...statusTimestamps("CLOSED", source, now) },
+      data: { status: "CLOSED", closedByStaff: true, ...statusTimestamps("CLOSED", source, now) },
     });
     await tx.ticket.update({ where: { id: target.id }, data: { updatedAt: now } });
     await audit(tx, actor, "ticket.merge", { type: "ticket", id: source.id }, { into: target.ticketNumber });

@@ -61,6 +61,14 @@
   --warn-soft: #fff1e6;
   /* Dims the page behind dialogs and drawers. */
   --scrim: rgb(15 27 38 / 0.45);
+  /* Campus identity (categorical, fixed order, validated for colour-blind separation).
+     Always shown next to the campus name; never used for status. */
+  --campus-1: #2a78d6;
+  --campus-2: #eb6834;
+  --campus-3: #1baf7a;
+  --campus-4: #eda100;
+  --campus-5: #e87ba4;
+  --campus-6: #008300;
 }
 
 /* Kept as two identical blocks because a media query can't share a selector list. */
@@ -110,6 +118,12 @@
   --warn: #f0a66b;
   --warn-soft: #3a2412;
   --scrim: rgb(2 6 14 / 0.65);
+  --campus-1: #3987e5;
+  --campus-2: #d95926;
+  --campus-3: #199e70;
+  --campus-4: #c98500;
+  --campus-5: #d55181;
+  --campus-6: #008300;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -159,6 +173,12 @@
     --warn: #f0a66b;
     --warn-soft: #3a2412;
     --scrim: rgb(2 6 14 / 0.65);
+    --campus-1: #3987e5;
+    --campus-2: #d95926;
+    --campus-3: #199e70;
+    --campus-4: #c98500;
+    --campus-5: #d55181;
+    --campus-6: #008300;
   }
 }
 
@@ -206,6 +226,12 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-scrim: var(--scrim);
+  --color-campus-1: var(--campus-1);
+  --color-campus-2: var(--campus-2);
+  --color-campus-3: var(--campus-3);
+  --color-campus-4: var(--campus-4);
+  --color-campus-5: var(--campus-5);
+  --color-campus-6: var(--campus-6);
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
   /* Shadows are tinted with the page hue, never pure black on light. */

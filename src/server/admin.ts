@@ -10,18 +10,17 @@ import type {
   emailTemplateSchema,
   helpTopicSchema,
   namedEntitySchema,
-  organizationSchema,
   slaSchema,
   teamSchema,
 } from "@/server/validation";
 import { TicketError } from "@/server/tickets";
 import { audit } from "@/server/audit";
 import { TEMPLATE_KEYS, type TemplateKey } from "@/server/email/templates";
-import { matchCampus, matchOrganization } from "@/server/users";
+import { matchCampus } from "@/server/users";
 
 // Admin settings: create/update only. Records are deactivated, not deleted, so ticket history stays intact.
 
-// Shared settings (departments, teams, topics, SLAs, organizations, email) are superadmin-only.
+// Shared settings (departments, teams, topics, SLAs, email) are superadmin-only.
 function assertAdmin(actor: Pick<AppUser, "role">) {
   if (actor.role !== "SUPERADMIN") throw new TicketError("Not allowed.");
 }
@@ -30,13 +29,15 @@ function assertAdmin(actor: Pick<AppUser, "role">) {
 async function friendly<T extends { id: string; name: string }>(
   what: string,
   actor: AppUser,
-  fn: () => Promise<T>,
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
   try {
-    const row = await fn();
-    const type = what.replace(/\s+/g, "_").toLowerCase();
-    await audit(prisma, actor, `${type}.save`, { type, id: row.id }, { name: row.name });
-    return row;
+    return await prisma.$transaction(async (tx) => {
+      const row = await fn(tx);
+      const type = what.replace(/\s+/g, "_").toLowerCase();
+      await audit(tx, actor, `${type}.save`, { type, id: row.id }, { name: row.name });
+      return row;
+    });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       throw new TicketError(`A ${what} with that name already exists.`);
@@ -45,8 +46,7 @@ async function friendly<T extends { id: string; name: string }>(
   }
 }
 
-type UserInput = Omit<z.infer<typeof adminUserSchema>, "organizationId" | "campusId" | "staffCampusIds" | "manageCampusIds"> & {
-  organizationId?: string | null; // "auto" = match by email domain
+type UserInput = Omit<z.infer<typeof adminUserSchema>, "campusId" | "staffCampusIds" | "manageCampusIds"> & {
   campusId?: string | null; // home campus; "auto" = match by email domain
   staffCampusIds?: string[]; // campuses an agent/admin works at
   manageCampusIds?: string[]; // campuses where an ADMIN may manage users (superadmin only)
@@ -56,6 +56,10 @@ type UserInput = Omit<z.infer<typeof adminUserSchema>, "organizationId" | "campu
 function inReach(managed: string[], target: { role: string; campusId: string | null; staffCampuses: { campusId: string }[] }) {
   if (target.role !== "USER" && target.role !== "AGENT") return false;
   return (target.campusId !== null && managed.includes(target.campusId)) || target.staffCampuses.some((s) => managed.includes(s.campusId));
+}
+
+function isFullyManaged(managed: string[], target: { campusId: string | null; staffCampuses: { campusId: string }[] }) {
+  return (target.campusId === null || managed.includes(target.campusId)) && target.staffCampuses.every((s) => managed.includes(s.campusId));
 }
 
 export async function saveUser(actor: AppUser, input: UserInput) {
@@ -84,7 +88,17 @@ export async function saveUser(actor: AppUser, input: UserInput) {
     const m = managed!;
     if (input.role !== "USER" && input.role !== "AGENT") throw new TicketError("Campus admins can only manage requesters and agents.");
     if (existing && !inReach(m, existing)) throw new TicketError("That user isn't at a campus you manage.");
-    if (!homeCampusId || !m.includes(homeCampusId)) throw new TicketError("Choose a home campus you manage.");
+    // Someone who also belongs to another campus could be signed into or locked out of it
+    // through their login details, so only their memberships here may change.
+    const isShared = existing !== null && !isFullyManaged(m, existing);
+    if (isShared) {
+      const isLoginChange =
+        email !== existing.email || Boolean(input.password) || input.role !== existing.role || input.isActive !== existing.isActive;
+      if (isLoginChange) throw new TicketError("This person also belongs to another campus. Ask a superadmin to change their sign-in, role or status.");
+      if (homeCampusId !== existing.campusId) throw new TicketError("Only a superadmin can move this person's home campus.");
+    } else if (!homeCampusId || !m.includes(homeCampusId)) {
+      throw new TicketError("Choose a home campus you manage.");
+    }
     if (staffCampusIds.some((id) => !m.includes(id))) throw new TicketError("You can only add agents to campuses you manage.");
     if ((input.manageCampusIds ?? []).length > 0) throw new TicketError("Only a superadmin can grant permissions.");
     // Keep memberships at campuses this admin can't see or manage.
@@ -93,14 +107,12 @@ export async function saveUser(actor: AppUser, input: UserInput) {
     manageCampusIds = [];
   }
 
-  const organizationId = (input.organizationId ?? "auto") === "auto" ? await matchOrganization(prisma, email) : input.organizationId;
   const passwordHash = input.password ? await bcrypt.hash(input.password, 12) : undefined;
   const data = {
     email,
     name: input.name,
     role: input.role,
     departmentId: input.departmentId,
-    organizationId,
     campusId: homeCampusId,
     isActive: input.isActive,
     ...(passwordHash ? { passwordHash } : {}),
@@ -165,15 +177,15 @@ export async function saveUser(actor: AppUser, input: UserInput) {
 export async function saveDepartment(actor: AppUser, input: z.infer<typeof namedEntitySchema>) {
   assertAdmin(actor);
   const { id, ...data } = input;
-  return friendly("department", actor, () =>
-    id ? prisma.department.update({ where: { id }, data }) : prisma.department.create({ data }),
+  return friendly("department", actor, (tx) =>
+    id ? tx.department.update({ where: { id }, data }) : tx.department.create({ data }),
   );
 }
 
 export async function saveTeam(actor: AppUser, input: z.infer<typeof teamSchema>) {
   assertAdmin(actor);
   const { id, ...data } = input;
-  return friendly("team", actor, () => (id ? prisma.team.update({ where: { id }, data }) : prisma.team.create({ data })));
+  return friendly("team", actor, (tx) => (id ? tx.team.update({ where: { id }, data }) : tx.team.create({ data })));
 }
 
 export async function saveSlaPolicy(actor: AppUser, input: z.infer<typeof slaSchema>) {
@@ -182,24 +194,16 @@ export async function saveSlaPolicy(actor: AppUser, input: z.infer<typeof slaSch
     throw new TicketError("Resolution time can't be shorter than response time.");
   }
   const { id, ...data } = input;
-  return friendly("SLA policy", actor, () =>
-    id ? prisma.slaPolicy.update({ where: { id }, data }) : prisma.slaPolicy.create({ data }),
+  return friendly("SLA policy", actor, (tx) =>
+    id ? tx.slaPolicy.update({ where: { id }, data }) : tx.slaPolicy.create({ data }),
   );
 }
 
 export async function saveHelpTopic(actor: AppUser, input: z.infer<typeof helpTopicSchema>) {
   assertAdmin(actor);
   const { id, ...data } = input;
-  return friendly("help topic", actor, () =>
-    id ? prisma.helpTopic.update({ where: { id }, data }) : prisma.helpTopic.create({ data }),
-  );
-}
-
-export async function saveOrganization(actor: AppUser, input: z.infer<typeof organizationSchema>) {
-  assertAdmin(actor);
-  const { id, ...data } = input;
-  return friendly("organization", actor, () =>
-    id ? prisma.organization.update({ where: { id }, data }) : prisma.organization.create({ data }),
+  return friendly("help topic", actor, (tx) =>
+    id ? tx.helpTopic.update({ where: { id }, data }) : tx.helpTopic.create({ data }),
   );
 }
 
@@ -225,5 +229,5 @@ export async function resetEmailTemplate(actor: AppUser, key: string) {
 export async function saveCampus(actor: AppUser, input: z.infer<typeof campusSchema>) {
   assertAdmin(actor);
   const { id, ...data } = input;
-  return friendly("campus", actor, () => (id ? prisma.campus.update({ where: { id }, data }) : prisma.campus.create({ data })));
+  return friendly("campus", actor, (tx) => (id ? tx.campus.update({ where: { id }, data }) : tx.campus.create({ data })));
 }

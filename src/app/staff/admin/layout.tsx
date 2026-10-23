@@ -4,5 +4,5 @@ import { requireUserManager } from "@/server/authz";
 // Users additionally calls requireSuperadmin().
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireUserManager();
-  return <div className="max-w-5xl">{children}</div>;
+  return <div className="max-w-6xl">{children}</div>;
 }

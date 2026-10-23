@@ -27,6 +27,8 @@ export default async function KnowledgeBaseAdminPage({ searchParams }: PageProps
       newLabel="New article"
       basePath="/staff/admin/knowledge-base"
       saved={sp.saved === "1"}
+      selectedId={target.item?.id}
+      isFormStacked
       editTitle={target.item ? `Edit ${target.item.title}` : "New article"}
       form={
         target.show ? (

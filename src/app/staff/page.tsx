@@ -36,18 +36,17 @@ const SORT_LABEL: Record<QueueSort, string> = {
 };
 
 // Query param name → which filter it is, for chips and the active count.
-const FILTER_KEYS = ["status", "priority", "team", "topic", "campus", "org"] as const;
+const FILTER_KEYS = ["status", "priority", "team", "topic", "campus"] as const;
 
 export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
   const user = await requireStaff();
   const sp = await searchParams;
   const params = parseQueueParams(sp);
 
-  const [{ tickets, total, page, view }, teams, topics, orgs, campuses, options] = await Promise.all([
+  const [{ tickets, total, page, view }, teams, topics, campuses, options] = await Promise.all([
     listQueue(user, params),
     prisma.team.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.helpTopic.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.organization.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.campus.findMany({
       where: user.campusScope === "all" ? {} : { id: { in: user.campusScope } },
       orderBy: { name: "asc" },
@@ -77,7 +76,6 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
     team: (v) => teams.find((t) => t.id === v)?.name,
     topic: (v) => topics.find((t) => t.id === v)?.name,
     campus: (v) => campuses.find((c) => c.id === v)?.name,
-    org: (v) => orgs.find((o) => o.id === v)?.name,
   };
   const chips = FILTER_KEYS.flatMap((key) => {
     const label = current[key] ? filterLabel[key](current[key]) : undefined;
@@ -200,14 +198,6 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
                 ))}
               </Select>
             )}
-            <Select name="org" defaultValue={params.orgId ?? ""} aria-label="Organization">
-              <option value="">Any organization</option>
-              {orgs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </Select>
           </FiltersPopover>
           <ChoiceMenu
             label="Sort"

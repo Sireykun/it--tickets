@@ -11,7 +11,6 @@ import {
   saveDepartment,
   saveEmailTemplate,
   saveHelpTopic,
-  saveOrganization,
   saveSlaPolicy,
   saveTeam,
   saveUser,
@@ -24,7 +23,6 @@ import {
   campusSchema,
   cannedSchema,
   emailTemplateSchema,
-  organizationSchema,
   firstError,
   formToObject,
   helpTopicSchema,
@@ -76,10 +74,6 @@ export async function saveCannedAction(_prev: ActionState, formData: FormData) {
 
 export async function saveHelpTopicAction(_prev: ActionState, formData: FormData) {
   return save(formData, helpTopicSchema, saveHelpTopic, "/staff/admin/help-topics");
-}
-
-export async function saveOrganizationAction(_prev: ActionState, formData: FormData) {
-  return save(formData, organizationSchema, saveOrganization, "/staff/admin/organizations");
 }
 
 export async function saveEmailTemplateAction(_prev: ActionState, formData: FormData) {

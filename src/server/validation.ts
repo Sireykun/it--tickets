@@ -124,19 +124,6 @@ export const campusSchema = z.object({
   isActive: checkbox,
 });
 
-export const organizationSchema = z.object({
-  id: optionalId,
-  name: z.string().trim().min(1, "Name is required.").max(100),
-  domains: domainList,
-  notes: z
-    .string()
-    .trim()
-    .max(2000)
-    .optional()
-    .transform((v) => v || null),
-  isActive: checkbox,
-});
-
 export const kbArticleSchema = z.object({
   id: optionalId,
   title: z.string().trim().min(3, "Title must be at least 3 characters.").max(200),
@@ -181,7 +168,6 @@ export const adminUserSchema = z.object({
   role,
   departmentId: optionalId,
   // "auto" = match by email domain; "" = none.
-  organizationId: z.union([z.literal("auto"), optionalId]).default("auto"),
   campusId: z.union([z.literal("auto"), optionalId]).default("auto"),
   isActive: checkbox,
   password: z

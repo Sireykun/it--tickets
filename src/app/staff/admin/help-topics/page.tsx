@@ -29,6 +29,7 @@ export default async function HelpTopicsPage({ searchParams }: PageProps<"/staff
       newLabel="New topic"
       basePath="/staff/admin/help-topics"
       saved={sp.saved === "1"}
+      selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New help topic"}
       form={target.show ? <HelpTopicForm key={target.item?.id ?? "new"} topic={target.item} departments={departments} teams={teams} slas={slas} /> : undefined}
       rows={topics.map((t) => ({

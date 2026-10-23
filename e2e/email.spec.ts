@@ -93,16 +93,9 @@ test("CC: requester adds and removes someone, staff can add people by name", asy
   await expect(thread(agent).getByText("Added Deputy Head as CC")).toBeVisible();
 });
 
-test("admin: organizations, email templates and the email log", async ({ browser }, testInfo) => {
+test("admin: email templates and the email log", async ({ browser }, testInfo) => {
   const stamp = `${testInfo.project.name}-${Date.now()}`;
   const admin = await sessionFor(browser, testInfo, ADMIN);
-
-  await admin.goto("/staff/admin/organizations?edit=new");
-  await admin.getByLabel("Name").fill(`Grade 10 ${stamp}`);
-  await admin.getByLabel("Email domains").fill(`g10-${Date.now()}.ciaschool.edu.kh`);
-  await admin.getByRole("button", { name: "Create" }).click();
-  await admin.waitForURL(/organizations\?saved=1/);
-  await expect(admin.getByText(`Grade 10 ${stamp}`)).toBeVisible();
 
   await admin.goto("/staff/admin/email");
   await admin.getByRole("link", { name: /Ticket resolved: to requester/ }).click();

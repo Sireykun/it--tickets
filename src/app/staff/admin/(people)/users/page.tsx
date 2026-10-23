@@ -2,14 +2,15 @@ import { Search } from "lucide-react";
 import type { Metadata } from "next";
 import { Input, Select } from "@/components/ui/field";
 import { FilterChips, FiltersPopover } from "@/components/ui/list-controls";
+import { Avatar } from "@/components/ui/misc";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Role } from "@/generated/prisma/enums";
 import { formatRelative } from "@/lib/format";
 import { ROLES, ROLE_LABEL } from "@/lib/labels";
 import { isSuperadmin, requireUserManager } from "@/server/authz";
 import { prisma } from "@/server/prisma";
-import { UserForm } from "../admin-forms";
-import { AdminPage } from "../entity-list";
+import { UserForm } from "../../admin-forms";
+import { AdminPage } from "../../entity-list";
 
 export const metadata: Metadata = { title: "Users" };
 
@@ -28,15 +29,14 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const role = roles.includes(sp.role as Role) ? (sp.role as Role) : undefined;
-  const orgId = typeof sp.org === "string" && UUID.test(sp.org) ? sp.org : undefined;
   const campusId = typeof sp.campus === "string" && UUID.test(sp.campus) ? sp.campus : undefined;
 
-  const [users, departments, teams, organizations, campuses] = await Promise.all([
+  const [users, departments, teams, campuses] = await Promise.all([
     prisma.user.findMany({
       where: {
         AND: [
           reach,
-          { role, organizationId: orgId },
+          { role },
           campusId ? { OR: [{ campusId }, { staffCampuses: { some: { campusId } } }] } : {},
           q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] } : {},
         ],
@@ -44,7 +44,6 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
       orderBy: [{ isActive: "desc" }, { name: "asc" }],
       take: 200,
       include: {
-        organization: { select: { name: true } },
         campus: { select: { name: true } },
         staffCampuses: { select: { campusId: true, permissions: true, campus: { select: { name: true } } } },
         teamMemberships: { select: { teamId: true, team: { select: { name: true } } } },
@@ -52,7 +51,6 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
     }),
     prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.team.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.organization.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.campus.findMany({
       where: { isActive: true, ...(managed ? { id: { in: managed } } : {}) },
       orderBy: { name: "asc" },
@@ -77,7 +75,6 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
           email: u.email,
           role: u.role,
           departmentId: u.departmentId,
-          organizationId: u.organizationId,
           campusId: u.campusId,
           staffCampusIds: u.staffCampuses.map((s) => s.campusId),
           manageCampusIds: u.staffCampuses.filter((s) => s.permissions.includes("users.manage")).map((s) => s.campusId),
@@ -113,6 +110,8 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
       newLabel="New user"
       basePath="/staff/admin/users"
       saved={sp.saved === "1"}
+      nested
+      selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New user"}
       form={
         target.show ? (
@@ -121,7 +120,6 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
             user={target.item}
             departments={departments}
             teams={teams}
-            organizations={organizations}
             campuses={campuses}
             roles={roles}
             superadmin={superadmin}
@@ -162,12 +160,18 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
         </div>
       }
       rows={users.map((u) => {
-        const works = u.staffCampuses.map((s) => s.campus.name + (s.permissions.includes("users.manage") ? " (manages users)" : ""));
+        const works = u.staffCampuses.map((s) => s.campus.name);
         const where = u.role === "USER" ? u.campus?.name : works.length ? works.join(", ") : u.role === "SUPERADMIN" ? "All campuses" : "No campus";
+        const isUserManager = u.staffCampuses.some((s) => s.permissions.includes("users.manage"));
         return {
           id: u.id,
           title: u.name,
-          subtitle: [u.email, ROLE_LABEL[u.role], where, u.organization?.name].filter(Boolean).join(" · "),
+          leading: <Avatar name={u.name} />,
+          badges: [
+            { label: ROLE_LABEL[u.role], tone: u.role === "USER" ? ("neutral" as const) : ("primary" as const) },
+            ...(isUserManager ? [{ label: "Manages users", tone: "gold" as const }] : []),
+          ],
+          subtitle: [u.email, where].filter(Boolean).join(" · "),
           meta: u.lastLoginAt ? `Last sign-in ${formatRelative(u.lastLoginAt)}` : "Never signed in",
           inactive: !u.isActive,
         };

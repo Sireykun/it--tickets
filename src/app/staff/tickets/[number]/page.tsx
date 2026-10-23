@@ -208,10 +208,6 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
                 <dd>{ticket.department.name}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-muted">Organization</dt>
-                <dd>{ticket.requester.organization?.name ?? "None"}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
                 <dt className="text-muted">Help topic</dt>
                 <dd>{ticket.helpTopic?.name ?? "None"}</dd>
               </div>

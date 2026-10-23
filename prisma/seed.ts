@@ -112,9 +112,9 @@ async function main() {
 
   // Campuses: placeholders on first run only, so a superadmin's renames survive re-seeding.
   if ((await prisma.campus.count()) === 0) {
-    for (const name of ["Main Campus", "Campus 2", "Campus 3", "Campus 4"]) {
+    for (const name of ["SS1", "SS2", "CA1", "RK"]) {
       await prisma.campus.create({ data: { name } });
-      await new Promise((r) => setTimeout(r, 5)); // distinct createdAt keeps "Main Campus" first
+      await new Promise((r) => setTimeout(r, 5)); // distinct createdAt keeps "SS1" first
     }
   }
   const campuses = await prisma.campus.findMany({ orderBy: { createdAt: "asc" } });

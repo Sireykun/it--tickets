@@ -25,7 +25,7 @@ export async function requireStaff(): Promise<AppUser> {
   return user;
 }
 
-// All shared settings (teams, topics, SLAs, canned, email, organizations, campuses, export).
+// All shared settings (teams, topics, SLAs, canned, email, campuses, export).
 export async function requireSuperadmin(): Promise<AppUser> {
   const user = await requireUser();
   if (!isSuperadmin(user)) redirect("/staff");

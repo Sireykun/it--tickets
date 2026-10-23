@@ -1,9 +1,9 @@
 import { AlarmClock, CalendarRange, CheckCircle2, Download, Inbox, School, ShieldAlert, Timer, TrendingUp } from "lucide-react";
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import { MenuLinkItem } from "@/components/ui/dropdown-menu";
 import { ChoiceMenu, MoreMenuButton } from "@/components/ui/list-controls";
 import { Card, PageHeader } from "@/components/ui/misc";
+import { Breakdown, StatTile } from "@/components/ui/stats";
 import { PRIORITY_LABEL, STATUS_LABEL } from "@/lib/labels";
 import { requireSuperadmin } from "@/server/authz";
 import { prisma } from "@/server/prisma";
@@ -126,63 +126,5 @@ export default async function ReportsPage({ searchParams }: PageProps<"/staff/re
         )}
       </Card>
     </>
-  );
-}
-
-function StatTile({
-  icon,
-  label,
-  value,
-  hint,
-  tone,
-  href,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: ReactNode;
-  hint?: string;
-  tone?: "danger" | "warn";
-  href?: string;
-}) {
-  const body = (
-    <>
-      <p className="flex items-center gap-2 text-sm font-bold text-muted [&>svg]:size-4">
-        {icon}
-        {label}
-      </p>
-      <p className={`mt-1 font-mono text-2xl font-bold tracking-tight tabular-nums ${tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : ""}`}>{value}</p>
-      {hint && <p className="text-xs text-muted">{hint}</p>}
-    </>
-  );
-  return href ? (
-    <a href={href} className="rounded-xl border border-border bg-surface p-4 shadow-card transition-colors hover:border-primary/40">
-      {body}
-    </a>
-  ) : (
-    <Card className="p-4">{body}</Card>
-  );
-}
-
-function Breakdown({ title, rows }: { title: string; rows: { label: string; count: number }[] }) {
-  const max = Math.max(1, ...rows.map((r) => r.count));
-  return (
-    <Card className="p-4 sm:p-5">
-      <h2 className="mb-3 font-bold">{title}</h2>
-      {rows.length === 0 ? (
-        <p className="text-sm text-muted">No tickets in this range.</p>
-      ) : (
-        <ul className="space-y-2.5">
-          {rows.map((r) => (
-            <li key={r.label} className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 text-sm">
-              <span className="truncate">{r.label}</span>
-              <span className="h-2.5 rounded-full bg-surface-2">
-                <span className="block h-full rounded-full bg-primary" style={{ width: `${(r.count / max) * 100}%` }} />
-              </span>
-              <span className="w-8 text-right font-bold tabular-nums">{r.count}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
   );
 }

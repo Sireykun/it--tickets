@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { saveEmailTemplate, saveOrganization } from "@/server/admin";
+import { saveEmailTemplate } from "@/server/admin";
 import { type InboundMessage, isAutomated, processInbound, stripQuoted } from "@/server/email/inbound";
 import { REPLY_MARKER, renderTemplate, textToHtml } from "@/server/email/templates";
 import { newMessageId, ticketFromHeaders, ticketFromSubject } from "@/server/email/tokens";
@@ -17,7 +17,7 @@ import {
   TicketError,
   updateTicketFields,
 } from "@/server/tickets";
-import { ensureUser, matchOrganization } from "@/server/users";
+import { ensureUser } from "@/server/users";
 
 const tag = `e${Date.now()}`;
 const mail = (local: string) => `${local}-${tag}@ciaschool.edu.kh`;
@@ -260,14 +260,9 @@ describe("inbound email", () => {
   });
 });
 
-describe("organizations", () => {
-  it("assigns new users to the most specific matching organization", async () => {
-    const school = await saveOrganization(admin, { id: null, name: `School ${tag}`, domains: [`${tag}.edu`], notes: null, isActive: true });
-    const staffOrg = await saveOrganization(admin, { id: null, name: `Staff ${tag}`, domains: [`staff.${tag}.edu`], notes: null, isActive: true });
-    expect(await matchOrganization(prisma, `a@staff.${tag}.edu`)).toBe(staffOrg.id);
-    expect(await matchOrganization(prisma, `a@grade10.${tag}.edu`)).toBe(school.id);
-    expect(await matchOrganization(prisma, "a@gmail.com")).toBeNull();
+describe("ensureUser", () => {
+  it("creates new users with a lowercased email and a name from it", async () => {
     const { user } = await ensureUser({ email: `New@Staff.${tag}.edu` }, { actorId: null, via: "test" });
-    expect(user).toMatchObject({ email: `new@staff.${tag}.edu`, organizationId: staffOrg.id, name: "new" });
+    expect(user).toMatchObject({ email: `new@staff.${tag}.edu`, name: "new" });
   });
 });

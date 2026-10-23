@@ -6,17 +6,16 @@ import {
   AlarmClock,
   BarChart3,
   BookOpen,
-  Building,
   Building2,
   ChevronDown,
   ClipboardList,
   Inbox,
+  LayoutDashboard,
   ListTodo,
   Mail,
   Menu,
   MessageSquareText,
   PlusCircle,
-  School,
   Settings,
   Tags,
   Timer,
@@ -52,14 +51,13 @@ const views = [
   { view: "overdue", label: "Overdue", icon: AlarmClock },
 ] as const;
 
-const SETTINGS_GROUPS = [
+// The People hub's tabs: Users and Campuses share one sidebar entry.
+const PEOPLE_PATHS = ["/staff/admin/users", "/staff/admin/campuses"];
+
+const SETTINGS_GROUPS: { label: string; links: { href: string; label: string; icon: typeof Users; match?: string[] }[] }[] = [
   {
-    label: "People",
-    links: [
-      { href: "/staff/admin/users", label: "Users", icon: Users },
-      { href: "/staff/admin/campuses", label: "Campuses", icon: School },
-      { href: "/staff/admin/organizations", label: "Organizations", icon: Building },
-    ],
+    label: "Directory",
+    links: [{ href: "/staff/admin/users", label: "People", icon: Users, match: PEOPLE_PATHS }],
   },
   {
     label: "Helpdesk",
@@ -129,7 +127,7 @@ function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProp
               aria-current={pathname.startsWith("/staff/admin/users") ? "page" : undefined}
               className={itemClass(pathname.startsWith("/staff/admin/users"))}
             >
-              <Users className="size-[1.125rem]" aria-hidden /> Users
+              <Users className="size-[1.125rem]" aria-hidden /> People
             </Link>
           </div>
         )}
@@ -154,6 +152,13 @@ function FullQueueLinks({
       <div>
         <p className="mb-1.5 px-3 text-xs font-bold text-muted">Queue</p>
         <ul className="space-y-0.5">
+          {showReports && (
+            <li>
+              <Link href="/staff/admin" onClick={onNavigate} aria-current={pathname === "/staff/admin" ? "page" : undefined} className={itemClass(pathname === "/staff/admin")}>
+                <LayoutDashboard className="size-[1.125rem]" aria-hidden /> Dashboard
+              </Link>
+            </li>
+          )}
           {views.map(({ view, label, icon: Icon }) => (
             <li key={view}>
               <Link href={`/staff?view=${view}`} onClick={onNavigate} aria-current={currentView === view ? "page" : undefined} className={itemClass(currentView === view)}>
@@ -225,13 +230,16 @@ function SettingsLinks({ pathname, onNavigate }: { pathname: string; onNavigate?
             <div key={group.label}>
               <p className="mb-0.5 px-3 pt-1 text-xs font-bold text-muted">{group.label}</p>
               <ul className="space-y-0.5">
-                {group.links.map(({ href, label, icon: Icon }) => (
-                  <li key={href}>
-                    <Link href={href} onClick={onNavigate} aria-current={pathname.startsWith(href) ? "page" : undefined} className={itemClass(pathname.startsWith(href))}>
-                      <Icon className="size-[1.125rem]" aria-hidden /> {label}
-                    </Link>
-                  </li>
-                ))}
+                {group.links.map(({ href, label, icon: Icon, match = [href] }) => {
+                  const isActive = match.some((m) => pathname.startsWith(m));
+                  return (
+                    <li key={href}>
+                      <Link href={href} onClick={onNavigate} aria-current={isActive ? "page" : undefined} className={itemClass(isActive)}>
+                        <Icon className="size-[1.125rem]" aria-hidden /> {label}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
