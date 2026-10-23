@@ -22,7 +22,7 @@ export default async function TeamsPage({ searchParams }: PageProps<"/staff/admi
   return (
     <AdminPage
       title="Teams"
-      subtitle="Groups of agents who share tickets. Members see their team's tickets under My teams. Add members on a user's page in People."
+      subtitle="Groups of agents who share tickets. Members see their team's tickets under My teams. Add members on a user's page in User management."
       newLabel="New team"
       basePath="/staff/admin/teams"
       saved={sp.saved === "1"}

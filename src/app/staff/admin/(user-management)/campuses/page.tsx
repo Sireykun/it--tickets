@@ -1,10 +1,13 @@
-import { School } from "lucide-react";
+import { School, UserMinus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/misc";
 import { ROLE_LABEL } from "@/lib/labels";
 import { requireSuperadmin } from "@/server/authz";
 import { prisma } from "@/server/prisma";
-import { CampusForm } from "../../admin-forms";
+import { removeFromCampusAction } from "../../actions";
+import { CampusForm, CampusMemberForm } from "../../admin-forms";
 import { AdminPage, IconTile, editTarget } from "../../entity-list";
 
 export const metadata: Metadata = { title: "Campuses" };
@@ -21,6 +24,23 @@ export default async function CampusesPage({ searchParams }: PageProps<"/staff/a
   });
   const target = editTarget(sp.edit, campuses);
   const staffOf = (c: (typeof campuses)[number]) => c.staff.filter((s) => s.user.isActive);
+  // Staff not yet working here, plus requesters with no home campus. Requesters moving
+  // between campuses are handled with the Users page's bulk "Set home campus".
+  const candidates = target.item
+    ? await prisma.user.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { role: { in: ["AGENT", "ADMIN"] }, staffCampuses: { none: { campusId: target.item.id } } },
+            { role: "USER", campusId: null },
+          ],
+        },
+        orderBy: [{ role: "desc" }, { name: "asc" }],
+        take: 300,
+        select: { id: true, name: true, email: true, role: true },
+      })
+    : [];
+  const memberError = typeof sp.memberError === "string" ? sp.memberError : null;
 
   return (
     <AdminPage
@@ -45,22 +65,38 @@ export default async function CampusesPage({ searchParams }: PageProps<"/staff/a
                   Staff at {target.item.name}
                 </h3>
                 {staffOf(target.item).length === 0 ? (
-                  <p className="text-muted">Nobody works here yet. Add people from the Users page.</p>
+                  <p className="text-muted">Nobody works here yet. Add someone below or from the Users page.</p>
                 ) : (
-                  <ul className="space-y-1">
+                  <ul className="divide-y divide-border">
                     {staffOf(target.item).map((s) => (
-                      <li key={s.userId}>
-                        <Link href={`/staff/admin/users?edit=${s.userId}`} className="font-bold text-primary hover:underline">
-                          {s.user.name}
-                        </Link>{" "}
-                        <span className="text-muted">
-                          · {ROLE_LABEL[s.user.role]}
-                          {s.permissions.includes("users.manage") && " · manages users & agents"}
+                      <li key={s.userId} className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1">
+                          <Link href={`/staff/admin/users?edit=${s.userId}`} className="font-bold text-primary hover:underline">
+                            {s.user.name}
+                          </Link>{" "}
+                          <span className="text-muted">
+                            · {ROLE_LABEL[s.user.role]}
+                            {s.permissions.includes("users.manage") && " · manages users & agents"}
+                          </span>
                         </span>
+                        <form action={removeFromCampusAction}>
+                          <input type="hidden" name="campusId" value={target.item!.id} />
+                          <input type="hidden" name="userId" value={s.userId} />
+                          <Button type="submit" variant="ghost" aria-label={`Remove ${s.user.name} from ${target.item!.name}`} className="px-3">
+                            <UserMinus className="size-5" aria-hidden />
+                          </Button>
+                        </form>
                       </li>
                     ))}
                   </ul>
                 )}
+                {memberError && (
+                  <div className="mt-3">
+                    <Alert>{memberError}</Alert>
+                  </div>
+                )}
+                <h3 className="mt-4 mb-2 font-bold">Add someone to {target.item.name}</h3>
+                <CampusMemberForm campusId={target.item.id} candidates={candidates} />
                 <p className="mt-3">
                   <Link href={`/staff?view=all&campus=${target.item.id}`} className="font-bold text-primary hover:underline">
                     View this campus's tickets

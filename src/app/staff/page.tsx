@@ -259,7 +259,7 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
                   </th>
                   <th className="px-3 py-3 font-bold">Ticket</th>
                   <th className="px-3 py-3 font-bold">Status</th>
-                  <th className="px-3 py-3 font-bold">Priority</th>
+                  <th className="hidden px-3 py-3 font-bold 2xl:table-cell">Priority</th>
                   <th className="px-3 py-3 font-bold">SLA</th>
                   <th className="px-3 py-3 font-bold">Assignee</th>
                   <th className="px-4 py-3 text-right font-bold">Updated</th>
@@ -296,9 +296,15 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
                         </Link>
                       </td>
                       <td className="px-3 py-3">
-                        <StatusChip status={t.status} />
+                        {/* Below 2xl, priority stacks under status so the subject column keeps its width. */}
+                        <span className="flex flex-col items-start gap-1.5">
+                          <StatusChip status={t.status} />
+                          <span className="2xl:hidden">
+                            <PriorityBadge priority={t.priority} />
+                          </span>
+                        </span>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="hidden px-3 py-3 2xl:table-cell">
                         <PriorityBadge priority={t.priority} />
                       </td>
                       <td className="px-3 py-3">

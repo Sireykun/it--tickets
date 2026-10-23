@@ -3,6 +3,7 @@ import NextAuth, { CredentialsSignin, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { z } from "zod";
+import { recordFailedSignIn, recordSignIn } from "@/server/audit-log";
 import { allowedDomain, isAllowedGoogleProfile, normalizeEmail } from "@/server/auth-rules";
 import { prisma } from "@/server/prisma";
 import { hitRateLimit, resetRateLimit } from "@/server/rate-limit";
@@ -35,10 +36,14 @@ const providers: NextAuthConfig["providers"] = [
 
       const user = await prisma.user.findUnique({ where: { email } });
       const ok = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
-      if (!user || !user.passwordHash || !ok || !user.isActive) return null;
+      if (!user || !user.passwordHash) return null;
+      if (!ok || !user.isActive) {
+        await recordFailedSignIn(user.id, ok ? "inactive" : "password", "password");
+        return null;
+      }
 
       resetRateLimit(limitKey);
-      await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+      await recordSignIn(user.id, "password");
       return { id: user.id, email: user.email, name: user.name };
     },
   }),
@@ -63,8 +68,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // First Google sign-in creates a requester account; later ones link by email.
       const { user } = await ensureUser({ email: profile!.email!, name: profile!.name }, { actorId: null, via: "google" });
-      await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-      return user.isActive;
+      if (!user.isActive) {
+        await recordFailedSignIn(user.id, "inactive", "google");
+        return false;
+      }
+      await recordSignIn(user.id, "google");
+      return true;
     },
     async jwt({ token, account, profile, user }) {
       // Store our database id in `sub` (for Google, `user.id` is Google's own id).

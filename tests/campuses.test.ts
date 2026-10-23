@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { saveCampus, saveTeam, saveUser } from "@/server/admin";
+import { addToCampus, bulkUpdateUsers, getUserDetail, removeFromCampus, saveCampus, saveTeam, saveUser } from "@/server/admin";
 import { processInbound } from "@/server/email/inbound";
 import { prisma } from "@/server/prisma";
 import type { AppUser } from "@/server/roles";
@@ -213,5 +213,75 @@ describe("campus admins and permissions", () => {
   it("keeps shared settings superadmin-only", async () => {
     await expect(saveTeam(cadmin, { id: null, name: `T ${tag}`, description: null, departmentId: null, isActive: true })).rejects.toThrow(TicketError);
     await expect(saveCampus(cadmin, { id: null, name: `C ${tag}`, emailDomains: [], isActive: true })).rejects.toThrow(TicketError);
+  });
+});
+
+describe("user management (superadmin)", () => {
+  it("bulk adds and removes a work campus, skipping requesters", async () => {
+    const a1 = await makeUser(tag, "BulkA1", "AGENT", { campusIds: [c1] });
+    const a2 = await makeUser(tag, "BulkA2", "AGENT", { campusIds: [c1] });
+    const added = await bulkUpdateUsers(superadmin, [a1.id, a2.id, student.id], { addCampusId: c2 });
+    expect(added.updated).toBe(2);
+    expect(added.skipped).toEqual([{ name: "Student", reason: expect.stringContaining("agents and campus admins") }]);
+    expect((await loadAppUser(a1.id))!.campusScope).toEqual(expect.arrayContaining([c1, c2]));
+
+    const t = await openAtC2(`Bulk ${tag}`);
+    await updateTicketFields(superadmin, t.ticketNumber, { ...keep(t), assignedAgentId: a2.id });
+    await bulkUpdateUsers(superadmin, [a1.id, a2.id], { removeCampusId: c2 });
+    expect((await loadAppUser(a2.id))!.campusScope).toEqual([c1]);
+    expect((await prisma.ticket.findUniqueOrThrow({ where: { id: t.id } })).assignedAgentId).toBeNull();
+  });
+
+  it("bulk sets home campus and status, but never deactivates the actor", async () => {
+    const r = await makeUser(tag, "BulkReq", "USER", { campusId: c1 });
+    await bulkUpdateUsers(superadmin, [r.id], { homeCampusId: c2 });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: r.id } })).campusId).toBe(c2);
+    await bulkUpdateUsers(superadmin, [r.id], { homeCampusId: null });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: r.id } })).campusId).toBeNull();
+
+    const result = await bulkUpdateUsers(superadmin, [r.id, superadmin.id], { isActive: false });
+    expect(result.updated).toBe(1);
+    expect(result.skipped[0].reason).toContain("deactivate yourself");
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: r.id } })).isActive).toBe(false);
+  });
+
+  it("keeps bulk and campus membership changes superadmin-only", async () => {
+    await expect(bulkUpdateUsers(cadmin, [agentA.id], { addCampusId: c1 })).rejects.toThrow("Not allowed");
+    await expect(addToCampus(cadmin, c1, agentB.id, { canManageUsers: false })).rejects.toThrow("Not allowed");
+    await expect(removeFromCampus(cadmin, c1, agentA.id)).rejects.toThrow("Not allowed");
+  });
+
+  it("adds staff and requesters from a campus's page", async () => {
+    const admin = await makeUser(tag, "AddAdmin", "ADMIN", { campusIds: [c1] });
+    await addToCampus(superadmin, c2, admin.id, { canManageUsers: true });
+    expect((await loadAppUser(admin.id))!.manageCampusIds).toEqual([c2]);
+
+    const req = await makeUser(tag, "AddReq", "USER");
+    await addToCampus(superadmin, c2, req.id, { canManageUsers: true });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: req.id } })).campusId).toBe(c2);
+
+    await removeFromCampus(superadmin, c2, admin.id);
+    const after = (await loadAppUser(admin.id))!;
+    expect(after.campusScope).toEqual([c1]);
+    expect(after.manageCampusIds).toEqual([]);
+
+    const closed = await prisma.campus.create({ data: { name: `Closed ${tag}`, isActive: false } });
+    await expect(addToCampus(superadmin, closed.id, admin.id, { canManageUsers: false })).rejects.toThrow("active campus");
+  });
+
+  it("shows a user's open tickets and history only within the viewer's reach", async () => {
+    const t = await openAtC2(`Detail ${tag}`);
+    await bulkUpdateUsers(superadmin, [student.id], { homeCampusId: c2 });
+    const full = (await getUserDetail(superadmin, student.id))!;
+    expect(full.requested.map((r) => r.ticketNumber)).toContain(t.ticketNumber);
+    expect(full.history[0]).toMatchObject({ action: "user.save", actor: { name: "Super" } });
+
+    // The student is at c2; the c1 campus admin can't open them.
+    expect(await getUserDetail(cadmin, student.id)).toBeNull();
+    // A c1 agent the c1 admin manages: tickets from c2 stay hidden.
+    const both = await makeUser(tag, "DetailBoth", "AGENT", { campusIds: [c1, c2] });
+    await updateTicketFields(superadmin, t.ticketNumber, { ...keep(t), assignedAgentId: both.id });
+    expect((await getUserDetail(cadmin, both.id))!.assigned).toEqual([]);
+    expect((await getUserDetail(superadmin, both.id))!.assigned.map((r) => r.ticketNumber)).toEqual([t.ticketNumber]);
   });
 });

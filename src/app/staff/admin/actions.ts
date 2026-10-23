@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import type { z } from "zod";
 import type { ActionState } from "@/lib/action-state";
 import { runAction } from "@/server/action-utils";
+import { safeRedirectPath } from "@/server/auth-rules";
 import {
+  addToCampus,
+  bulkUpdateUsers,
+  removeFromCampus,
   resetEmailTemplate,
   saveCampus,
   saveDepartment,
@@ -14,12 +18,14 @@ import {
   saveSlaPolicy,
   saveTeam,
   saveUser,
+  type UserBulkChange,
 } from "@/server/admin";
 import { type AppUser, requireSuperadmin, requireUserManager } from "@/server/authz";
 import { saveCanned } from "@/server/canned";
 import { saveArticle } from "@/server/kb";
 import {
   adminUserSchema,
+  campusMemberSchema,
   campusSchema,
   cannedSchema,
   emailTemplateSchema,
@@ -30,6 +36,7 @@ import {
   namedEntitySchema,
   slaSchema,
   teamSchema,
+  userBulkSchema,
 } from "@/server/validation";
 
 async function save<S extends z.ZodType>(
@@ -93,4 +100,62 @@ export async function saveCampusAction(_prev: ActionState, formData: FormData) {
 
 export async function saveArticleAction(_prev: ActionState, formData: FormData) {
   return save(formData, kbArticleSchema, saveArticle, "/staff/admin/knowledge-base");
+}
+
+// ─── User management (superadmin) ───────────────────────────────────────────
+
+export async function bulkUpdateUsersAction(formData: FormData) {
+  const actor = await requireSuperadmin();
+  const returnTo = safeRedirectPath(formData.get("returnTo"), "/staff/admin/users");
+  const back = new URL(returnTo.startsWith("/staff/admin/users") ? returnTo : "/staff/admin/users", "http://local");
+  for (const key of ["bulk", "skipped", "bulkError", "saved"]) back.searchParams.delete(key);
+
+  const parsed = userBulkSchema.safeParse({ ...formToObject(formData), users: formData.getAll("users") });
+  if (!parsed.success) {
+    back.searchParams.set("bulkError", firstError(parsed.error));
+  } else {
+    const { users, ...rest } = parsed.data;
+    const change: UserBulkChange =
+      rest.field === "homeCampus"
+        ? { homeCampusId: rest.value }
+        : rest.field === "addCampus"
+          ? { addCampusId: rest.value }
+          : rest.field === "removeCampus"
+            ? { removeCampusId: rest.value }
+            : { isActive: rest.value === "true" };
+    const result = await runAction(async () => {
+      const { updated, skipped } = await bulkUpdateUsers(actor, users, change);
+      back.searchParams.set("bulk", String(updated));
+      if (skipped.length) back.searchParams.set("skipped", skipped.map((s) => `${s.name}: ${s.reason}`).join("\n"));
+    });
+    if (result.error) back.searchParams.set("bulkError", result.error);
+    revalidatePath("/staff", "layout");
+  }
+  redirect(`${back.pathname}${back.search}`);
+}
+
+export async function addToCampusAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const actor = await requireSuperadmin();
+  const parsed = campusMemberSchema.safeParse(formToObject(formData));
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  const { campusId, userId, canManageUsers } = parsed.data;
+  const result = await runAction(async () => {
+    await addToCampus(actor, campusId, userId, { canManageUsers });
+  });
+  if (result.error) return result;
+  revalidatePath("/staff", "layout");
+  redirect(`/staff/admin/campuses?edit=${campusId}&saved=1`);
+}
+
+export async function removeFromCampusAction(formData: FormData) {
+  const actor = await requireSuperadmin();
+  const parsed = campusMemberSchema.omit({ canManageUsers: true }).safeParse(formToObject(formData));
+  if (!parsed.success) redirect("/staff/admin/campuses");
+  const { campusId, userId } = parsed.data;
+  const result = await runAction(async () => {
+    await removeFromCampus(actor, campusId, userId);
+  });
+  revalidatePath("/staff", "layout");
+  const error = result.error ? `&memberError=${encodeURIComponent(result.error)}` : "";
+  redirect(`/staff/admin/campuses?edit=${campusId}${error}`);
 }

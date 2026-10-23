@@ -90,7 +90,7 @@ export default async function EmailAdminPage({ searchParams }: PageProps<"/staff
         </Card>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-labelledby="outbox-heading">
           <h2 id="outbox-heading" className="mb-2 text-lg font-bold">
             Recently sent

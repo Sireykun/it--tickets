@@ -9,6 +9,7 @@ import type { Role, TicketPriority } from "@/generated/prisma/enums";
 import { type ActionState, initialActionState } from "@/lib/action-state";
 import { PRIORITIES, PRIORITY_LABEL, ROLE_LABEL } from "@/lib/labels";
 import {
+  addToCampusAction,
   saveArticleAction,
   saveCampusAction,
   saveCannedAction,
@@ -209,6 +210,33 @@ export function CampusForm({ campus }: { campus?: CampusRow }) {
         <Input id="emailDomains" name="emailDomains" defaultValue={campus?.emailDomains.join(", ")} placeholder="tk.ciaschool.edu.kh" autoComplete="off" />
       </Field>
       <ActiveToggle isActive={campus?.isActive} hint="Inactive campuses can't receive new tickets or be assigned to people." />
+    </AdminForm>
+  );
+}
+
+type Candidate = { id: string; name: string; email: string; role: Role };
+
+// Staff start working at the campus; a requester gets it as their home campus.
+export function CampusMemberForm({ campusId, candidates }: { campusId: string; candidates: Candidate[] }) {
+  return (
+    <AdminForm action={addToCampusAction} cancelHref="/staff/admin/campuses" submitLabel="Add">
+      <input type="hidden" name="campusId" value={campusId} />
+      <Field label="Person" htmlFor="userId" hint="Agents and admins not working here yet, and requesters with no home campus." className="@lg:col-span-2">
+        <Select id="userId" name="userId" required defaultValue="">
+          <option value="" disabled>
+            Choose someone
+          </option>
+          {candidates.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name} ({ROLE_LABEL[c.role]}) · {c.email}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <div className="@lg:col-span-2">
+        <Checkbox name="canManageUsers" label="Manage users & agents" />
+        <p className="text-sm text-muted">Only applies to campus admins.</p>
+      </div>
     </AdminForm>
   );
 }

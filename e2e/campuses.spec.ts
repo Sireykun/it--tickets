@@ -14,7 +14,7 @@ test("superadmin adds a campus and grants a campus admin 'Manage users' there", 
   // Grant on the user form: one row per campus with "Works here" and "Manage users & agents".
   await admin.goto(`/staff/admin/users?q=campusadmin`);
   await admin.getByRole("link", { name: /Sample Campus Admin/ }).click();
-  const row = admin.locator("div", { has: admin.getByText(`North ${stamp}`, { exact: true }) }).last();
+  const row = admin.locator("fieldset", { hasText: "Campus access" }).locator("div", { has: admin.getByText(`North ${stamp}`, { exact: true }) }).last();
   await row.getByRole("checkbox", { name: "Works here" }).check();
   await row.getByRole("checkbox", { name: "Manage users & agents" }).check();
   await shot(admin, testInfo, "13-campus-access");
@@ -42,7 +42,7 @@ test("campus admin manages users of their campus but no other settings", async (
   await cadmin.getByLabel("Email").fill(`labtech-${stamp}@ciaschool.edu.kh`);
   await cadmin.locator("form select#role").selectOption("AGENT");
   await cadmin.getByLabel("Home campus").selectOption({ label: "Main Campus" });
-  await cadmin.locator("div", { has: cadmin.getByText("Main Campus", { exact: true }) }).last().getByRole("checkbox", { name: "Works here" }).check();
+  await cadmin.locator("fieldset", { hasText: "Campus access" }).locator("div", { has: cadmin.getByText("Main Campus", { exact: true }) }).last().getByRole("checkbox", { name: "Works here" }).check();
   await cadmin.getByRole("button", { name: "Create" }).click();
   await cadmin.waitForURL(/users\?saved=1/);
   await expect(cadmin.getByText(`Lab Tech ${stamp}`)).toBeVisible();
@@ -69,4 +69,33 @@ test("an agent from another campus can't see this campus's tickets", async ({ br
   const admin = await sessionFor(browser, testInfo, ADMIN);
   await admin.goto(`/staff/tickets/${ticketNumber}`);
   await expect(admin.getByText(/Main Campus · via Web/)).toBeVisible();
+});
+
+test("superadmin bulk-adds an agent to a campus and removes them from the campus page", async ({ browser }, testInfo) => {
+  const stamp = `${testInfo.project.name}-${Date.now()}`;
+  const name = `Roaming Tech ${stamp}`;
+  const admin = await sessionFor(browser, testInfo, ADMIN);
+
+  await admin.goto("/staff/admin/users?edit=new");
+  await expect(admin.getByRole("heading", { name: "User management", level: 1 })).toBeVisible();
+  await admin.getByLabel("Full name").fill(name);
+  await admin.getByLabel("Email").fill(`roaming-${stamp}@ciaschool.edu.kh`);
+  await admin.locator("form select#role").selectOption("AGENT");
+  await admin.getByRole("button", { name: "Create" }).click();
+  await admin.waitForURL(/users\?saved=1/);
+
+  await admin.goto(`/staff/admin/users?q=${encodeURIComponent(`roaming-${stamp}`)}`);
+  await admin.getByRole("checkbox", { name: `Select ${name}` }).check();
+  await admin.getByRole("button", { name: "Bulk actions" }).click();
+  await admin.getByRole("menuitem", { name: "Add to campus" }).click();
+  await admin.getByRole("menuitem", { name: "Main Campus" }).click();
+  await admin.waitForURL(/bulk=1/);
+  await expect(admin.getByText("Updated 1 user.")).toBeVisible();
+  await expect(admin.getByRole("link", { name: new RegExp(name) }).getByText("Main Campus", { exact: true })).toBeVisible();
+  await shot(admin, testInfo, "15-user-bulk");
+
+  await admin.goto("/staff/admin/campuses");
+  await admin.getByRole("link", { name: /^Main Campus/ }).click();
+  await admin.getByRole("button", { name: `Remove ${name} from Main Campus` }).click();
+  await expect(admin.getByRole("button", { name: `Remove ${name} from Main Campus` })).toHaveCount(0);
 });
