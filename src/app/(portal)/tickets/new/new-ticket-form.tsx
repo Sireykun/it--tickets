@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Paperclip } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Alert } from "@/components/ui/misc";
@@ -136,7 +137,7 @@ export function NewTicketForm({ topics, campuses, requester, accept }: { topics:
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {step > 0 ? <button type="button" onClick={() => setStep((current) => current - 1)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 font-bold hover:bg-surface-2"><ArrowLeft className="size-4" aria-hidden /> Back</button> : <span />}
+        {step > 0 ? <button type="button" onClick={() => setStep((current) => current - 1)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 font-bold hover:bg-surface-2"><ArrowLeft className="size-4" aria-hidden /> Back</button> : <Link href="/" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-strong bg-surface px-4 font-bold text-gold-text hover:bg-surface-2"><ArrowLeft className="size-4" aria-hidden /> Back to tickets</Link>}
         {step < steps.length - 1 ? (
           <button type="button" onClick={nextStep} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-5 font-bold text-action-fg hover:bg-action-hover">Continue <ArrowRight className="size-4" aria-hidden /></button>
         ) : (
