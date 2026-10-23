@@ -27,7 +27,7 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 100) : "";
   const tickets = await listMyTickets(user, filter, { q });
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] xl:gap-8">
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
       <section aria-label={filter === "closed" ? "Support history" : "Active tickets"} className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-card sm:p-5">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -47,7 +47,7 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
             <Search className="size-4 shrink-0 text-muted" aria-hidden />
             <input id="ticket-search" name="q" defaultValue={q} maxLength={100} placeholder="Search tickets..." className="min-h-11 w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted" />
           </div>
-          <button type="submit" className="min-h-11 rounded-lg border border-border-strong bg-surface px-4 text-base font-bold hover:bg-surface-2">Search</button>
+          <button type="submit" className="min-h-11 rounded-lg border border-gold bg-gold px-4 text-base font-bold text-bg transition-colors hover:bg-gold-text">Search</button>
         </form>
 
         {tickets.length === 0 ? (
@@ -63,7 +63,7 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
         )}
       </section>
 
-      <aside aria-label="Help and updates" className="grid content-start gap-4 sm:grid-cols-2 lg:grid-cols-1">
+      <aside aria-label="Help and updates" className="grid content-start gap-4 sm:grid-cols-2 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-1 lg:overflow-y-auto">
         <section className="rounded-xl border border-border bg-surface p-4 shadow-card">
           <h2 className="text-lg font-bold">Support &amp; announcements</h2>
           <AccentRule className="mt-2 w-10" />

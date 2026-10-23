@@ -373,3 +373,16 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   .conversation-panel { animation: conversation-glow 8s ease-in-out infinite; }
 }
+
+/* Give the guided ticket form the whole viewport while keeping a clear exit. */
+[data-portal-layout]:has([data-ticket-wizard]) [data-portal-sidebar],
+[data-portal-layout]:has([data-ticket-wizard]) [data-portal-header],
+[data-portal-layout]:has([data-ticket-wizard]) [data-portal-tabbar] {
+  display: none;
+}
+
+[data-portal-layout]:has([data-ticket-wizard]) [data-portal-main] {
+  max-width: none;
+  min-height: 100dvh;
+  padding-bottom: 3rem;
+}

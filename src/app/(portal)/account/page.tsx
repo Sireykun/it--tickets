@@ -22,11 +22,11 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
     searchParams,
   ]);
   return (
-    <div className="max-w-2xl space-y-5">
-      <PageHeader title="Profile & appearance" subtitle="Make your help desk feel like yours." />
-      {(params.photo || params.theme) && <p role="status" className="rounded-lg border border-resolved/30 bg-resolved-soft px-4 py-3 font-bold text-resolved">Settings saved.</p>}
+    <div className="grid w-full gap-5 lg:grid-cols-2">
+      <div className="lg:col-span-2"><PageHeader title="Profile & appearance" subtitle="Make your help desk feel like yours." /></div>
+      {(params.photo || params.theme) && <p role="status" className="rounded-lg border border-resolved/30 bg-resolved-soft px-4 py-3 font-bold text-resolved lg:col-span-2">Settings saved.</p>}
 
-      <Card className="flex items-center gap-4 p-4 sm:p-5">
+      <Card className="flex items-center gap-4 p-4 sm:p-5 lg:col-span-2">
         <ProfileAvatar name={user.name} hasPhoto={Boolean(avatarStorageKey)} className="size-16 text-lg" />
         <div className="min-w-0">
           <p className="truncate font-bold">{user.name}</p>
@@ -47,7 +47,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         {avatarStorageKey && <form action={removeAvatarAction} className="mt-3"><Button type="submit" variant="ghost"><Trash2 className="size-4" aria-hidden />Remove photo</Button></form>}
       </Card>
 
-      <Card className="space-y-5 p-4 sm:p-5">
+      <Card className="space-y-5 p-4 sm:p-5 lg:col-span-2">
         <h2 className="text-lg font-bold">Appearance</h2>
         <section aria-labelledby="mode-title">
           <h3 id="mode-title" className="mb-3 text-sm font-bold">Light or dark</h3>
