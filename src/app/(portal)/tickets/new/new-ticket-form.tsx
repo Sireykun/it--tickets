@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, BookOpen, ExternalLink, Paperclip } from "lucide-react";
+import { ArrowLeft, ArrowRight, Paperclip } from "lucide-react";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Alert } from "@/components/ui/misc";
@@ -12,9 +12,6 @@ import { createTicketAction } from "../../actions";
 
 type Topic = { id: string; name: string; description: string | null; defaultPriority: TicketPriority };
 type Campus = { id: string; name: string };
-type Article = { id: string; title: string; helpTopicId: string | null };
-
-const STOP_WORDS = new Set(["the", "and", "for", "not", "can't", "cant", "won't", "wont", "with", "my", "is", "in", "on", "to", "a", "it"]);
 
 const steps = [
   { title: "What do you need help with?", description: "Choose the type of IT help you need." },
@@ -24,25 +21,11 @@ const steps = [
   { title: "Review and send", description: "Check your answers and add a photo or file if it helps." },
 ] as const;
 
-export function NewTicketForm({
-  topics,
-  campuses,
-  articles,
-  initialTopicId,
-  requester,
-  accept,
-}: {
-  topics: Topic[];
-  campuses: Campus[];
-  articles: Article[];
-  initialTopicId: string;
-  requester: { name: string; email: string };
-  accept: string;
-}) {
+export function NewTicketForm({ topics, campuses, requester, accept }: { topics: Topic[]; campuses: Campus[]; requester: { name: string; email: string }; accept: string }) {
   const [state, action] = useActionState(createTicketAction, initialActionState);
   const [step, setStep] = useState(0);
-  const [topicId, setTopicId] = useState(initialTopicId);
-  const [priority, setPriority] = useState<TicketPriority>(topics.find((topic) => topic.id === initialTopicId)?.defaultPriority ?? "NORMAL");
+  const [topicId, setTopicId] = useState("");
+  const [priority, setPriority] = useState<TicketPriority>("NORMAL");
   const [campusId, setCampusId] = useState("");
   const [room, setRoom] = useState("");
   const [subject, setSubject] = useState("");
@@ -62,7 +45,6 @@ export function NewTicketForm({
 
   const selectedTopic = topics.find((topic) => topic.id === topicId);
   const selectedCampus = campuses.find((campus) => campus.id === campusId);
-  const suggestions = suggestArticles(articles, topicId, subject);
 
   return (
     <form ref={formRef} action={action} className="space-y-5">
@@ -126,26 +108,6 @@ export function NewTicketForm({
               <Field label="Issue summary" htmlFor="subject" hint="A short summary, e.g. “Projector in room 12 won't turn on”.">
                 <Input id="subject" className="border-l-[3px] border-l-gold" required minLength={3} maxLength={200} value={subject} onChange={(event) => setSubject(event.target.value)} />
               </Field>
-              <div aria-live="polite">
-                {suggestions.length > 0 && (
-                  <section aria-label="Suggested help articles" className="rounded-xl border border-primary/30 bg-primary-soft/60 p-4">
-                    <p className="mb-2 flex items-center gap-2 text-sm font-bold">
-                      <BookOpen className="size-4 text-primary" aria-hidden /> These articles might fix it right away
-                    </p>
-                    <ul className="space-y-1">
-                      {suggestions.map((a) => (
-                        <li key={a.id}>
-                          {/* New tab, so nothing typed here is lost. */}
-                          <a href={`/help/${a.id}`} target="_blank" rel="noopener" className="inline-flex min-h-10 items-center gap-1.5 font-bold text-primary hover:underline">
-                            {a.title} <ExternalLink className="size-3.5" aria-hidden />
-                            <span className="sr-only">(opens in a new tab)</span>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
-              </div>
               <Field label="Please describe your issue" htmlFor="body" hint="What happened, what device is affected, and what have you tried?">
                 <Textarea id="body" className="border-l-[3px] border-l-gold" required rows={6} value={body} onChange={(event) => setBody(event.target.value)} />
               </Field>
@@ -183,23 +145,4 @@ export function NewTicketForm({
       </div>
     </form>
   );
-}
-
-// Subject words that appear in a title rank it first; same-topic articles fill in when nothing matches.
-function suggestArticles(articles: Article[], topicId: string, subject: string): Article[] {
-  const words = subject
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
-  if (!topicId && words.length === 0) return [];
-  return articles
-    .map((a) => {
-      const title = a.title.toLowerCase();
-      const hits = words.filter((w) => title.includes(w)).length;
-      return { a, score: hits * 2 + (topicId && a.helpTopicId === topicId ? 1 : 0) };
-    })
-    .filter((s) => s.score > 0)
-    .sort((x, y) => y.score - x.score)
-    .slice(0, 3)
-    .map((s) => s.a);
 }

@@ -7,10 +7,9 @@ import { NewTicketForm } from "./new-ticket-form";
 
 export const metadata: Metadata = { title: "New ticket" };
 
-export default async function NewTicketPage({ searchParams }: PageProps<"/tickets/new">) {
+export default async function NewTicketPage() {
   const user = await requireUser();
-  const sp = await searchParams;
-  const [topics, campuses, articles] = await Promise.all([
+  const [topics, campuses] = await Promise.all([
     prisma.helpTopic.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -21,27 +20,12 @@ export default async function NewTicketPage({ searchParams }: PageProps<"/ticket
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    // Titles only: the form matches them against the subject as the requester types.
-    prisma.kbArticle.findMany({
-      where: { isPublished: true },
-      orderBy: { updatedAt: "desc" },
-      take: 200,
-      select: { id: true, title: true, helpTopicId: true },
-    }),
   ]);
-  const initialTopicId = typeof sp.topic === "string" && topics.some((t) => t.id === sp.topic) ? sp.topic : "";
 
   return (
     <div className="max-w-2xl">
       <PageHeader title="New ticket" subtitle="Answer a few questions, one step at a time." />
-      <NewTicketForm
-        topics={topics}
-        campuses={campuses}
-        articles={articles}
-        initialTopicId={initialTopicId}
-        requester={{ name: user.name, email: user.email }}
-        accept={ACCEPT_ATTRIBUTE}
-      />
+      <NewTicketForm topics={topics} campuses={campuses} requester={{ name: user.name, email: user.email }} accept={ACCEPT_ATTRIBUTE} />
     </div>
   );
 }

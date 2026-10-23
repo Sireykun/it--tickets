@@ -29,20 +29,8 @@ test("superadmin bulk-assigns tickets from the queue", async ({ browser }, testI
   await expect(admin.getByRole("list", { name: "Conversation" }).getByText(/Assigned to /)).toBeVisible();
 });
 
-test("requester gets help-article suggestions and can browse Help", async ({ browser }, testInfo) => {
+test("requester can browse Help", async ({ browser }, testInfo) => {
   const student = await sessionFor(browser, testInfo, STUDENT);
-  await student.goto("/tickets/new");
-  await student.getByRole("combobox", { name: "Help topic" }).selectOption({ label: "Printer Setup" });
-  await student.getByRole("button", { name: "Continue" }).click();
-  await student.getByRole("button", { name: "Continue" }).click();
-  await student.getByRole("combobox", { name: "Campus" }).selectOption({ label: "Main Campus" });
-  await student.getByLabel("Room").fill("101");
-  await student.getByRole("button", { name: "Continue" }).click();
-  await student.getByLabel("Issue summary").fill("Printer is offline");
-  const suggestions = student.getByRole("region", { name: "Suggested help articles" });
-  await expect(suggestions.getByRole("link", { name: /Printer shows offline/ })).toBeVisible();
-  await shot(student, testInfo, "21-kb-suggestions");
-
   await student.goto("/help?q=password");
   await student.getByRole("link", { name: /Reset a forgotten password/ }).click();
   await expect(student.getByRole("heading", { name: "Reset a forgotten password" })).toBeVisible();
