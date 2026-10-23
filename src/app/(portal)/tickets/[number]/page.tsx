@@ -70,7 +70,7 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/t
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-sm font-semibold text-gold-text">{ticket.thread.length} updates</span>
                 {isRequester && (ticket.kudo ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-gold/50 bg-gold/10 px-3 py-2 text-sm font-bold text-gold-text"><Heart className="size-4 fill-current" aria-hidden /> Kudo sent</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-danger/50 bg-danger-soft px-3 py-2 text-sm font-bold text-danger"><Heart className="size-4 fill-current" aria-hidden /> Kudo sent</span>
                 ) : closed ? (
                   <form action={giveKudoAction.bind(null, ticket.ticketNumber)}>
                     <Button type="submit" variant="secondary" className="border-gold/60 text-gold-text"><Heart className="size-4" aria-hidden /> Give a kudo to support</Button>
