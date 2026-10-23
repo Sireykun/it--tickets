@@ -37,16 +37,20 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
   const campusId = typeof sp.campus === "string" && UUID.test(sp.campus) ? sp.campus : undefined;
   const status = STATUSES.find((s) => s === sp.status);
   const isManagersOnly = superadmin && sp.manages === "1";
+  const showInactive = sp.inactive === "1";
+  // Deleted (deactivated) users stay out of the list unless the toggle or the Inactive filter asks for them.
+  const hideInactive = !showInactive && status !== "inactive";
   const statusWhere: Prisma.UserWhereInput =
     status === "active" ? { isActive: true } : status === "inactive" ? { isActive: false } : status === "never" ? { lastLoginAt: null } : {};
 
-  const [users, departments, teams, campuses] = await Promise.all([
+  const [users, inactiveCount, departments, teams, campuses] = await Promise.all([
     prisma.user.findMany({
       where: {
         AND: [
           reach,
           { role },
           statusWhere,
+          hideInactive ? { isActive: true } : {},
           isManagersOnly ? { staffCampuses: { some: { permissions: { has: "users.manage" } } } } : {},
           campusId ? { OR: [{ campusId }, { staffCampuses: { some: { campusId } } }] } : {},
           q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] } : {},
@@ -60,6 +64,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
         teamMemberships: { select: { teamId: true, team: { select: { name: true } } } },
       },
     }),
+    prisma.user.count({ where: { AND: [reach, { isActive: false }] } }),
     prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.team.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.campus.findMany({
@@ -105,6 +110,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
     if (campusId) p.set("campus", campusId);
     if (status) p.set("status", status);
     if (isManagersOnly) p.set("manages", "1");
+    if (showInactive) p.set("inactive", "1");
     for (const [k, v] of Object.entries(changes)) {
       if (v === null) p.delete(k);
       else p.set(k, v);
@@ -127,6 +133,8 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
       newLabel="New user"
       basePath="/staff/admin/users"
       saved={sp.saved === "1"}
+      deleted={sp.deleted === "1"}
+      inactiveToggle={status === "inactive" ? undefined : { count: inactiveCount, isShown: showInactive, href: hrefWith({ inactive: showInactive ? null : "1" }) }}
       nested
       selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New user"}
@@ -141,6 +149,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/staff/admi
               campuses={campuses}
               roles={roles}
               superadmin={superadmin}
+              isSelf={target.item?.id === actor.id}
             />
             {detail && <UserDetail detail={detail} />}
           </>

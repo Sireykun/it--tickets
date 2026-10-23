@@ -25,6 +25,17 @@ export async function saveArticle(actor: Pick<AppUser, "id" | "role">, input: z.
   });
 }
 
+// Articles have no active flag (unpublished means draft) and nothing references them, so this really deletes.
+export async function deleteArticle(actor: Pick<AppUser, "id" | "role">, id: string) {
+  if (!isSuperadmin(actor)) throw new TicketError("Not allowed.");
+  await prisma.$transaction(async (tx) => {
+    const article = await tx.kbArticle.findUnique({ where: { id }, select: { title: true } });
+    if (!article) throw new TicketError("Not found.");
+    await tx.kbArticle.delete({ where: { id } });
+    await audit(tx, actor, "kb.delete", { type: "kbArticle", id }, { title: article.title });
+  });
+}
+
 export async function listArticles(viewer: Viewer, opts: { q?: string; topicId?: string; includeDrafts?: boolean } = {}) {
   const filters: Prisma.KbArticleWhereInput[] = [];
   if (!(opts.includeDrafts && isSuperadmin(viewer))) filters.push({ isPublished: true });

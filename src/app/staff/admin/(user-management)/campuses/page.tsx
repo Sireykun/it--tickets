@@ -15,6 +15,7 @@ export const metadata: Metadata = { title: "Campuses" };
 export default async function CampusesPage({ searchParams }: PageProps<"/staff/admin/campuses">) {
   await requireSuperadmin();
   const sp = await searchParams;
+  const showInactive = sp.inactive === "1";
   const campuses = await prisma.campus.findMany({
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
     include: {
@@ -49,6 +50,8 @@ export default async function CampusesPage({ searchParams }: PageProps<"/staff/a
       newLabel="New campus"
       basePath="/staff/admin/campuses"
       saved={sp.saved === "1"}
+      deleted={sp.deleted === "1"}
+      inactiveToggle={{ count: campuses.filter((r) => !r.isActive).length, isShown: showInactive, href: showInactive ? "/staff/admin/campuses" : "/staff/admin/campuses?inactive=1" }}
       nested
       selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New campus"}
@@ -111,7 +114,7 @@ export default async function CampusesPage({ searchParams }: PageProps<"/staff/a
           </>
         ) : undefined
       }
-      rows={campuses.map((c) => {
+      rows={campuses.filter((r) => showInactive || r.isActive).map((c) => {
         const admins = staffOf(c).filter((s) => s.user.role === "ADMIN").length;
         const agents = staffOf(c).filter((s) => s.user.role === "AGENT").length;
         return {

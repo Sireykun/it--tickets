@@ -72,10 +72,12 @@ const ACTION_LABEL: Record<string, string> = {
   "email_template.save": "Saved email template",
   "email_template.reset": "Reset email template",
   "kb.save": "Saved knowledge base article",
+  "kb.delete": "Deleted knowledge base article",
   "canned.save": "Saved canned reply",
+  "canned.delete": "Deleted canned reply",
 };
 
-const VERB_LABEL: Record<string, string> = { save: "Saved", create: "Created", update: "Updated", reset: "Reset", remove: "Removed", add: "Added" };
+const VERB_LABEL: Record<string, string> = { save: "Saved", create: "Created", update: "Updated", reset: "Reset", remove: "Removed", add: "Added", delete: "Deleted" };
 
 // Settings saves are named after their entity ("help_topic.save"), so unknown codes still read as English.
 export function describeAction(action: string): string {

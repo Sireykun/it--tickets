@@ -10,6 +10,7 @@ export const metadata: Metadata = { title: "Teams" };
 export default async function TeamsPage({ searchParams }: PageProps<"/staff/admin/teams">) {
   await requireSuperadmin();
   const sp = await searchParams;
+  const showInactive = sp.inactive === "1";
   const [teams, departments] = await Promise.all([
     prisma.team.findMany({
       orderBy: [{ isActive: "desc" }, { name: "asc" }],
@@ -26,10 +27,12 @@ export default async function TeamsPage({ searchParams }: PageProps<"/staff/admi
       newLabel="New team"
       basePath="/staff/admin/teams"
       saved={sp.saved === "1"}
+      deleted={sp.deleted === "1"}
+      inactiveToggle={{ count: teams.filter((r) => !r.isActive).length, isShown: showInactive, href: showInactive ? "/staff/admin/teams" : "/staff/admin/teams?inactive=1" }}
       selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New team"}
       form={target.show ? <TeamForm key={target.item?.id ?? "new"} team={target.item} departments={departments} /> : undefined}
-      rows={teams.map((t) => ({
+      rows={teams.filter((r) => showInactive || r.isActive).map((t) => ({
         id: t.id,
         title: t.name,
         leading: (

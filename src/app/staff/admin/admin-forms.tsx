@@ -1,7 +1,9 @@
 "use client";
 
-import { startTransition, useActionState, type FormEvent, type ReactNode } from "react";
-import { LinkButton } from "@/components/ui/button";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Trash2, X } from "lucide-react";
+import { startTransition, useActionState, useState, type FormEvent, type ReactNode } from "react";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -10,6 +12,14 @@ import { type ActionState, initialActionState } from "@/lib/action-state";
 import { PRIORITIES, PRIORITY_LABEL, ROLE_LABEL } from "@/lib/labels";
 import {
   addToCampusAction,
+  deleteArticleAction,
+  deleteCampusAction,
+  deleteCannedAction,
+  deleteDepartmentAction,
+  deleteHelpTopicAction,
+  deleteSlaAction,
+  deleteTeamAction,
+  deleteUserAction,
   saveArticleAction,
   saveCampusAction,
   saveCannedAction,
@@ -30,12 +40,14 @@ function AdminForm({
   cancelHref,
   id,
   submitLabel,
+  remove,
   children,
 }: {
   action: Action;
   cancelHref: string;
   id?: string;
   submitLabel?: string; // defaults to "Save changes" when editing, "Create" otherwise
+  remove?: { action: Action; name: string; isPermanent?: boolean }; // shows a Delete button when editing
   children: ReactNode;
 }) {
   const [state, formAction, pending] = useActionState(action, initialActionState);
@@ -54,8 +66,55 @@ function AdminForm({
         <LinkButton href={cancelHref} variant="ghost">
           Cancel
         </LinkButton>
+        {id && remove && <DeleteButton id={id} {...remove} />}
       </div>
     </form>
+  );
+}
+
+// The confirm button is not a submit button: the dialog is portalled but still inside the
+// edit form's React tree, so a nested <form> submit would bubble into the save handler.
+function DeleteButton({ id, action, name, isPermanent }: { id: string; action: Action; name: string; isPermanent?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [state, deleteAction, pending] = useActionState(action, initialActionState);
+  function handleConfirm() {
+    const data = new FormData();
+    data.set("id", id);
+    startTransition(() => deleteAction(data));
+  }
+  return (
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger asChild>
+        <Button variant="danger" className="ml-auto">
+          <Trash2 className="size-5" aria-hidden /> Delete
+        </Button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-surface p-5 shadow-raised focus:outline-none">
+          <Dialog.Title className="pr-10 text-lg font-bold">Delete {name}?</Dialog.Title>
+          <Dialog.Description className="mb-4 text-sm text-muted">
+            {isPermanent ? "This can't be undone." : "It will be hidden everywhere. You can bring it back from “Show deleted”."}
+          </Dialog.Description>
+          <Dialog.Close className="absolute top-3 right-3 grid size-10 place-items-center rounded-lg hover:bg-surface-2" aria-label="Close">
+            <X className="size-5" aria-hidden />
+          </Dialog.Close>
+          {state.error && (
+            <div className="mb-4">
+              <Alert>{state.error}</Alert>
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Dialog.Close asChild>
+              <Button variant="ghost">Cancel</Button>
+            </Dialog.Close>
+            <Button variant="danger" onClick={handleConfirm} disabled={pending}>
+              {pending ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -119,6 +178,7 @@ export function UserForm({
   campuses,
   roles,
   superadmin,
+  isSelf,
 }: {
   user?: UserRow;
   departments: Option[];
@@ -126,9 +186,15 @@ export function UserForm({
   campuses: Option[]; // campuses the editor may assign
   roles: Role[]; // roles the editor may assign
   superadmin: boolean;
+  isSelf: boolean;
 }) {
   return (
-    <AdminForm action={saveUserAction} cancelHref="/staff/admin/users" id={user?.id}>
+    <AdminForm
+      action={saveUserAction}
+      cancelHref="/staff/admin/users"
+      id={user?.id}
+      remove={user?.isActive && !isSelf ? { action: deleteUserAction, name: user.name } : undefined}
+    >
       <Field label="Full name" htmlFor="name">
         <Input id="name" name="name" required maxLength={100} defaultValue={user?.name} />
       </Field>
@@ -202,7 +268,7 @@ type CampusRow = { id: string; name: string; emailDomains: string[]; isActive: b
 
 export function CampusForm({ campus }: { campus?: CampusRow }) {
   return (
-    <AdminForm action={saveCampusAction} cancelHref="/staff/admin/campuses" id={campus?.id}>
+    <AdminForm action={saveCampusAction} cancelHref="/staff/admin/campuses" id={campus?.id} remove={campus?.isActive ? { action: deleteCampusAction, name: campus.name } : undefined}>
       <Field label="Name" htmlFor="name">
         <Input id="name" name="name" required maxLength={100} defaultValue={campus?.name} placeholder="e.g. Toul Kork Campus" />
       </Field>
@@ -247,7 +313,12 @@ type Named = { id: string; name: string; description: string | null; isActive: b
 
 export function DepartmentForm({ department }: { department?: Named }) {
   return (
-    <AdminForm action={saveDepartmentAction} cancelHref="/staff/admin/departments" id={department?.id}>
+    <AdminForm
+      action={saveDepartmentAction}
+      cancelHref="/staff/admin/departments"
+      id={department?.id}
+      remove={department?.isActive ? { action: deleteDepartmentAction, name: department.name } : undefined}
+    >
       <NameAndDescription name={department?.name} description={department?.description} />
       <ActiveToggle isActive={department?.isActive} hint="Inactive departments are hidden when routing new tickets." />
     </AdminForm>
@@ -256,7 +327,7 @@ export function DepartmentForm({ department }: { department?: Named }) {
 
 export function TeamForm({ team, departments }: { team?: Named & { departmentId: string | null }; departments: Option[] }) {
   return (
-    <AdminForm action={saveTeamAction} cancelHref="/staff/admin/teams" id={team?.id}>
+    <AdminForm action={saveTeamAction} cancelHref="/staff/admin/teams" id={team?.id} remove={team?.isActive ? { action: deleteTeamAction, name: team.name } : undefined}>
       <NameAndDescription name={team?.name} description={team?.description} />
       <OptionSelect id="departmentId" label="Department" options={departments} value={team?.departmentId} empty="None" />
       <ActiveToggle isActive={team?.isActive} hint="Inactive teams can't be assigned new tickets." />
@@ -270,7 +341,7 @@ type Sla = Named & { responseTimeHours: number; resolutionTimeHours: number };
 
 export function SlaForm({ sla }: { sla?: Sla }) {
   return (
-    <AdminForm action={saveSlaAction} cancelHref="/staff/admin/sla" id={sla?.id}>
+    <AdminForm action={saveSlaAction} cancelHref="/staff/admin/sla" id={sla?.id} remove={sla?.isActive ? { action: deleteSlaAction, name: sla.name } : undefined}>
       <NameAndDescription name={sla?.name} description={sla?.description} />
       <Field label="First response within (hours)" htmlFor="responseTimeHours">
         <Input id="responseTimeHours" name="responseTimeHours" type="number" inputMode="numeric" min={1} required defaultValue={sla?.responseTimeHours ?? 8} />
@@ -323,7 +394,7 @@ type Canned = { id: string; title: string; body: string; departmentId: string | 
 
 export function CannedForm({ canned, departments, variables }: { canned?: Canned; departments: Option[]; variables: readonly string[] }) {
   return (
-    <AdminForm action={saveCannedAction} cancelHref="/staff/admin/canned" id={canned?.id}>
+    <AdminForm action={saveCannedAction} cancelHref="/staff/admin/canned" id={canned?.id} remove={canned?.isActive ? { action: deleteCannedAction, name: canned.title } : undefined}>
       <Field label="Title" htmlFor="title">
         <Input id="title" name="title" required maxLength={100} defaultValue={canned?.title} placeholder="e.g. Wifi: forget and rejoin" />
       </Field>
@@ -347,7 +418,12 @@ type Topic = Named & { defaultPriority: TicketPriority; defaultDepartmentId: str
 
 export function HelpTopicForm({ topic, departments, teams, slas }: { topic?: Topic; departments: Option[]; teams: Option[]; slas: Option[] }) {
   return (
-    <AdminForm action={saveHelpTopicAction} cancelHref="/staff/admin/help-topics" id={topic?.id}>
+    <AdminForm
+      action={saveHelpTopicAction}
+      cancelHref="/staff/admin/help-topics"
+      id={topic?.id}
+      remove={topic?.isActive ? { action: deleteHelpTopicAction, name: topic.name } : undefined}
+    >
       <NameAndDescription name={topic?.name} description={topic?.description} />
       <Field label="Default priority" htmlFor="defaultPriority">
         <Select id="defaultPriority" name="defaultPriority" defaultValue={topic?.defaultPriority ?? "NORMAL"}>
@@ -372,7 +448,12 @@ type Article = { id: string; title: string; body: string; helpTopicId: string | 
 
 export function ArticleForm({ article, topics }: { article?: Article; topics: Option[] }) {
   return (
-    <AdminForm action={saveArticleAction} cancelHref="/staff/admin/knowledge-base" id={article?.id}>
+    <AdminForm
+      action={saveArticleAction}
+      cancelHref="/staff/admin/knowledge-base"
+      id={article?.id}
+      remove={article && { action: deleteArticleAction, name: article.title, isPermanent: true }}
+    >
       <Field label="Title" htmlFor="title">
         <Input id="title" name="title" required minLength={3} maxLength={200} defaultValue={article?.title} placeholder="e.g. How to connect to school Wi‑Fi" />
       </Field>

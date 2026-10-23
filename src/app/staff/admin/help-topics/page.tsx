@@ -10,6 +10,7 @@ export const metadata: Metadata = { title: "Help topics" };
 export default async function HelpTopicsPage({ searchParams }: PageProps<"/staff/admin/help-topics">) {
   await requireSuperadmin();
   const sp = await searchParams;
+  const showInactive = sp.inactive === "1";
   const active = { where: { isActive: true }, orderBy: { name: "asc" as const }, select: { id: true, name: true } };
   const [topics, departments, teams, slas] = await Promise.all([
     prisma.helpTopic.findMany({
@@ -29,10 +30,12 @@ export default async function HelpTopicsPage({ searchParams }: PageProps<"/staff
       newLabel="New topic"
       basePath="/staff/admin/help-topics"
       saved={sp.saved === "1"}
+      deleted={sp.deleted === "1"}
+      inactiveToggle={{ count: topics.filter((r) => !r.isActive).length, isShown: showInactive, href: showInactive ? "/staff/admin/help-topics" : "/staff/admin/help-topics?inactive=1" }}
       selectedId={target.item?.id}
       editTitle={target.item ? `Edit ${target.item.name}` : "New help topic"}
       form={target.show ? <HelpTopicForm key={target.item?.id ?? "new"} topic={target.item} departments={departments} teams={teams} slas={slas} /> : undefined}
-      rows={topics.map((t) => ({
+      rows={topics.filter((r) => showInactive || r.isActive).map((t) => ({
         id: t.id,
         title: t.name,
         subtitle: `${PRIORITY_LABEL[t.defaultPriority]} priority · ${t.defaultTeam?.name ?? "No team"} · ${t.slaPolicy?.name ?? "No SLA"}`,

@@ -18,7 +18,7 @@ import { audit } from "@/server/audit";
 import { TEMPLATE_KEYS, type TemplateKey } from "@/server/email/templates";
 import { matchCampus } from "@/server/users";
 
-// Admin settings: create/update only. Records are deactivated, not deleted, so ticket history stays intact.
+// Admin settings. "Delete" deactivates a record instead of removing it, so ticket history stays intact.
 
 // Shared settings (departments, teams, topics, SLAs, email) are superadmin-only.
 function assertAdmin(actor: Pick<AppUser, "role">) {
@@ -218,6 +218,13 @@ export async function bulkUpdateUsers(actor: AppUser, userIds: string[], change:
   return { updated, skipped };
 }
 
+// Deactivates the user through `saveUser`, so the same reach checks and ticket unassignment apply.
+export async function deleteUser(actor: AppUser, id: string) {
+  const row = await findUserForEdit(id);
+  if (!row) throw new TicketError("User not found.");
+  return saveUser(actor, { ...toUserInput(row), isActive: false });
+}
+
 // From a campus's page: staff start working there; a requester gets it as their home campus.
 export async function addToCampus(actor: AppUser, campusId: string, userId: string, opts: { canManageUsers: boolean }) {
   assertAdmin(actor);
@@ -348,4 +355,37 @@ export async function saveCampus(actor: AppUser, input: z.infer<typeof campusSch
   assertAdmin(actor);
   const { id, ...data } = input;
   return friendly("campus", actor, (tx) => (id ? tx.campus.update({ where: { id }, data }) : tx.campus.create({ data })));
+}
+
+export type SettingKind = "campus" | "department" | "team" | "sla_policy" | "help_topic";
+
+export async function deleteSetting(actor: AppUser, kind: SettingKind, id: string) {
+  assertAdmin(actor);
+  try {
+    await prisma.$transaction(async (tx) => {
+      const row = await deactivateSetting(tx, kind, id);
+      await audit(tx, actor, `${kind}.delete`, { type: kind, id }, { name: row.name });
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") throw new TicketError("Not found.");
+    throw err;
+  }
+}
+
+function deactivateSetting(tx: Prisma.TransactionClient, kind: SettingKind, id: string) {
+  const where = { id };
+  const data = { isActive: false };
+  const select = { name: true } as const;
+  switch (kind) {
+    case "campus":
+      return tx.campus.update({ where, data, select });
+    case "department":
+      return tx.department.update({ where, data, select });
+    case "team":
+      return tx.team.update({ where, data, select });
+    case "sla_policy":
+      return tx.slaPolicy.update({ where, data, select });
+    case "help_topic":
+      return tx.helpTopic.update({ where, data, select });
+  }
 }

@@ -9,6 +9,8 @@ import { safeRedirectPath } from "@/server/auth-rules";
 import {
   addToCampus,
   bulkUpdateUsers,
+  deleteSetting,
+  deleteUser,
   removeFromCampus,
   resetEmailTemplate,
   saveCampus,
@@ -21,8 +23,8 @@ import {
   type UserBulkChange,
 } from "@/server/admin";
 import { type AppUser, requireSuperadmin, requireUserManager } from "@/server/authz";
-import { saveCanned } from "@/server/canned";
-import { saveArticle } from "@/server/kb";
+import { deleteCanned, saveCanned } from "@/server/canned";
+import { deleteArticle, saveArticle } from "@/server/kb";
 import {
   adminUserSchema,
   campusMemberSchema,
@@ -32,6 +34,7 @@ import {
   firstError,
   formToObject,
   helpTopicSchema,
+  idSchema,
   kbArticleSchema,
   namedEntitySchema,
   slaSchema,
@@ -57,6 +60,55 @@ async function save<S extends z.ZodType>(
   if (result.error) return result;
   revalidatePath("/staff", "layout");
   redirect(`${listPath}?saved=1`);
+}
+
+async function remove(
+  formData: FormData,
+  persist: (actor: AppUser, id: string) => Promise<unknown>,
+  listPath: string,
+  guard: () => Promise<AppUser> = requireSuperadmin,
+): Promise<ActionState> {
+  const actor = await guard();
+  const parsed = idSchema.safeParse(formToObject(formData));
+  if (!parsed.success) return { error: "Not found." };
+  const result = await runAction(async () => {
+    await persist(actor, parsed.data.id);
+  });
+  if (result.error) return result;
+  revalidatePath("/staff", "layout");
+  redirect(`${listPath}?deleted=1`);
+}
+
+export async function deleteUserAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, deleteUser, "/staff/admin/users", requireUserManager);
+}
+
+export async function deleteCampusAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, (actor, id) => deleteSetting(actor, "campus", id), "/staff/admin/campuses");
+}
+
+export async function deleteDepartmentAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, (actor, id) => deleteSetting(actor, "department", id), "/staff/admin/departments");
+}
+
+export async function deleteTeamAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, (actor, id) => deleteSetting(actor, "team", id), "/staff/admin/teams");
+}
+
+export async function deleteSlaAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, (actor, id) => deleteSetting(actor, "sla_policy", id), "/staff/admin/sla");
+}
+
+export async function deleteHelpTopicAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, (actor, id) => deleteSetting(actor, "help_topic", id), "/staff/admin/help-topics");
+}
+
+export async function deleteCannedAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, deleteCanned, "/staff/admin/canned");
+}
+
+export async function deleteArticleAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, deleteArticle, "/staff/admin/knowledge-base");
 }
 
 export async function saveUserAction(_prev: ActionState, formData: FormData) {

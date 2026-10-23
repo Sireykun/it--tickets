@@ -191,6 +191,8 @@ export const userBulkSchema = z
     ]),
   );
 
+export const idSchema = z.object({ id: z.uuid() });
+
 export const campusMemberSchema = z.object({
   campusId: z.uuid(),
   userId: z.uuid({ message: "Choose someone to add." }),

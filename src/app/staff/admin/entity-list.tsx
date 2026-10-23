@@ -32,6 +32,8 @@ export function AdminPage({
   newLabel,
   basePath,
   saved,
+  deleted,
+  inactiveToggle,
   editTitle,
   form,
   rows,
@@ -46,6 +48,9 @@ export function AdminPage({
   newLabel: string;
   basePath: string;
   saved: boolean;
+  deleted?: boolean;
+  inactiveToggle?: { count: number; isShown: boolean; href: string }; // "Show deleted (N)" link; deleted = deactivated
+
   editTitle?: string;
   form?: ReactNode;
   rows: EntityRow[];
@@ -78,9 +83,9 @@ export function AdminPage({
       ) : (
         <PageHeader title={title} subtitle={subtitle} actions={newButton} />
       )}
-      {saved && !form && (
+      {(saved || deleted) && !form && (
         <div className="mb-4">
-          <Alert tone="success">Saved.</Alert>
+          <Alert tone="success">{deleted ? "Deleted." : "Saved."}</Alert>
         </div>
       )}
       <div className={clsx(isSplit && "xl:grid xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start xl:gap-6")}>
@@ -94,6 +99,13 @@ export function AdminPage({
         )}
         <div className="min-w-0 xl:col-start-1 xl:row-start-1">
           {toolbar}
+          {inactiveToggle && (inactiveToggle.count > 0 || inactiveToggle.isShown) && (
+            <p className="mb-2 text-right text-sm">
+              <Link href={inactiveToggle.href} className="inline-flex min-h-11 items-center font-bold text-primary hover:underline">
+                {inactiveToggle.isShown ? "Hide deleted" : `Show deleted (${inactiveToggle.count})`}
+              </Link>
+            </p>
+          )}
           <Card>
             {rows.length === 0 ? (
               <EmptyState icon={<FolderOpen className="size-6" aria-hidden />} title="Nothing here yet">
