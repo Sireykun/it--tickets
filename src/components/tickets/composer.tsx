@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { Lock, MessageSquareReply, Paperclip, SendHorizontal, Smile, TriangleAlert, X } from "lucide-react";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { type ActionState, initialActionState } from "@/lib/action-state";
@@ -96,12 +96,14 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
     }
   }, [state]);
 
-  // Let long drafts grow like a chat input, then scroll within the field.
-  useEffect(() => {
+  // Keep the field as tall as its content, then scroll for very long drafts.
+  useLayoutEffect(() => {
     const input = bodyInput.current;
     if (!input) return;
     input.style.height = "auto";
-    input.style.height = `${Math.min(input.scrollHeight, 224)}px`;
+    const contentHeight = input.scrollHeight + 2; // Include the textarea border.
+    input.style.height = `${Math.min(Math.max(contentHeight, 48), 320)}px`;
+    input.style.overflowY = contentHeight > 320 ? "auto" : "hidden";
   }, [body]);
 
   // Keep the <input type=file> in sync with the chip list so removing a chip removes the upload.
@@ -216,7 +218,7 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={isNote ? "Only staff will see this note…" : (placeholder ?? "Write a reply…")}
-          className={clsx("min-h-12 max-h-56 min-w-0 flex-1 resize-none overflow-y-auto px-3 py-2.5 text-base leading-relaxed placeholder:text-muted/80 focus:outline-none", staff ? "w-full rounded-lg border border-border-strong bg-surface focus:border-primary" : "bg-transparent text-lg")}
+          className={clsx("min-h-12 max-h-80 min-w-0 resize-none overflow-y-hidden px-3 py-2.5 text-base leading-relaxed placeholder:text-muted/80 focus:outline-none", staff ? "w-full flex-none rounded-lg border border-border-strong bg-surface focus:border-primary" : "flex-1 bg-transparent text-lg")}
         />
         <div className={clsx("flex shrink-0 items-center gap-0.5", staff && "w-full")}>
           <label title="Attach files" className="grid size-11 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text has-focus-visible:outline-2 has-focus-visible:outline-focus">

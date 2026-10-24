@@ -107,7 +107,7 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
               </div>
               {asRequester && <div className="px-4 pt-4"><Alert tone="info">You're seeing what {ticket.requester.name} sees. Internal notes are hidden.</Alert></div>}
               <div className="min-h-52 px-4 py-5 sm:px-6">
-                <Thread entries={ticket.thread} perspective="staff" layout="timeline" />
+                <Thread entries={ticket.thread} perspective="staff" />
               </div>
               {!asRequester && (
                 <div className="border-t border-border p-3 sm:p-4">

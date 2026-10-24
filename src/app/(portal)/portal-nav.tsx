@@ -32,14 +32,14 @@ export function PortalSidebar({ name, roleLabel, hasPhoto, staff }: { name: stri
         <Link href="/" className="mb-8 block rounded-lg px-1 py-1"><Brand /></Link>
         <nav aria-label="Requester sidebar" className="space-y-1">
           {links.map(({ href, label, icon: Icon, active }) => <Link key={href} href={href} aria-current={active ? "page" : undefined}
-            className={clsx("flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold transition-colors", active ? label === "Help center" ? "border-gold bg-primary-soft text-text" : "border-gold bg-primary-soft text-primary" : label === "Help center" ? "border-transparent text-text hover:bg-surface-2" : "border-transparent text-muted hover:bg-surface-2 hover:text-text")}>
+            className={clsx("motion-nav flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold", active ? label === "Help center" ? "border-gold bg-primary-soft text-text" : "border-gold bg-primary-soft text-primary" : label === "Help center" ? "border-transparent text-text hover:bg-surface-2" : "border-transparent text-muted hover:bg-surface-2 hover:text-text")}>
             <Icon className="size-4" aria-hidden />{label}
           </Link>)}
           <a href="https://nexus.ciaschool.edu.kh/knowledge-base" target="_blank" rel="noopener noreferrer"
-            className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-bold text-muted transition-colors hover:bg-surface-2 hover:text-text">
+            className="motion-nav flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-bold text-muted hover:bg-surface-2 hover:text-text">
             <LifeBuoy className="size-4" aria-hidden />Knowledge base<span className="sr-only"> (opens in a new tab)</span><ExternalLink className="ml-auto size-3.5" aria-hidden />
           </a>
-          {staff && <Link href="/staff" className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-bold text-muted transition-colors hover:bg-surface-2 hover:text-text"><Headset className="size-4" aria-hidden />Staff console</Link>}
+          {staff && <Link href="/staff" className="motion-nav flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-bold text-muted hover:bg-surface-2 hover:text-text"><Headset className="size-4" aria-hidden />Staff console</Link>}
         </nav>
         <div className="mt-auto flex items-center gap-3 rounded-xl border border-border bg-surface-2 px-3 py-4">
           <ProfileAvatar name={name} hasPhoto={hasPhoto} className="size-10 text-lg" />

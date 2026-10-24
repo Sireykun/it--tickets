@@ -79,7 +79,7 @@ const SETTINGS_GROUPS: { label: string; links: { href: string; label: string; ic
 
 const itemClass = (active: boolean) =>
   clsx(
-    "flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold transition-colors",
+    "motion-nav flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold",
     active ? "border-gold bg-primary-soft text-primary" : "border-transparent text-muted hover:bg-surface-2 hover:text-text",
   );
 

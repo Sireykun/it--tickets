@@ -36,7 +36,7 @@ export function TicketCard({ ticket, href, variant, accent = "cyan" }: { ticket:
 
   if (variant === "requester") {
     return (
-      <Link href={href} className="group flex items-start gap-3 rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2 p-4 transition-colors hover:border-primary/50 hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+      <Link href={href} className="motion-card group flex items-start gap-3 rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2 p-4 hover:border-primary/50 hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
         <span className={clsx("grid size-10 shrink-0 place-items-center rounded-lg", ticketAccent[accent])}><Ticket className="size-5" aria-hidden /></span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-muted">
@@ -61,11 +61,7 @@ export function TicketCard({ ticket, href, variant, accent = "cyan" }: { ticket:
   return (
     <Link
       href={href}
-      className={clsx(
-        "group relative flex items-start gap-3 px-4 py-4 transition-colors hover:bg-primary-soft/50 sm:px-5",
-        // Accent bar marks rows that need the viewer's attention; the text hint below carries the same meaning.
-        waiting && "before:absolute before:inset-y-3 before:left-0 before:w-[3px] before:rounded-r-full before:bg-primary",
-      )}
+      className="group relative flex items-start gap-3 px-4 py-4 transition-colors hover:bg-primary-soft/50 sm:px-5"
     >
       <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary"><Ticket className="size-5" aria-hidden /></span>
       <div className="min-w-0 flex-1 space-y-1.5">
@@ -96,5 +92,5 @@ export function TicketCard({ ticket, href, variant, accent = "cyan" }: { ticket:
 }
 
 export function TicketList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <ul className={clsx("space-y-2", className)}>{children}</ul>;
+  return <ul className={clsx("motion-list space-y-2", className)}>{children}</ul>;
 }

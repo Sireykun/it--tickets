@@ -23,7 +23,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <UserMenu name={user.name} email={user.email} hasPhoto={hasPhoto} theme={theme} switchTo={isStaff(user.role) ? "staff" : null} />
           </div>
         </header>
-        <main data-portal-main className="pb-tabbar mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6">{children}</main>
+        <main data-portal-main className="motion-page pb-tabbar mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6">{children}</main>
         <TabBar />
       </div>
     </div>

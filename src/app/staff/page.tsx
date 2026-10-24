@@ -225,7 +225,7 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
         <>
           <TicketList>
             {tickets.map((t) => (
-              <li key={t.id} className="overflow-hidden rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2">
+              <li key={t.id} className="motion-card overflow-hidden rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2">
                 <TicketCard ticket={t} href={`/staff/tickets/${t.ticketNumber}`} variant="staff" />
               </li>
             ))}
