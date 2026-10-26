@@ -48,11 +48,13 @@ export async function postStaffMessageAction(ticketNumber: string, _prev: Action
   const parsed = messageSchema.safeParse(formToObject(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   if (parsed.data.mode === "client") return { error: "Choose Reply or Internal note." };
+  const closeAfterReply = formData.get("closeAfterReply") === "true";
+  if (closeAfterReply && parsed.data.mode !== "reply") return { error: "A closure message must be a reply to the requester." };
   const uploads = await prepareUploads(formData.getAll("files"));
   if (!uploads.ok) return { error: uploads.error };
 
   return runAction(async () => {
-    const entry = await addMessage(user, ticketNumber, parsed.data, uploads.files);
+    const entry = await addMessage(user, ticketNumber, { ...parsed.data, closeAfterReply }, uploads.files);
     await releaseLock(user, entry.ticketId);
     revalidateTicket(ticketNumber);
   });
@@ -63,23 +65,15 @@ export async function updateTicketAction(ticketNumber: string, _prev: ActionStat
   const parsed = ticketUpdateSchema.safeParse(formToObject(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
 
+  if (parsed.data.status === "CLOSED") {
+    const ticket = await prisma.ticket.findUnique({ where: { ticketNumber }, select: { status: true } });
+    if (ticket?.status !== "CLOSED") return { error: "Select Closed, then send the closure reply in the conversation." };
+  }
+
   return runAction(async () => {
     await updateTicketFields(user, ticketNumber, parsed.data);
     revalidateTicket(ticketNumber);
   });
-}
-
-export async function assignToMeAction(ticketNumber: string) {
-  const user = await requireStaff();
-  const ticket = await prisma.ticket.findUnique({ where: { ticketNumber } });
-  if (!ticket) throw new TicketError("Ticket not found.");
-  await updateTicketFields(user, ticketNumber, {
-    status: ticket.status,
-    priority: ticket.priority,
-    assignedTeamId: ticket.assignedTeamId,
-    assignedAgentId: user.id,
-  });
-  revalidateTicket(ticketNumber);
 }
 
 // ─── Bulk queue actions ─────────────────────────────────────────────────────

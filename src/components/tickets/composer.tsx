@@ -2,11 +2,12 @@
 
 import clsx from "clsx";
 import { Lock, MessageSquareReply, Paperclip, SendHorizontal, Smile, TriangleAlert, X } from "lucide-react";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { type ActionState, initialActionState } from "@/lib/action-state";
 import type { LockHolder } from "@/server/locks";
+import { useStaffClosure } from "./staff-closure";
 
 const HEARTBEAT_MS = 60_000;
 const EMOJI = ["😀", "😊", "👍", "🙏", "❤️", "🎉", "👋", "😅"];
@@ -29,6 +30,7 @@ type Props = {
 };
 
 export function Composer({ action, accept, staff = false, placeholder, canned, lock }: Props) {
+  const closure = useStaffClosure();
   const [state, formAction] = useActionState(action, initialActionState);
   const [body, setBody] = useState("");
   const [mode, setMode] = useState<"reply" | "note">("reply");
@@ -37,8 +39,21 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
   const [holder, setHolder] = useState<LockHolder | null>(lock?.holder ?? null);
   const fileInput = useRef<HTMLInputElement>(null);
   const bodyInput = useRef<HTMLTextAreaElement>(null);
+  const wasClosing = useRef(false);
   const isNote = staff && mode === "note";
   const typing = body.trim() !== "";
+
+  useEffect(() => {
+    if (closure?.closing && !wasClosing.current) {
+      setMode("reply");
+      setBody((draft) => draft.trim() ? `${draft.trimEnd()}\n\n${closure.message}` : closure.message);
+      bodyInput.current?.focus();
+    } else if (!closure?.closing && wasClosing.current) {
+      setBody((draft) => closure && draft.endsWith(closure.message) ? draft.slice(0, -closure.message.length).trimEnd() : draft);
+    }
+    wasClosing.current = closure?.closing ?? false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closure?.closing]);
 
   // While this agent has an unsent draft, hold the reply lock and learn whether someone else holds it.
   const lockRef = useRef(lock);
@@ -75,15 +90,20 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
   useEffect(() => {
     if (state === initialActionState) return;
     setFiles([]);
-    if (state.nonce) setBody("");
+    if (state.nonce) {
+      setBody("");
+      closure?.setClosing(false);
+    }
   }, [state]);
 
-  // Let long drafts grow like a chat input, then scroll within the field.
-  useEffect(() => {
+  // Keep the field as tall as its content, then scroll for very long drafts.
+  useLayoutEffect(() => {
     const input = bodyInput.current;
     if (!input) return;
     input.style.height = "auto";
-    input.style.height = `${Math.min(input.scrollHeight, 224)}px`;
+    const contentHeight = input.scrollHeight + 2; // Include the textarea border.
+    input.style.height = `${Math.min(Math.max(contentHeight, 48), 320)}px`;
+    input.style.overflowY = contentHeight > 320 ? "auto" : "hidden";
   }, [body]);
 
   // Keep the <input type=file> in sync with the chip list so removing a chip removes the upload.
@@ -110,12 +130,23 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
   return (
     <form
       action={formAction}
+      id={staff ? "staff-reply-composer" : undefined}
       className={clsx(
-        "rounded-xl border bg-surface p-2 shadow-card",
-        isNote ? "border-note-border border-dashed bg-note-bg" : "border-border",
+        "rounded-xl border shadow-card",
+        staff ? "p-3 sm:p-4" : "bg-surface p-2",
+        isNote ? "border-note-border border-dashed bg-note-bg" : staff ? "border-border-strong bg-bg/30" : "border-border",
       )}
     >
       <input type="hidden" name="mode" value={staff ? mode : "client"} />
+      {staff && <input type="hidden" name="closeAfterReply" value={closure?.closing ? "true" : "false"} />}
+
+      {closure?.closing && (
+        <div role="status" className="mb-3 rounded-lg border border-gold/60 bg-surface-2 px-3 py-2 text-sm">
+          <strong>Closing ticket with a reply</strong>
+          <p className="text-muted">Review the message below. Sending it will notify the requester and close the ticket.</p>
+          <p className="mt-1 text-muted">To cancel, choose another status in Ticket controls.</p>
+        </div>
+      )}
 
       {holder && (
         <div role="status" className="mb-3 flex items-start gap-2 rounded-lg bg-warn-soft px-3 py-2 text-sm font-bold text-warn">
@@ -140,10 +171,11 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
               type="button"
               role="radio"
               aria-checked={mode === value}
-              onClick={() => setMode(value)}
+              onClick={() => { if (!closure?.closing || value === "reply") setMode(value); }}
+              disabled={closure?.closing && value === "note"}
               className={clsx(
                 "inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold",
-                mode === value ? "bg-surface text-text shadow-card" : "text-muted",
+                mode === value ? "bg-primary-soft text-primary shadow-card ring-1 ring-primary/30" : "text-muted",
               )}
             >
               <Icon className="size-4" aria-hidden /> {label}
@@ -173,7 +205,7 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
         </div>
       )}
 
-      <div className="relative flex items-end gap-1">
+      <div className={clsx("relative flex gap-2", staff ? "flex-col items-stretch" : "items-end")}>
         <label htmlFor="composer-body" className="sr-only">
           {isNote ? "Internal note" : "Message"}
         </label>
@@ -186,9 +218,9 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={isNote ? "Only staff will see this note…" : (placeholder ?? "Write a reply…")}
-          className="min-h-12 max-h-56 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2.5 text-lg leading-relaxed placeholder:text-muted/80 focus:outline-none"
+          className={clsx("min-h-12 max-h-80 min-w-0 resize-none overflow-y-hidden px-3 py-2.5 text-base leading-relaxed placeholder:text-muted/80 focus:outline-none", staff ? "w-full flex-none rounded-lg border border-border-strong bg-surface focus:border-primary" : "flex-1 bg-transparent text-lg")}
         />
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className={clsx("flex shrink-0 items-center gap-0.5", staff && "w-full")}>
           <label title="Attach files" className="grid size-11 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text has-focus-visible:outline-2 has-focus-visible:outline-focus">
             <Paperclip className="size-5" aria-hidden />
             <span className="sr-only">Attach files</span>
@@ -205,8 +237,8 @@ export function Composer({ action, accept, staff = false, placeholder, canned, l
           <button type="button" aria-label="Choose emoji" aria-expanded={emojiOpen} onClick={() => setEmojiOpen((open) => !open)} className="grid size-11 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text">
             <Smile className="size-5" aria-hidden />
           </button>
-          <SubmitButton pendingText="Sending…" aria-label={isNote ? "Add note" : "Send message"} className="size-11 px-0 sm:w-auto sm:px-4">
-            <SendHorizontal className="size-5" aria-hidden /> <span className="hidden sm:inline">{isNote ? "Add note" : "Send"}</span>
+          <SubmitButton pendingText="Sending…" aria-label={closure?.closing ? "Send and close ticket" : isNote ? "Add note" : "Send message"} className={clsx("size-11 px-0 sm:w-auto sm:px-4", staff && "ml-auto")}>
+            <SendHorizontal className="size-5" aria-hidden /> <span className="hidden sm:inline">{closure?.closing ? "Send & close" : isNote ? "Add note" : "Send"}</span>
           </SubmitButton>
         </div>
         {emojiOpen && (

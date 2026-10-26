@@ -8,25 +8,19 @@ async function openTicket(student: Page, subject: string) {
   return student.url().match(/TKT-\d{6}/)![0];
 }
 
-test("superadmin bulk-assigns tickets from the queue", async ({ browser }, testInfo) => {
+test("staff queue opens ticket cards without selection controls", async ({ browser }, testInfo) => {
   const stamp = `${testInfo.project.name}-${Date.now()}`;
   const student = await sessionFor(browser, testInfo, STUDENT);
-  const first = await openTicket(student, `Bulk A ${stamp}`);
-  const second = await openTicket(student, `Bulk B ${stamp}`);
+  const ticket = await openTicket(student, `Queue card ${stamp}`);
 
   const admin = await sessionFor(browser, testInfo, ADMIN);
   await admin.goto(`/staff?view=all&q=${encodeURIComponent(stamp)}`);
-  // Phones and desktop render different rows; tick the visible box for each ticket.
-  await admin.getByLabel(`Select ${first}`).filter({ visible: true }).check();
-  await admin.getByLabel(`Select ${second}`).filter({ visible: true }).check();
-  await expect(admin.getByText("2 selected")).toBeVisible();
-  await shot(admin, testInfo, "20-bulk-select");
-  await admin.getByRole("button", { name: "Bulk actions" }).click();
-  await admin.getByRole("menuitem", { name: "Assign to me" }).click();
-  await expect(admin.getByText("Updated 2 tickets.")).toBeVisible();
-
-  await admin.goto(`/staff/tickets/${first}`);
-  await expect(admin.getByRole("list", { name: "Conversation" }).getByText(/Assigned to /)).toBeVisible();
+  await expect(admin.getByRole("checkbox")).toHaveCount(0);
+  const card = admin.getByRole("link", { name: new RegExp(ticket) });
+  await expect(card).toBeVisible();
+  await shot(admin, testInfo, "20-queue-cards");
+  await card.click();
+  await expect(admin).toHaveURL(new RegExp(`/staff/tickets/${ticket}$`));
 });
 
 test("requester can browse Help", async ({ browser }, testInfo) => {

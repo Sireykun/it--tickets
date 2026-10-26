@@ -1,20 +1,16 @@
 import { Download, Inbox, Plus, Search } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PriorityBadge, SlaBadge, StatusChip } from "@/components/tickets/badges";
 import { TicketCard, TicketList } from "@/components/tickets/ticket-card";
-import { buttonClass, LinkButton } from "@/components/ui/button";
+import { LinkButton } from "@/components/ui/button";
 import { MenuLinkItem } from "@/components/ui/dropdown-menu";
 import { Input, Select } from "@/components/ui/field";
 import { ChoiceMenu, FilterChips, FiltersPopover, MoreMenuButton } from "@/components/ui/list-controls";
-import { Alert, Card, EmptyState, PageHeader } from "@/components/ui/misc";
-import { formatRelative } from "@/lib/format";
+import { AccentRule, Alert, Card, EmptyState } from "@/components/ui/misc";
 import { PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL } from "@/lib/labels";
 import { isSuperadmin, requireStaff } from "@/server/authz";
 import { prisma } from "@/server/prisma";
 import { parseQueueParams } from "@/server/queue-params";
-import { assignmentOptions, listQueue, QUEUE_PAGE_SIZE, type QueueSort, type QueueView } from "@/server/tickets";
-import { BULK_FORM_ID, BulkBar, SelectAllCheckbox } from "./bulk-bar";
+import { listQueue, QUEUE_PAGE_SIZE, type QueueSort, type QueueView } from "@/server/tickets";
 
 export const metadata: Metadata = { title: "Queue" };
 
@@ -43,7 +39,7 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
   const sp = await searchParams;
   const params = parseQueueParams(sp);
 
-  const [{ tickets, total, page, view }, teams, topics, campuses, options] = await Promise.all([
+  const [{ tickets, total, page, view }, teams, topics, campuses] = await Promise.all([
     listQueue(user, params),
     prisma.team.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.helpTopic.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -52,7 +48,6 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    assignmentOptions(user),
   ]);
   // Campus filter and labels only matter to people who see more than one campus.
   const multiCampus = campuses.length > 1;
@@ -86,24 +81,22 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
 
   return (
     <>
-      <PageHeader
-        title={VIEW_TITLE[view]}
-        subtitle={`${total} ticket${total === 1 ? "" : "s"}`}
-        actions={
-          <>
-            <LinkButton href="/staff/tickets/new">
-              <Plus className="size-5" aria-hidden /> New ticket
-            </LinkButton>
+      <section className="mb-5 rounded-xl border border-border bg-surface p-4 shadow-card sm:p-5" aria-label="Ticket queue controls">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{VIEW_TITLE[view]}</h1>
+            <AccentRule />
+            <p className="mt-3 text-muted">{total} ticket{total === 1 ? "" : "s"}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <LinkButton href="/staff/tickets/new"><Plus className="size-5" aria-hidden /> New ticket</LinkButton>
             {isSuperadmin(user) && (
               <MoreMenuButton label="More queue actions">
-                <MenuLinkItem href={hrefWith({}).replace("/staff?", "/staff/export?")} download icon={<Download />}>
-                  Export CSV
-                </MenuLinkItem>
+                <MenuLinkItem href={hrefWith({}).replace("/staff?", "/staff/export?")} download icon={<Download />}>Export CSV</MenuLinkItem>
               </MoreMenuButton>
             )}
-          </>
-        }
-      />
+          </div>
+        </div>
 
       {typeof sp.bulk === "string" && (
         <div className="mb-4">
@@ -137,14 +130,14 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
               <input key={k} type="hidden" name={k} value={v} />
             ))}
           <input type="hidden" name="view" value={view} />
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted" aria-hidden />
             <label htmlFor="q" className="sr-only">
               Search
             </label>
-            <Input id="q" name="q" type="search" defaultValue={params.q} placeholder="Search number, subject, requester…" className="pl-10" />
+            <Input id="q" name="q" type="search" defaultValue={params.q} placeholder="Search number, subject, requester…" className="border-l-[3px] border-l-gold pl-10" />
           </div>
-          <button type="submit" className={buttonClass({ variant: "secondary" })}>
+          <button type="submit" className="min-h-11 rounded-lg border border-gold bg-gold px-4 text-base font-bold text-bg transition-colors hover:bg-gold-text">
             Search
           </button>
         </form>
@@ -211,6 +204,7 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
           <FilterChips chips={chips} />
         </div>
       </div>
+      </section>
 
       {tickets.length === 0 ? (
         <Card>
@@ -229,98 +223,13 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
         </Card>
       ) : (
         <>
-          <BulkBar agents={options.agents} teams={options.teams} />
-
-          {/* Phones, tablets and laptops beside the sidebar: rows. The seven-column table needs ~900px of content width. */}
-          <label className="mb-2 flex min-h-11 w-fit cursor-pointer items-center gap-3 pl-3.5 text-sm font-bold text-muted xl:hidden">
-            <SelectAllCheckbox />
-            Select all on this page
-          </label>
-          <TicketList className="xl:hidden">
+          <TicketList>
             {tickets.map((t) => (
-              <li key={t.id} className="flex items-stretch">
-                <label className="grid w-12 shrink-0 cursor-pointer place-items-center border-r border-border">
-                  <input type="checkbox" name="tickets" value={t.ticketNumber} form={BULK_FORM_ID} aria-label={`Select ${t.ticketNumber}`} className="size-5 rounded accent-primary" />
-                </label>
-                <div className="min-w-0 flex-1">
-                  <TicketCard ticket={t} href={`/staff/tickets/${t.ticketNumber}`} variant="staff" />
-                </div>
+              <li key={t.id} className="motion-card overflow-hidden rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2">
+                <TicketCard ticket={t} href={`/staff/tickets/${t.ticketNumber}`} variant="staff" />
               </li>
             ))}
           </TicketList>
-
-          {/* Wide screens: table */}
-          <Card className="hidden overflow-x-auto xl:block">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-surface-2/60 text-xs text-muted">
-                <tr>
-                  <th className="w-12 py-3 pl-4">
-                    <SelectAllCheckbox />
-                  </th>
-                  <th className="px-3 py-3 font-bold">Ticket</th>
-                  <th className="px-3 py-3 font-bold">Status</th>
-                  <th className="hidden px-3 py-3 font-bold 2xl:table-cell">Priority</th>
-                  <th className="px-3 py-3 font-bold">SLA</th>
-                  <th className="px-3 py-3 font-bold">Assignee</th>
-                  <th className="px-4 py-3 text-right font-bold">Updated</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {tickets.map((t) => {
-                  const awaiting = t.status !== "CLOSED" && t.thread[0]?.type === "CLIENT_MESSAGE";
-                  return (
-                    <tr key={t.id} className="relative transition-colors hover:bg-surface-2/70 has-checked:bg-primary-soft/60">
-                      <td className="py-3 pl-4">
-                        <input
-                          type="checkbox"
-                          name="tickets"
-                          value={t.ticketNumber}
-                          form={BULK_FORM_ID}
-                          aria-label={`Select ${t.ticketNumber}`}
-                          className="relative z-10 size-5 cursor-pointer rounded accent-primary"
-                        />
-                      </td>
-                      {/* w-full + max-w-0 lets this column absorb the leftover width and truncate, instead of pushing the table wider. */}
-                      <td className="w-full max-w-0 px-3 py-3">
-                        <Link href={`/staff/tickets/${t.ticketNumber}`} className="block after:absolute after:inset-0 after:left-12">
-                          <span className="flex items-center gap-2 text-xs text-muted">
-                            <span className="font-mono tracking-tight">{t.ticketNumber}</span>
-                            {awaiting && <span className="size-2 rounded-full bg-primary" title="Awaiting reply" />}
-                          </span>
-                          <span className="block truncate text-[15px] font-bold">{t.subject}</span>
-                          <span className="block truncate text-muted">
-                            {multiCampus && t.campus ? `${t.campus.name} · ` : ""}
-                            {t.requester.name}
-                            {t.helpTopic && ` · ${t.helpTopic.name}`}
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="px-3 py-3">
-                        {/* Below 2xl, priority stacks under status so the subject column keeps its width. */}
-                        <span className="flex flex-col items-start gap-1.5">
-                          <StatusChip status={t.status} />
-                          <span className="2xl:hidden">
-                            <PriorityBadge priority={t.priority} />
-                          </span>
-                        </span>
-                      </td>
-                      <td className="hidden px-3 py-3 2xl:table-cell">
-                        <PriorityBadge priority={t.priority} />
-                      </td>
-                      <td className="px-3 py-3">
-                        <SlaBadge ticket={t} compact />
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="block font-bold">{t.assignedAgent?.name ?? <span className="text-muted">Unassigned</span>}</span>
-                        <span className="block text-muted">{t.assignedTeam?.name}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap text-muted tabular-nums">{formatRelative(t.updatedAt)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </Card>
 
           {pages > 1 && (
             <nav aria-label="Pages" className="mt-4 flex items-center justify-between">

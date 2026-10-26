@@ -22,7 +22,7 @@ const sizes: Record<Size, string> = {
 export function buttonClass({ variant = "primary", size = "md", className }: { variant?: Variant; size?: Size; className?: string } = {}) {
   return clsx(
     // active:scale is the "push" feedback; transform-only so it stays cheap.
-    "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-bold transition-[background-color,border-color,transform] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100",
+    "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-bold transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out motion-safe:hover:-translate-y-px motion-safe:active:translate-y-0 motion-safe:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:active:scale-100",
     variants[variant],
     sizes[size],
     className,
