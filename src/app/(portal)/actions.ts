@@ -8,7 +8,7 @@ import { runAction } from "@/server/action-utils";
 import { requireUser } from "@/server/authz";
 import { prisma } from "@/server/prisma";
 import { prepareUploads } from "@/server/storage";
-import { removeAvatar, saveAvatar, saveTheme } from "@/server/profile";
+import { removeAvatar, saveAvatar, saveColorMode, saveTheme } from "@/server/profile";
 import { addCollaborator, addMessage, closeAsRequester, createTicket, giveKudo, removeCollaborator, reopenAsRequester } from "@/server/tickets";
 import {
   changePasswordSchema,
@@ -115,6 +115,12 @@ export async function updateThemeAction(theme: string) {
   await saveTheme(user.id, theme);
   revalidatePath("/", "layout");
   redirect("/account?theme=saved");
+}
+
+// The screen has already switched (applyTheme); this just remembers it on the account.
+export async function saveColorModeAction(mode: string) {
+  const user = await requireUser();
+  await saveColorMode(user.id, mode);
 }
 
 export async function addCcAction(ticketNumber: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
