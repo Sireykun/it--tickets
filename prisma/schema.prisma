@@ -113,6 +113,8 @@ model User {
   avatarStorageKey String?  @map("avatar_storage_key")
   avatarMimeType   String?  @map("avatar_mime_type")
   themePreference  String   @default("ocean") @map("theme_preference")
+  // Light/dark: "light", "dark" or "system" (follow the device). Null until chosen, which means "system".
+  colorMode        String?  @map("color_mode")
   lastLoginAt    DateTime? @map("last_login_at") @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)

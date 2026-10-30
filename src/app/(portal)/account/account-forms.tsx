@@ -1,14 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { Checkbox, Field, Input } from "@/components/ui/field";
 import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { THEME_OPTIONS } from "@/components/ui/user-menu";
 import { initialActionState } from "@/lib/action-state";
 import { applyTheme, type Theme } from "@/lib/theme";
-import { changePasswordAction, emailAlertsAction, updateProfileAction, uploadAvatarAction } from "../actions";
+import { changePasswordAction, emailAlertsAction, saveColorModeAction, updateProfileAction, uploadAvatarAction } from "../actions";
 
 export function PasswordForm() {
   const [state, action] = useActionState(changePasswordAction, initialActionState);
@@ -45,6 +45,7 @@ export function ProfilePhotoForm() {
 
 export function ThemePicker({ theme }: { theme: Theme }) {
   const [value, setValue] = useState(theme);
+  const [, startTransition] = useTransition();
   return (
     <fieldset>
       <legend className="sr-only">Theme</legend>
@@ -65,6 +66,7 @@ export function ThemePicker({ theme }: { theme: Theme }) {
               onChange={() => {
                 setValue(v);
                 applyTheme(v);
+                startTransition(() => saveColorModeAction(v));
               }}
               className="sr-only"
             />

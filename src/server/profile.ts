@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { THEMES as COLOR_MODES, type Theme as ColorMode } from "@/lib/theme";
 import { audit } from "@/server/audit";
 import { prisma } from "@/server/prisma";
 import { getStorage } from "@/server/storage";
@@ -54,5 +55,14 @@ export async function saveTheme(userId: string, theme: string) {
   await prisma.$transaction(async (tx) => {
     await tx.user.update({ where: { id: userId }, data: { themePreference: theme } });
     await audit(tx, { id: userId }, "user.theme.update", { type: "user", id: userId }, { theme });
+  });
+}
+
+// Light / Dark / System, saved on the account so it follows the person to every device.
+export async function saveColorMode(userId: string, mode: string) {
+  if (!COLOR_MODES.includes(mode as ColorMode)) throw new TicketError("Choose Light, Dark, or System.");
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: userId }, data: { colorMode: mode } });
+    await audit(tx, { id: userId }, "user.color_mode.update", { type: "user", id: userId }, { mode });
   });
 }

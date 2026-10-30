@@ -31,15 +31,29 @@ test("requester can browse Help", async ({ browser }, testInfo) => {
   await expect(student.getByRole("link", { name: "Open a ticket" })).toBeVisible();
 });
 
-test("theme choice persists across reloads", async ({ browser }, testInfo) => {
-  const student = await sessionFor(browser, testInfo, STUDENT);
-  await expect(student.locator("html")).toHaveAttribute("data-theme", "dark");
-  await student.getByRole("button", { name: /Account menu for/ }).click();
-  await student.getByRole("menuitemradio", { name: "Light" }).click();
-  await expect(student.locator("html")).toHaveAttribute("data-theme", "light");
+test("theme choice is saved on the account", async ({ browser }, testInfo) => {
+  // One account per device project: both run at once and would overwrite each other's choice.
+  const who = testInfo.project.name === "iphone" ? AGENT : STUDENT;
+  const student = await sessionFor(browser, testInfo, who);
+  // Settings has the picker on every layout (the account dropdown is only in some headers).
+  const pick = async (name: string) => {
+    await student.goto("/account");
+    const saved = student.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/account"));
+    await student.locator("label", { has: student.getByRole("radio", { name, exact: true }) }).click();
+    await expect(student.locator("html")).toHaveAttribute("data-theme", name.toLowerCase());
+    expect((await saved).ok()).toBe(true);
+  };
+  await pick("Light");
   await student.reload();
   await expect(student.locator("html")).toHaveAttribute("data-theme", "light");
   await shot(student, testInfo, "22-light-theme");
+
+  // A fresh browser (no theme cookie) gets the same choice after signing in.
+  const elsewhere = await sessionFor(browser, testInfo, who);
+  await expect(elsewhere.locator("html")).toHaveAttribute("data-theme", "light");
+
+  // Back to the default so other runs start from it.
+  await pick("System");
 });
 
 test("reports are for superadmins only", async ({ browser }, testInfo) => {

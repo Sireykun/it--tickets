@@ -1,4 +1,5 @@
 import type { Role } from "@/generated/prisma/enums";
+import type { Theme } from "@/lib/theme";
 
 // "all" for superadmins; otherwise the campus ids the user works at / may manage users in.
 export type CampusScope = "all" | string[];
@@ -11,6 +12,7 @@ export type AppUser = {
   departmentId: string | null;
   hasPassword: boolean;
   campusId: string | null; // home campus
+  colorMode: Theme | null; // saved light/dark choice; null until they pick one
   campusScope: CampusScope; // campuses whose tickets they can work (staff only; [] for requesters)
   manageCampusIds: CampusScope; // campuses where they may manage users & agents
 };
