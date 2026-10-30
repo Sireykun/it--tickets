@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { googleLoginAction } from "@/app/actions/auth";
 import { googleEnabled } from "@/auth";
 import { BrandMark } from "@/components/brand";
 import { AccentRule } from "@/components/ui/misc";
+import { THEME_COOKIE, toTheme } from "@/lib/theme";
 import { allowedDomain, safeRedirectPath } from "@/server/auth-rules";
 import { getCurrentUser } from "@/server/authz";
-import { EagleCode } from "./eagle-code";
 import { LoginForm } from "./login-form";
+import { LogoEagle } from "./logo-eagle";
 
 export const metadata: Metadata = { title: "Login" };
 
@@ -21,43 +23,45 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const next = typeof params.next === "string" ? safeRedirectPath(params.next) : undefined;
   if (await getCurrentUser()) redirect(next ?? "/go");
   const error = typeof params.error === "string" ? (ERRORS[params.error] ?? "Login failed. Please try again.") : null;
+  // Until someone picks a theme in this browser, the login page follows the device's light/dark setting.
+  const saved = (await cookies()).get(THEME_COOKIE)?.value;
+  const theme = saved ? toTheme(saved) : "system";
 
   return (
-    <main className="grid min-h-dvh bg-bg text-text lg:grid-cols-2">
-      <section className="relative flex min-h-[440px] flex-col justify-between overflow-hidden bg-[#030b16] px-5 py-5 text-slate-100 sm:min-h-[520px] sm:px-7 sm:py-7 lg:min-h-dvh lg:px-7 lg:py-7">
-        <EagleCode />
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-3 rounded-full border border-sky-400/20 bg-[#041527]/85 px-3 py-2 shadow-lg backdrop-blur-md">
+    <main data-theme={theme} className="grid min-h-dvh bg-bg text-text lg:grid-cols-2">
+      {/* The brand panel is deep blue in every theme, so its gold text uses the dark-theme shades. */}
+      <section data-theme="dark" className="relative flex min-h-[560px] flex-col gap-6 overflow-hidden bg-linear-to-br from-[#04223a] via-[#0b4f7a] to-[#1a8fc9] px-5 py-5 text-slate-100 sm:px-7 sm:py-7 lg:min-h-dvh">
+        <div className="relative z-10 flex flex-wrap items-center gap-x-4 gap-y-3">
+          <div className="inline-flex items-center gap-3 rounded-full border border-sky-300/25 bg-[#04223a]/80 px-3 py-2 shadow-lg backdrop-blur-md">
             <BrandMark className="size-9 shrink-0" />
             <div className="pr-1 leading-tight">
               <strong className="block text-sm font-extrabold tracking-wide text-white">CIA FIRST</strong>
               <span className="block text-[10px] font-medium text-gold-text">INTERNATIONAL SCHOOL · IT Help Desk</span>
             </div>
           </div>
-          <div className="flex max-w-full items-center gap-1.5 overflow-x-auto rounded-full border border-sky-400/25 bg-[#061529]/85 p-1 text-[11px] text-slate-300 shadow-lg backdrop-blur-md">
-            <span className="hidden items-center gap-1.5 whitespace-nowrap px-2.5 py-1 font-mono font-semibold text-sky-300 xl:inline-flex"><span aria-hidden className="size-2 rounded-full bg-cyan-400" />LIVE CODE-DROP</span>
-            <button type="button" id="modeHybridBtn" className="whitespace-nowrap rounded-full border border-sky-400/40 bg-sky-400/25 px-2.5 py-1 font-medium text-sky-200">Eagle + Rain</button>
-            <button type="button" id="modePureAsciiBtn" className="whitespace-nowrap rounded-full px-2.5 py-1 font-medium hover:text-white">Pure 0/1</button>
-            <button type="button" id="pulseBoostBtn" className="whitespace-nowrap rounded-full px-2.5 py-1 font-medium hover:text-white">Pulse ⚡</button>
-            <button type="button" id="ruffleBtn" className="whitespace-nowrap rounded-full px-2.5 py-1 font-medium hover:text-white">Scan 👁️</button>
+          <p className="le-slogan text-left leading-tight drop-shadow-lg">
+            <span className="block text-base font-extrabold tracking-wide text-white sm:text-lg">We Are CIA FIRST</span>
+            <span className="block text-sm font-semibold italic text-gold-text sm:text-base">Where Dreams Come True</span>
+          </p>
+        </div>
+
+        <div className="relative z-10 flex flex-1 items-center justify-center">
+          <div className="le-floating w-full max-w-[240px] sm:max-w-[300px] xl:max-w-[360px]">
+            <LogoEagle className="w-full drop-shadow-2xl" />
           </div>
         </div>
 
-        <div className="relative z-10 max-w-xl pb-1 pt-24 sm:pt-32 lg:px-5 lg:pb-3 lg:pt-48">
-          <p className="mb-3 inline-flex flex-wrap items-center gap-1.5 rounded-md border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 font-mono text-[11px] text-sky-300">
-            <span aria-hidden className="size-1.5 rounded-full bg-cyan-400" /><span id="eagleActivityBadge" className="font-semibold">EAGLE: PATROL &amp; SCANNING</span><span className="text-slate-500">|</span><span id="fpsCounter">60 FPS CANVAS</span>
-          </p>
-          <h1 className="max-w-[18ch] text-3xl font-extrabold leading-[1.12] tracking-tight text-white drop-shadow-lg sm:text-4xl xl:text-[40px]">
+        <div className="relative z-10 max-w-xl lg:px-5 lg:pb-3">
+          <h1 className="max-w-[18ch] text-2xl font-extrabold leading-[1.12] tracking-tight text-white drop-shadow-lg sm:text-3xl xl:text-4xl">
             Something broken?<br />We&apos;ll help you fix it.
           </h1>
           <AccentRule />
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-200 sm:text-[15px]">
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-100 sm:text-[15px]">
             Report a problem, follow its progress, and talk to the IT team in one place.
           </p>
-          <p className="mt-2 font-mono text-[11px] text-sky-300/80">Tip: Move your cursor or click on the eagle to ripple the falling binary code streams.</p>
         </div>
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#030917]/85 via-transparent to-[#030917]/30" />
-        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-16 bg-gradient-to-l from-bg to-transparent lg:block" />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#04223a]/90 to-transparent" />
+        <div aria-hidden data-theme={theme} className="pointer-events-none absolute inset-y-0 right-0 hidden w-16 bg-gradient-to-l from-bg to-transparent lg:block" />
       </section>
 
       <section aria-label="Login to IT Help Desk" className="flex min-h-[500px] items-center justify-center bg-bg px-5 py-10 sm:px-10 lg:min-h-dvh">
