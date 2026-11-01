@@ -1,4 +1,5 @@
 import { canManageUsers, isSuperadmin, requireStaff } from "@/server/authz";
+import { getActiveSeason } from "@/server/holidays";
 import { hasFullQueue } from "@/server/roles";
 import { prisma } from "@/server/prisma";
 import { readTheme } from "@/server/theme";
@@ -7,11 +8,12 @@ import { StaffShell } from "./staff-shell";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();
-  const [counts, tasks, theme, profile] = await Promise.all([
+  const [counts, tasks, theme, profile, season] = await Promise.all([
     queueCounts(user),
     prisma.task.count({ where: { status: "OPEN", assignedAgentId: user.id } }),
     readTheme(),
     prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { avatarStorageKey: true } }),
+    getActiveSeason(),
   ]);
   const admin = isSuperadmin(user) ? "super" : canManageUsers(user) ? "users" : null;
   const nav = {
@@ -20,6 +22,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     admin,
     user: { name: user.name, email: user.email, hasPhoto: Boolean(profile.avatarStorageKey) },
     theme,
+    season,
   } as const;
 
   return <StaffShell nav={nav}>{children}</StaffShell>;

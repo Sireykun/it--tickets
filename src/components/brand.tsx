@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span aria-hidden className={clsx("grid size-9 place-items-center overflow-hidden rounded-full bg-white p-0.5 shadow-card", className)}>
+    <span aria-hidden className={clsx("brand-mark grid size-9 place-items-center overflow-hidden rounded-full bg-white p-0.5 shadow-card", className)}>
       <Image src="/cia-first-logo.png" alt="" width={64} height={64} className="size-full object-contain" priority />
     </span>
   );

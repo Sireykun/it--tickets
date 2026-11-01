@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HOLIDAY_MODES, SEASONS } from "@/lib/holidays";
 import { AUDIT_CATEGORIES } from "@/lib/labels";
 import { parseLocalDateTime } from "@/lib/time";
 
@@ -223,6 +224,19 @@ export const helpTopicSchema = namedEntitySchema.extend({
   defaultTeamId: optionalId,
   slaPolicyId: optionalId,
 });
+
+const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please pick a date.");
+
+export const holidayWindowSchema = z
+  .object({
+    id: optionalId,
+    season: z.enum(SEASONS, { message: "Please choose a holiday." }),
+    startsOn: calendarDate,
+    endsOn: calendarDate,
+  })
+  .refine((w) => w.endsOn >= w.startsOn, { message: "The last day can't be before the first day.", path: ["endsOn"] });
+
+export const holidayModeSchema = z.object({ mode: z.enum(HOLIDAY_MODES) });
 
 // System log search params. Anything malformed is dropped rather than rejected, so a bad link still shows the log.
 const dayParam = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined);

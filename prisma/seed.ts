@@ -117,6 +117,25 @@ async function main() {
       await new Promise((r) => setTimeout(r, 5)); // distinct createdAt keeps "SS1" first
     }
   }
+  // Holiday theme dates on first run only (superadmins edit them). Each starts 3 days before the
+  // official holiday. 2026 is from the government schedule, 2027 from the September 2026 sub-decree.
+  if ((await prisma.holidayWindow.count()) === 0) {
+    const holidayWindows = [
+      { season: "khmer-new-year", startsOn: "2026-04-11", endsOn: "2026-04-16" },
+      { season: "pchum-ben", startsOn: "2026-10-07", endsOn: "2026-10-12" },
+      { season: "bon-om-touk", startsOn: "2026-11-20", endsOn: "2026-11-25" },
+      { season: "khmer-new-year", startsOn: "2027-04-11", endsOn: "2027-04-16" },
+      { season: "pchum-ben", startsOn: "2027-09-26", endsOn: "2027-10-01" },
+      { season: "bon-om-touk", startsOn: "2027-11-09", endsOn: "2027-11-14" },
+    ];
+    for (const w of holidayWindows) {
+      await prisma.holidayWindow.create({
+        data: { season: w.season, startsOn: new Date(`${w.startsOn}T00:00:00Z`), endsOn: new Date(`${w.endsOn}T00:00:00Z`) },
+      });
+    }
+  }
+  await prisma.holidayThemeSetting.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
+
   const campuses = await prisma.campus.findMany({ orderBy: { createdAt: "asc" } });
   const main = campuses[0];
 

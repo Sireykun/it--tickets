@@ -24,6 +24,7 @@ import {
 } from "@/server/admin";
 import { type AppUser, requireSuperadmin, requireUserManager } from "@/server/authz";
 import { deleteCanned, saveCanned } from "@/server/canned";
+import { deleteHolidayWindow, saveHolidayMode, saveHolidayWindow } from "@/server/holidays";
 import { deleteArticle, saveArticle } from "@/server/kb";
 import {
   adminUserSchema,
@@ -34,6 +35,8 @@ import {
   firstError,
   formToObject,
   helpTopicSchema,
+  holidayModeSchema,
+  holidayWindowSchema,
   idSchema,
   kbArticleSchema,
   namedEntitySchema,
@@ -125,6 +128,18 @@ export async function saveDepartmentAction(_prev: ActionState, formData: FormDat
 
 export async function saveSlaAction(_prev: ActionState, formData: FormData) {
   return save(formData, slaSchema, saveSlaPolicy, "/staff/admin/sla");
+}
+
+export async function saveHolidayWindowAction(_prev: ActionState, formData: FormData) {
+  return save(formData, holidayWindowSchema, saveHolidayWindow, "/staff/admin/holidays");
+}
+
+export async function deleteHolidayWindowAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, deleteHolidayWindow, "/staff/admin/holidays");
+}
+
+export async function saveHolidayModeAction(_prev: ActionState, formData: FormData) {
+  return save(formData, holidayModeSchema, (actor, data) => saveHolidayMode(actor, data.mode), "/staff/admin/holidays");
 }
 
 export async function saveCannedAction(_prev: ActionState, formData: FormData) {

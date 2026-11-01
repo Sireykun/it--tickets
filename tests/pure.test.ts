@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { pickSeason } from "@/lib/holidays";
+import { todayInAppZone } from "@/lib/time";
 import { isAllowedGoogleProfile, safeRedirectPath } from "@/server/auth-rules";
 import { hitRateLimit } from "@/server/rate-limit";
 import { campusAccess, canViewTicket } from "@/server/roles";
@@ -97,5 +99,34 @@ describe("campusAccess", () => {
     // Only campus admins can hold the permission, even if a row says otherwise.
     expect(campusAccess("AGENT", rows)).toEqual({ campusScope: ["c1", "c2"], manageCampusIds: [] });
     expect(campusAccess("USER", rows)).toEqual({ campusScope: [], manageCampusIds: [] });
+  });
+});
+
+describe("holiday themes", () => {
+  const windows = [
+    { season: "pchum-ben", startsOn: "2026-10-07", endsOn: "2026-10-12" },
+    { season: "bon-om-touk", startsOn: "2026-11-20", endsOn: "2026-11-25" },
+  ];
+
+  it("follows the windows in auto mode, including both end days", () => {
+    expect(pickSeason("2026-10-07", "auto", windows)).toBe("pchum-ben");
+    expect(pickSeason("2026-10-12", "auto", windows)).toBe("pchum-ben");
+    expect(pickSeason("2026-11-22", "auto", windows)).toBe("bon-om-touk");
+    expect(pickSeason("2026-10-13", "auto", windows)).toBeNull();
+    expect(pickSeason("2026-11-19", "auto", windows)).toBeNull();
+  });
+
+  it("can be turned off or forced to one season", () => {
+    expect(pickSeason("2026-10-08", "off", windows)).toBeNull();
+    expect(pickSeason("2026-01-01", "khmer-new-year", windows)).toBe("khmer-new-year");
+  });
+
+  it("ignores unknown seasons", () => {
+    expect(pickSeason("2026-05-01", "auto", [{ season: "halloween", startsOn: "2026-05-01", endsOn: "2026-05-01" }])).toBeNull();
+  });
+
+  it("uses the school's calendar day, not UTC", () => {
+    // 20:00 UTC on 31 Oct is already 1 Nov in Phnom Penh (UTC+7).
+    expect(todayInAppZone(new Date("2026-10-31T20:00:00Z"), "Asia/Phnom_Penh")).toBe("2026-11-01");
   });
 });

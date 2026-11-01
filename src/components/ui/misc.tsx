@@ -30,7 +30,7 @@ export function EmptyState({ icon, title, children }: { icon: ReactNode; title: 
 }
 
 export function AccentRule({ className }: { className?: string }) {
-  return <span aria-hidden className={clsx("mt-3 block h-0.5 w-14 rounded-full bg-gold", className)} />;
+  return <span aria-hidden className={clsx("accent-rule mt-3 block h-0.5 w-14 rounded-full bg-gold", className)} />;
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {

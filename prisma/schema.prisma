@@ -586,3 +586,28 @@ model KbArticle {
   @@index([isPublished, helpTopicId])
   @@map("kb_articles")
 }
+
+// ─── Holiday themes ─────────────────────────────────────────────────────────
+
+// When a Khmer holiday theme shows on the login page and staff console. Lunar holidays move
+// every year, so superadmins keep these dates. season: khmer-new-year | pchum-ben | bon-om-touk (CHECK).
+model HolidayWindow {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  season    String
+  startsOn  DateTime @map("starts_on") @db.Date
+  endsOn    DateTime @map("ends_on") @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([startsOn, endsOn])
+  @@map("holiday_windows")
+}
+
+// Single row (id = 1). mode: "auto" (follow the windows), "off", or a season key to force it.
+model HolidayThemeSetting {
+  id        Int      @id @default(1)
+  mode      String   @default("auto")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("holiday_theme_settings")
+}

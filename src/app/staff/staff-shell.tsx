@@ -4,24 +4,27 @@ import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Brand, BrandMark } from "@/components/brand";
+import { HolidayBanner, HolidayMotif } from "@/components/holiday";
 import { UserMenu } from "@/components/ui/user-menu";
 import { StaffMobileNav, StaffSidebar } from "./staff-nav";
 
 type Nav = ComponentProps<typeof StaffSidebar>;
 
 export function StaffShell({ children, nav }: { children: ReactNode; nav: Nav }) {
+  const { season } = nav;
   const pathname = usePathname();
   const ticketDetail = /^\/staff\/tickets\/(?!new(?:\/|$))[^/]+\/?$/.test(pathname);
   const adminDashboard = pathname === "/staff/admin";
 
   if (ticketDetail) {
     return (
-      <div className="min-h-dvh bg-bg">
+      <div className="holiday-backdrop min-h-dvh bg-bg" data-season={season ?? undefined}>
         <header className="sticky top-0 z-30 border-b border-border-strong bg-surface/95 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-[94rem] items-center gap-4 px-4 sm:px-6">
             <Link href="/staff" className="flex shrink-0 items-center gap-3">
               <BrandMark className="size-9" />
               <span className="text-base font-extrabold tracking-wide sm:text-lg">CIA FIRST</span>
+              {season && <HolidayMotif season={season} className="size-8 text-primary" />}
             </Link>
             <span aria-hidden className="hidden h-7 w-px bg-border-strong sm:block" />
             <span className="hidden text-sm text-muted sm:block">IT Help Desk</span>
@@ -35,14 +38,18 @@ export function StaffShell({ children, nav }: { children: ReactNode; nav: Nav })
               <UserMenu name={nav.user.name} email={nav.user.email} hasPhoto={nav.user.hasPhoto} theme={nav.theme} switchTo="portal" />
             </div>
           </div>
+          {season && <div aria-hidden className="holiday-band absolute inset-x-0 -bottom-1.5" />}
         </header>
-        <main className="motion-page mx-auto max-w-[94rem] px-4 py-5 sm:px-6">{children}</main>
+        <main className="motion-page mx-auto max-w-[94rem] px-4 py-5 sm:px-6">
+          {season && <HolidayBanner season={season} />}
+          {children}
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-bg lg:grid lg:grid-cols-[14.5rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)]">
+    <div data-season={season ?? undefined} className="holiday-backdrop min-h-dvh bg-bg lg:grid lg:grid-cols-[14.5rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-dvh border-r border-border bg-surface/70 lg:block">
         <StaffSidebar {...nav} />
       </aside>
@@ -51,10 +58,14 @@ export function StaffShell({ children, nav }: { children: ReactNode; nav: Nav })
           <StaffMobileNav {...nav} />
           <Link href="/staff" className="mr-auto"><Brand subtitle="Staff console" /></Link>
           <UserMenu name={nav.user.name} email={nav.user.email} hasPhoto={nav.user.hasPhoto} theme={nav.theme} switchTo="portal" />
+          {season && <div aria-hidden className="holiday-band absolute inset-x-0 -bottom-1.5" />}
         </header>
         <main className={adminDashboard
           ? "motion-page w-full min-w-0 px-3 py-4 sm:px-4 lg:px-5 lg:pb-10"
-          : "motion-page mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6"}>{children}</main>
+          : "motion-page mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6"}>
+          {season && <HolidayBanner season={season} />}
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ import {
   Mail,
   Menu,
   MessageSquareText,
+  PartyPopper,
   PlusCircle,
   ScrollText,
   Settings,
@@ -30,8 +31,10 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Brand } from "@/components/brand";
+import { HolidayMotif } from "@/components/holiday";
 import { logoutAction } from "@/app/actions/auth";
 import { UserMenu } from "@/components/ui/user-menu";
+import type { Season } from "@/lib/holidays";
 import type { Theme } from "@/lib/theme";
 
 type Counts = { personal: number; unassigned: number; mine: number; teams: number; open: number; overdue: number; tasks: number };
@@ -43,6 +46,7 @@ type NavProps = {
   admin: "super" | "users" | null;
   user: { name: string; email: string; hasPhoto: boolean };
   theme: Theme;
+  season: Season | null;
   onNavigate?: () => void;
 };
 
@@ -74,7 +78,13 @@ const SETTINGS_GROUPS: { label: string; links: { href: string; label: string; ic
     ],
   },
   { label: "Messaging", links: [{ href: "/staff/admin/email", label: "Email", icon: Mail }] },
-  { label: "System", links: [{ href: "/staff/admin/audit-log", label: "System log", icon: ScrollText }] },
+  {
+    label: "System",
+    links: [
+      { href: "/staff/admin/holidays", label: "Holiday themes", icon: PartyPopper },
+      { href: "/staff/admin/audit-log", label: "System log", icon: ScrollText },
+    ],
+  },
 ];
 
 const itemClass = (active: boolean) =>
@@ -83,17 +93,19 @@ const itemClass = (active: boolean) =>
     active ? "border-gold bg-primary-soft text-primary" : "border-transparent text-muted hover:bg-surface-2 hover:text-text",
   );
 
-function NavLinks({ counts, fullQueue, admin, user, theme, onNavigate }: NavProps) {
+function NavLinks({ counts, fullQueue, admin, user, theme, season, onNavigate }: NavProps) {
   const pathname = usePathname();
   const params = useSearchParams();
   const currentView = pathname === "/staff" ? (params.get("view") ?? "unassigned") : null;
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-4 pb-4 pt-6">
+      <div className={clsx("relative px-4 pb-4 pt-6", season && "bg-gradient-to-b from-primary-soft to-transparent")}>
+        {season && <div aria-hidden className="holiday-band absolute inset-x-0 top-1" />}
         <Link href="/staff" onClick={onNavigate}>
           <Brand subtitle="Staff console" />
         </Link>
+        {season && <HolidayMotif season={season} className="absolute right-2 top-4 size-7 text-primary" />}
       </div>
 
       <nav aria-label="Staff" className="flex-1 space-y-6 overflow-y-auto px-3 pb-4 pt-1">

@@ -40,3 +40,8 @@ export function toLocalInputValue(date: Date | null, tz = APP_TIME_ZONE): string
   const local = new Date(date.getTime() + tzOffsetMs(date, tz));
   return local.toISOString().slice(0, 16);
 }
+
+// Today's calendar date in the school's timezone, as "YYYY-MM-DD" (en-CA formats dates that way).
+export function todayInAppZone(now = new Date(), tz = APP_TIME_ZONE): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+}

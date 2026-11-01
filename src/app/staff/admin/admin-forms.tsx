@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { Role, TicketPriority } from "@/generated/prisma/enums";
 import { type ActionState, initialActionState } from "@/lib/action-state";
+import { HOLIDAY_MODES, type HolidayMode, isSeason, SEASON_INFO, SEASONS } from "@/lib/holidays";
 import { PRIORITIES, PRIORITY_LABEL, ROLE_LABEL } from "@/lib/labels";
 import {
   addToCampusAction,
@@ -17,6 +18,7 @@ import {
   deleteCannedAction,
   deleteDepartmentAction,
   deleteHelpTopicAction,
+  deleteHolidayWindowAction,
   deleteSlaAction,
   deleteTeamAction,
   deleteUserAction,
@@ -26,6 +28,8 @@ import {
   saveDepartmentAction,
   saveEmailTemplateAction,
   saveHelpTopicAction,
+  saveHolidayModeAction,
+  saveHolidayWindowAction,
   saveSlaAction,
   saveTeamAction,
   saveUserAction,
@@ -466,5 +470,66 @@ export function ArticleForm({ article, topics }: { article?: Article; topics: Op
         <p className="text-sm text-muted">Drafts are only visible to superadmins.</p>
       </div>
     </AdminForm>
+  );
+}
+
+// ─── Holiday themes ─────────────────────────────────────────────────────────
+
+type HolidayWindow = { id: string; season: string; startsOn: string; endsOn: string };
+
+export function HolidayWindowForm({ holiday }: { holiday?: HolidayWindow }) {
+  return (
+    <AdminForm
+      action={saveHolidayWindowAction}
+      cancelHref="/staff/admin/holidays"
+      id={holiday?.id}
+      remove={holiday && { action: deleteHolidayWindowAction, name: `${isSeason(holiday.season) ? SEASON_INFO[holiday.season].name : holiday.season} ${holiday.startsOn.slice(0, 4)}`, isPermanent: true }}
+    >
+      <Field label="Holiday" htmlFor="season" className="@lg:col-span-2">
+        <Select id="season" name="season" required defaultValue={holiday?.season ?? ""}>
+          <option value="" disabled>
+            Choose a holiday
+          </option>
+          {SEASONS.map((s) => (
+            <option key={s} value={s}>
+              {SEASON_INFO[s].name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="Theme starts" htmlFor="startsOn" hint="A few days before the holiday works well.">
+        <Input id="startsOn" name="startsOn" type="date" required defaultValue={holiday?.startsOn} />
+      </Field>
+      <Field label="Theme ends" htmlFor="endsOn" hint="The last day of the holiday.">
+        <Input id="endsOn" name="endsOn" type="date" required defaultValue={holiday?.endsOn} />
+      </Field>
+    </AdminForm>
+  );
+}
+
+const MODE_LABEL: Record<HolidayMode, string> = {
+  auto: "Automatic, by the dates below",
+  off: "Off",
+  "khmer-new-year": `Always show ${SEASON_INFO["khmer-new-year"].name}`,
+  "pchum-ben": `Always show ${SEASON_INFO["pchum-ben"].name}`,
+  "bon-om-touk": `Always show ${SEASON_INFO["bon-om-touk"].name}`,
+};
+
+export function HolidayModeForm({ mode }: { mode: HolidayMode }) {
+  const [state, formAction, pending] = useActionState(saveHolidayModeAction, initialActionState);
+  return (
+    <form action={formAction} className="flex flex-wrap items-end gap-3">
+      {state.error && <Alert>{state.error}</Alert>}
+      <Field label="Holiday theme" htmlFor="mode" className="min-w-64 flex-1">
+        <Select id="mode" name="mode" defaultValue={mode}>
+          {HOLIDAY_MODES.map((m) => (
+            <option key={m} value={m}>
+              {MODE_LABEL[m]}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <SubmitButton disabled={pending}>Save</SubmitButton>
+    </form>
   );
 }

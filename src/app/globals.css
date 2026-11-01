@@ -365,6 +365,168 @@ body {
   }
 }
 
+/* Khmer holiday themes (src/lib/holidays.ts) on the login page and staff console, layered on the
+   light/dark mode like the portal accents above. White text on each light --primary passes WCAG AA. */
+[data-season="khmer-new-year"] {
+  --primary: #a3201f;
+  --primary-hover: #821817;
+  --primary-fg: #ffffff;
+  --primary-soft: #fbe7e3;
+  --action: #a3201f;
+  --action-hover: #821817;
+  --focus: #c2362f;
+  --gold: #b8862b;
+}
+
+[data-season="pchum-ben"] {
+  --primary: #9a4a07;
+  --primary-hover: #7a3a05;
+  --primary-fg: #ffffff;
+  --primary-soft: #fbefdc;
+  --action: #9a4a07;
+  --action-hover: #7a3a05;
+  --focus: #c2620f;
+  --gold: #b58a2a;
+}
+
+[data-season="bon-om-touk"] {
+  --primary: #0b6b70;
+  --primary-hover: #08555a;
+  --primary-fg: #ffffff;
+  --primary-soft: #dff3f2;
+  --action: #0b6b70;
+  --action-hover: #08555a;
+  --focus: #12858b;
+  --gold: #b0862c;
+}
+
+:root[data-theme="dark"] [data-season="khmer-new-year"] {
+  --primary: #ff9b8f;
+  --primary-hover: #ffbcb3;
+  --primary-fg: #2a0806;
+  --primary-soft: #3d1512;
+  --action: #9b2620;
+  --action-hover: #b02e27;
+  --focus: #ff9b8f;
+  --gold: #d9b45a;
+}
+
+:root[data-theme="dark"] [data-season="pchum-ben"] {
+  --primary: #f6b56b;
+  --primary-hover: #fbcd94;
+  --primary-fg: #2a1503;
+  --primary-soft: #3b250c;
+  --action: #8a4206;
+  --action-hover: #a0500a;
+  --focus: #f6b56b;
+  --gold: #e0b860;
+}
+
+:root[data-theme="dark"] [data-season="bon-om-touk"] {
+  --primary: #5fd4cf;
+  --primary-hover: #8fe5e1;
+  --primary-fg: #032220;
+  --primary-soft: #0c3533;
+  --action: #0b6b70;
+  --action-hover: #0d7f85;
+  --focus: #5fd4cf;
+  --gold: #e0bf5c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] [data-season="khmer-new-year"] {
+    --primary: #ff9b8f;
+    --primary-hover: #ffbcb3;
+    --primary-fg: #2a0806;
+    --primary-soft: #3d1512;
+    --action: #9b2620;
+    --action-hover: #b02e27;
+    --focus: #ff9b8f;
+    --gold: #d9b45a;
+  }
+
+  :root[data-theme="system"] [data-season="pchum-ben"] {
+    --primary: #f6b56b;
+    --primary-hover: #fbcd94;
+    --primary-fg: #2a1503;
+    --primary-soft: #3b250c;
+    --action: #8a4206;
+    --action-hover: #a0500a;
+    --focus: #f6b56b;
+    --gold: #e0b860;
+  }
+
+  :root[data-theme="system"] [data-season="bon-om-touk"] {
+    --primary: #5fd4cf;
+    --primary-hover: #8fe5e1;
+    --primary-fg: #032220;
+    --primary-soft: #0c3533;
+    --action: #0b6b70;
+    --action-hover: #0d7f85;
+    --focus: #5fd4cf;
+    --gold: #e0bf5c;
+  }
+}
+
+/* Holiday decoration (medium strength): a faint Khmer pattern behind staff pages, a kbach-style band
+   on headers, an ornament in place of the gold heading rule and a gold ring on the logo. Masks take
+   their color from tokens, so each season and mode recolors them. Nothing here moves. */
+[data-season] { --holiday-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='12' viewBox='0 0 32 12'%3E%3Cpath d='M2 6c4-5 10-5 14 0-4 5-10 5-14 0Zm14 0c4-5 10-5 14 0-4 5-10 5-14 0Z' fill='none' stroke='black' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='6' r='1.8'/%3E%3Ccircle cx='9' cy='6' r='1.2'/%3E%3Ccircle cx='23' cy='6' r='1.2'/%3E%3C/svg%3E"); }
+[data-season="khmer-new-year"] { --holiday-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg transform='translate%2832 32%29'%3E%3Cpath d='M0-14c5 5 5 10 0 14-5-4-5-9 0-14Z'/%3E%3Cpath d='M0-14c5 5 5 10 0 14-5-4-5-9 0-14Z' transform='rotate%2890%29'/%3E%3Cpath d='M0-14c5 5 5 10 0 14-5-4-5-9 0-14Z' transform='rotate%28180%29'/%3E%3Cpath d='M0-14c5 5 5 10 0 14-5-4-5-9 0-14Z' transform='rotate%28270%29'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='2.5'/%3E%3Ccircle cx='64' cy='0' r='2.5'/%3E%3Ccircle cx='0' cy='64' r='2.5'/%3E%3Ccircle cx='64' cy='64' r='2.5'/%3E%3C/svg%3E"); --holiday-tile-size: 64px 64px; }
+[data-season="pchum-ben"] { --holiday-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M32 18c6 6 6 14 0 20-6-6-6-14 0-20ZM32 38c-8-2-12-7-13-13 6 1 11 6 13 13ZM32 38c8-2 12-7 13-13-6 1-11 6-13 13Z'/%3E%3Cpath d='M0 0l64 64M64 0L0 64' stroke='black' stroke-width='.8' fill='none' opacity='.5'/%3E%3C/svg%3E"); --holiday-tile-size: 64px 64px; }
+[data-season="bon-om-touk"] { --holiday-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='32' viewBox='0 0 64 32'%3E%3Cpath d='M0 20c8-6 16-6 24 0s16 6 24 0 16-6 16 0' fill='none' stroke='black' stroke-width='1.6'/%3E%3Ccircle cx='12' cy='6' r='1.4'/%3E%3Ccircle cx='44' cy='9' r='1'/%3E%3C/svg%3E"); --holiday-tile-size: 64px 32px; }
+
+.holiday-backdrop[data-season] {
+  isolation: isolate;
+}
+
+.holiday-backdrop[data-season]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--primary);
+  opacity: 0.07;
+  mask-image: var(--holiday-tile);
+  mask-size: var(--holiday-tile-size);
+  mask-repeat: repeat;
+}
+
+.holiday-band {
+  height: 12px;
+  background-color: var(--gold);
+  mask-image: var(--holiday-band);
+  mask-size: 32px 12px;
+  mask-repeat: repeat-x;
+  mask-position: center;
+}
+
+[data-season] .accent-rule {
+  width: 5.5rem;
+  height: 12px;
+  border-radius: 0;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='12' viewBox='0 0 88 12'%3E%3Cpath d='M2 6h28M58 6h28' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M44 0l6 6-6 6-6-6Z'/%3E%3Cpath d='M34 6c2-3 4-3 6 0-2 3-4 3-6 0ZM48 6c2-3 4-3 6 0-2 3-4 3-6 0Z'/%3E%3Ccircle cx='31' cy='6' r='1.6'/%3E%3Ccircle cx='57' cy='6' r='1.6'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
+}
+
+[data-season] .brand-mark {
+  box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px color-mix(in srgb, var(--gold) 28%, transparent);
+}
+
+:lang(km) {
+  font-family: var(--font-khmer), var(--font-sans);
+}
+
+@keyframes holiday-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .holiday-motif .holiday-twinkle { animation: holiday-twinkle 2.4s ease-in-out infinite; }
+}
+
 @keyframes conversation-glow {
   0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 7%, transparent); }
   50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent), 0 0 20px color-mix(in srgb, var(--gold) 7%, transparent); }

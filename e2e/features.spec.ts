@@ -55,3 +55,32 @@ test("reports are for superadmins only", async ({ browser }, testInfo) => {
   await expect(agent).toHaveURL(/\/staff$/);
   expect((await agent.request.get("/staff/reports/export")).status()).toBe(404);
 });
+
+test("superadmin can force a holiday theme on the staff console and login page", async ({ browser }, testInfo) => {
+  const admin = await sessionFor(browser, testInfo, ADMIN);
+  await admin.goto("/staff/admin/holidays");
+  await admin.getByLabel("Holiday theme").selectOption("bon-om-touk");
+  await admin.getByRole("button", { name: "Save" }).click();
+  await admin.waitForURL(/\/staff\/admin\/holidays\?saved=1/);
+
+  try {
+    await admin.goto("/staff");
+    const banner = admin.getByRole("region", { name: "Water Festival" });
+    await expect(banner).toContainText("Happy Water Festival");
+    await shot(admin, testInfo, "30-holiday-staff");
+    await banner.getByRole("button", { name: "Dismiss holiday greeting" }).click();
+    await expect(banner).toBeHidden();
+    await admin.reload();
+    await expect(admin.getByRole("region", { name: "Water Festival" })).toBeHidden();
+
+    const guest = await (await browser.newContext(testInfo.project.use)).newPage();
+    await guest.goto("/login");
+    await expect(guest.getByText("Happy Water Festival")).toBeVisible();
+    await shot(guest, testInfo, "31-holiday-login");
+  } finally {
+    await admin.goto("/staff/admin/holidays");
+    await admin.getByLabel("Holiday theme").selectOption("auto");
+    await admin.getByRole("button", { name: "Save" }).click();
+    await admin.waitForURL(/\/staff\/admin\/holidays\?saved=1/);
+  }
+});
