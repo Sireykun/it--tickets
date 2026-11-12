@@ -2,6 +2,7 @@
 
 import { Headset, LogOut, Monitor, Moon, Sun, UserRound } from "lucide-react";
 import { useState, useTransition } from "react";
+import { saveColorModeAction } from "@/app/(portal)/actions";
 import { logoutAction } from "@/app/actions/auth";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuLinkItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from "@/components/ui/dropdown-menu";
@@ -10,7 +11,7 @@ import { applyTheme, type Theme } from "@/lib/theme";
 export const THEME_OPTIONS = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "Match device", icon: Monitor },
+  { value: "system", label: "System", icon: Monitor },
 ] as const;
 
 type Props = {
@@ -30,6 +31,7 @@ export function UserMenu({ name, email, hasPhoto = false, theme, switchTo, showN
   const handleThemeChange = (value: string) => {
     setCurrent(value as Theme);
     applyTheme(value as Theme);
+    startTransition(() => saveColorModeAction(value));
   };
 
   return (

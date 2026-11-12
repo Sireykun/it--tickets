@@ -69,6 +69,7 @@ const ACTION_LABEL: Record<string, string> = {
   "user.avatar.update": "Changed profile photo",
   "user.avatar.remove": "Removed profile photo",
   "user.theme.update": "Changed theme",
+  "user.color_mode.update": "Changed light/dark mode",
   "email_template.save": "Saved email template",
   "email_template.reset": "Reset email template",
   "kb.save": "Saved knowledge base article",

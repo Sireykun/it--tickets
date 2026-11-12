@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { toTheme } from "@/lib/theme";
 import { audit } from "@/server/audit";
 import { normalizeEmail } from "@/server/auth-rules";
 import { prisma } from "@/server/prisma";
@@ -50,6 +51,7 @@ export async function loadAppUser(id: string): Promise<AppUser | null> {
     departmentId: user.departmentId,
     hasPassword: user.passwordHash !== null,
     campusId: user.campusId,
+    colorMode: user.colorMode ? toTheme(user.colorMode) : null,
     ...campusAccess(user.role, user.staffCampuses),
   };
 }

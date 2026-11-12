@@ -1,8 +1,10 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { cookies } from "next/headers";
 import { auth, signIn, signOut } from "@/auth";
 import type { ActionState } from "@/lib/action-state";
+import { THEME_COOKIE } from "@/lib/theme";
 import { recordSignOut } from "@/server/audit-log";
 import { safeRedirectPath } from "@/server/auth-rules";
 
@@ -35,5 +37,7 @@ export async function googleLoginAction(formData: FormData) {
 export async function logoutAction() {
   const userId = (await auth())?.user?.id;
   if (userId) await recordSignOut(userId);
+  // The choice lives on the account; on a shared PC the next person starts from their own (or the device's).
+  (await cookies()).delete(THEME_COOKIE);
   await signOut({ redirectTo: "/login" });
 }
