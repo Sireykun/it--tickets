@@ -9,7 +9,7 @@ import { formatRelative } from "@/lib/format";
 import { TEMPLATE_DEFS, TEMPLATE_KEYS, TEMPLATE_VARIABLES, type TemplateKey } from "@/server/email/templates";
 import { emailEnabled } from "@/server/email/notify";
 import { prisma } from "@/server/prisma";
-import { resetEmailTemplateAction } from "../actions";
+import { resetEmailTemplateAction, retryFailedEmailsAction } from "../actions";
 import { EmailTemplateForm } from "../admin-forms";
 
 export const metadata: Metadata = { title: "Email" };
@@ -32,9 +32,16 @@ export default async function EmailAdminPage({ searchParams }: PageProps<"/staff
   await requireSuperadmin();
   const sp = await searchParams;
   const editKey = TEMPLATE_KEYS.includes(sp.edit as TemplateKey) ? (sp.edit as TemplateKey) : null;
-  const [overrides, outbox, inbound] = await Promise.all([
+  const isFailedOnly = sp.outbox === "failed";
+  const [overrides, outbox, failedCount, inbound] = await Promise.all([
     prisma.emailTemplate.findMany(),
-    prisma.emailOutbox.findMany({ orderBy: { createdAt: "desc" }, take: 25, include: { ticket: { select: { ticketNumber: true } } } }),
+    prisma.emailOutbox.findMany({
+      where: isFailedOnly ? { status: "FAILED" } : undefined,
+      orderBy: { createdAt: "desc" },
+      take: isFailedOnly ? 100 : 25,
+      include: { ticket: { select: { ticketNumber: true } } },
+    }),
+    prisma.emailOutbox.count({ where: { status: "FAILED" } }),
     prisma.inboundEmail.findMany({ orderBy: { receivedAt: "desc" }, take: 25, include: { ticket: { select: { ticketNumber: true } } } }),
   ]);
   const byKey = new Map(overrides.map((o) => [o.key, o]));
@@ -46,6 +53,11 @@ export default async function EmailAdminPage({ searchParams }: PageProps<"/staff
       {sp.saved === "1" && !editKey && (
         <div className="mb-4">
           <Alert tone="success">Saved.</Alert>
+        </div>
+      )}
+      {sp.retried === "1" && (
+        <div className="mb-4">
+          <Alert tone="success">Queued for sending again.</Alert>
         </div>
       )}
 
@@ -92,9 +104,23 @@ export default async function EmailAdminPage({ searchParams }: PageProps<"/staff
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-labelledby="outbox-heading">
-          <h2 id="outbox-heading" className="mb-2 text-lg font-bold">
-            Recently sent
-          </h2>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="outbox-heading" className="text-lg font-bold">
+              {isFailedOnly ? "Failed" : "Recently sent"}
+            </h2>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Link href={isFailedOnly ? "/staff/admin/email" : "/staff/admin/email?outbox=failed"} className="font-bold text-primary hover:underline">
+                {isFailedOnly ? "Show all" : `Failed (${failedCount})`}
+              </Link>
+              {failedCount > 0 && (
+                <form action={retryFailedEmailsAction.bind(null, null)}>
+                  <Button type="submit" variant="ghost">
+                    <RotateCcw className="size-4" aria-hidden /> Retry all failed
+                  </Button>
+                </form>
+              )}
+            </div>
+          </div>
           <Card>
             <ul className="divide-y divide-border text-sm">
               {outbox.map((m) => (
@@ -108,9 +134,16 @@ export default async function EmailAdminPage({ searchParams }: PageProps<"/staff
                     {m.attempts > 1 && ` · ${m.attempts} attempts`}
                   </p>
                   {m.lastError && <p className="truncate text-danger">{m.lastError}</p>}
+                  {m.status === "FAILED" && (
+                    <form action={retryFailedEmailsAction.bind(null, m.id)} className="mt-1">
+                      <Button type="submit" variant="ghost">
+                        <RotateCcw className="size-4" aria-hidden /> Retry
+                      </Button>
+                    </form>
+                  )}
                 </li>
               ))}
-              {outbox.length === 0 && <li className="px-4 py-8 text-center text-muted">No email yet.</li>}
+              {outbox.length === 0 && <li className="px-4 py-8 text-center text-muted">{isFailedOnly ? "No failed email." : "No email yet."}</li>}
             </ul>
           </Card>
         </section>

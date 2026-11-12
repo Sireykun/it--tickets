@@ -90,7 +90,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/staff/re
         <DailyChart days={report.daily} />
       </Card>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Breakdown title="By status" rows={report.byStatus.map((r) => ({ label: STATUS_LABEL[r.key], count: r.count }))} />
         <Breakdown title="By priority" rows={report.byPriority.map((r) => ({ label: PRIORITY_LABEL[r.key], count: r.count }))} />
         <Breakdown title="By help topic" rows={report.byTopic} />

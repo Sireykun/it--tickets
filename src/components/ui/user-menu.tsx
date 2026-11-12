@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { Headset, LogOut, Monitor, Moon, Sun, UserRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { logoutAction } from "@/app/actions/auth";
@@ -21,9 +22,13 @@ type Props = {
   // Where the "switch app" link goes: staff see the portal from the console and vice versa.
   switchTo: "portal" | "staff" | null;
   showName?: boolean;
+  // Shown under the name when `showName` is set.
+  subtitle?: string;
+  // "sidebar": the trigger sits on the dark teal sidebar.
+  tone?: "default" | "sidebar";
 };
 
-export function UserMenu({ name, email, hasPhoto = false, theme, switchTo, showName }: Props) {
+export function UserMenu({ name, email, hasPhoto = false, theme, switchTo, showName, subtitle, tone = "default" }: Props) {
   const [current, setCurrent] = useState(theme);
   const [, startTransition] = useTransition();
 
@@ -37,11 +42,20 @@ export function UserMenu({ name, email, hasPhoto = false, theme, switchTo, showN
       <MenuTrigger>
         <button
           type="button"
-          className="flex min-h-11 min-w-11 items-center gap-3 rounded-lg px-1 text-left hover:bg-surface-2 data-[state=open]:bg-surface-2"
+          className={clsx(
+            "flex min-h-11 min-w-11 items-center gap-3 rounded-lg px-1 text-left",
+            tone === "sidebar" ? "hover:bg-sidebar-hover data-[state=open]:bg-sidebar-hover" : "hover:bg-surface-2 data-[state=open]:bg-surface-2",
+            showName && "w-full",
+          )}
           aria-label={`Account menu for ${name}`}
         >
           <ProfileAvatar name={name} hasPhoto={hasPhoto} className="size-9" />
-          {showName && <span className="min-w-0 flex-1 truncate font-bold">{name}</span>}
+          {showName && (
+            <span className="min-w-0 flex-1 leading-tight">
+              <span className={clsx("block truncate text-sm font-semibold", tone === "sidebar" && "text-sidebar-strong")}>{name}</span>
+              {subtitle && <span className={clsx("block truncate text-xs", tone === "sidebar" ? "text-sidebar-muted" : "text-muted")}>{subtitle}</span>}
+            </span>
+          )}
         </button>
       </MenuTrigger>
       <MenuContent align={showName ? "start" : "end"} side={showName ? "top" : "bottom"}>

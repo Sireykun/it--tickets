@@ -60,6 +60,7 @@ export async function getAdminDashboard(actor: Pick<AppUser, "role" | "campusSco
       active: await prisma.kbArticle.count({ where: { isPublished: true } }),
       total: await prisma.kbArticle.count(),
     },
+    announcements: { active: await prisma.announcement.count({ where: { isActive: true } }), total: await prisma.announcement.count() },
   };
 
   const outbox = await prisma.emailOutbox.groupBy({ by: ["status"], _count: { _all: true } });

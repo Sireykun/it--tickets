@@ -31,7 +31,7 @@ export function StaffShell({ children, nav }: { children: ReactNode; nav: Nav })
             <nav aria-label="Ticket workspace" className="ml-auto hidden h-full items-center gap-1 sm:flex">
               <Link href="/staff" className="inline-flex h-full items-center border-b-2 border-primary px-3 text-sm font-semibold text-text">Tickets</Link>
               <Link href="/help" className="inline-flex h-full items-center border-b-2 border-transparent px-3 text-sm text-muted hover:text-text">Knowledge base</Link>
-              <Link href={nav.fullQueue ? "/staff?view=open" : "/staff"} className="inline-flex h-full items-center border-b-2 border-transparent px-3 text-sm text-muted hover:text-text">Status</Link>
+              {nav.fullQueue && <Link href="/staff?view=open" className="inline-flex h-full items-center border-b-2 border-transparent px-3 text-sm text-muted hover:text-text">All open</Link>}
             </nav>
             <div className="ml-auto flex items-center gap-2 sm:ml-2">
               <div className="sm:hidden"><StaffMobileNav {...nav} /></div>
@@ -50,7 +50,7 @@ export function StaffShell({ children, nav }: { children: ReactNode; nav: Nav })
 
   return (
     <div data-season={season ?? undefined} className="holiday-backdrop min-h-dvh bg-bg lg:grid lg:grid-cols-[14.5rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-dvh border-r border-border bg-surface/70 lg:block">
+      <aside className="sticky top-0 hidden h-dvh bg-sidebar lg:block">
         <StaffSidebar {...nav} />
       </aside>
       <div className="min-w-0">
@@ -62,7 +62,7 @@ export function StaffShell({ children, nav }: { children: ReactNode; nav: Nav })
         </header>
         <main className={adminDashboard
           ? "motion-page w-full min-w-0 px-3 py-4 sm:px-4 lg:px-5 lg:pb-10"
-          : "motion-page mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6"}>
+          : "motion-page mx-auto max-w-[96rem] px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6"}>
           {season && <HolidayBanner season={season} />}
           {children}
         </main>

@@ -69,6 +69,7 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
   ];
   const mergedInto = links.find((link) => link.kind === "MERGED" && link.outgoing);
   const activity = ticket.thread.filter((entry) => entry.type === "SYSTEM_EVENT").reverse();
+  const messageCount = ticket.thread.length - activity.length;
   const dueAt = ticket.firstRespondedAt ? ticket.resolutionDueAt : ticket.firstResponseDueAt;
 
   return (
@@ -97,13 +98,13 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
 
         {mergedInto && <Alert tone="info">This ticket was merged into <Link href={`/staff/tickets/${mergedInto.other.ticketNumber}`} className="underline">{mergedInto.other.ticketNumber}</Link>.</Alert>}
 
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-6">
+        <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-6">
           <div className="min-w-0 space-y-4">
             <Card className="overflow-hidden border-border-strong">
               <div className="flex items-center gap-2 border-b border-border px-4 py-3.5 sm:px-5">
                 <MessageSquareText className="size-5 text-primary" aria-hidden />
                 <h2 className="font-bold">Conversation</h2>
-                <span className="ml-auto text-xs text-muted">{ticket.thread.filter((entry) => entry.type !== "SYSTEM_EVENT").length} messages</span>
+                <span className="ml-auto text-xs text-muted">{messageCount} {messageCount === 1 ? "message" : "messages"}</span>
               </div>
               {asRequester && <div className="px-4 pt-4"><Alert tone="info">You're seeing what {ticket.requester.name} sees. Internal notes are hidden.</Alert></div>}
               <div className="min-h-52 px-4 py-5 sm:px-6">
@@ -127,7 +128,7 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
                 <div className="mb-2 flex items-center gap-2">
                   <Activity className="size-4 text-primary" aria-hidden />
                   <h2 className="font-bold">Activity</h2>
-                  <span className="ml-auto text-xs text-muted">{activity.length} updates</span>
+                  <span className="ml-auto text-xs text-muted">{activity.length} {activity.length === 1 ? "update" : "updates"}</span>
                 </div>
                 <ul className="divide-y divide-border text-sm">
                   {activity.slice(0, 3).map((entry) => (
@@ -155,6 +156,7 @@ export default async function StaffTicketPage({ params, searchParams }: PageProp
                 <TicketFieldsForm
                   key={`${ticket.status}-${ticket.priority}-${ticket.campusId}-${ticket.departmentId}-${ticket.assignedTeamId}-${ticket.assignedAgentId}`}
                   action={updateTicketAction.bind(null, n)}
+                  viewerId={user.id}
                   ticket={{ status: ticket.status, priority: ticket.priority, campusId: ticket.campusId, departmentId: ticket.departmentId, assignedTeamId: ticket.assignedTeamId, assignedAgentId: ticket.assignedAgentId, assignedAgentName: ticket.assignedAgent?.name ?? null }}
                   campuses={options.campuses}
                   departments={options.departments}

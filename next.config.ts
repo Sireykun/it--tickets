@@ -6,7 +6,7 @@ const MAX_BODY = "52mb";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pg", "bcryptjs"],
   // The e2e container reaches the dev server as http://web:3000.
-  allowedDevOrigins: ["web"],
+  allowedDevOrigins: ["web", "10.41.0.219", "10.41.1.88", "*.trycloudflare.com"],
   experimental: {
     serverActions: { bodySizeLimit: MAX_BODY },
     proxyClientMaxBodySize: MAX_BODY,

@@ -53,7 +53,7 @@ export function ThemePicker({ theme }: { theme: Theme }) {
           <label
             key={v}
             className={clsx(
-              "flex min-h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border text-sm font-bold transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus",
+              "flex min-h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border px-1 text-center text-sm font-bold transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus",
               value === v ? "border-primary bg-primary-soft text-primary" : "border-border text-muted hover:border-border-strong hover:text-text",
             )}
           >

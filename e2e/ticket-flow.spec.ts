@@ -13,7 +13,7 @@ test("student opens a ticket, agent works it, student closes it", async ({ brows
   await expect(student.getByRole("heading", { name: /^Hi, / })).toBeVisible();
   await shot(student, testInfo, "01-my-tickets");
 
-  await fillNewTicket(student, { topic: "Student Wifi", campus: "Main Campus", room: "204", subject, body: "In room 204 the wifi disconnects every few minutes.", file: { name: "error.png", mimeType: "image/png", buffer: PNG } });
+  await fillNewTicket(student, { topic: "Student Wifi", campus: "SS1", room: "204", subject, body: "In room 204 the wifi disconnects every few minutes.", file: { name: "error.png", mimeType: "image/png", buffer: PNG } });
   await shot(student, testInfo, "02-new-ticket");
   await student.getByRole("button", { name: "Submit ticket" }).click();
 
@@ -58,7 +58,7 @@ test("student opens a ticket, agent works it, student closes it", async ({ brows
   await student.goto(`/tickets/${ticketNumber}`);
   await expect(thread(student).getByText("we're looking into the access point")).toBeVisible();
   await expect(student.getByText("AP-3 overloaded")).toHaveCount(0);
-  await expect(student.getByText("In progress", { exact: true })).toBeVisible();
+  await expect(student.getByRole("list", { name: "Ticket progress" }).locator("[aria-current=step]")).toContainText("In progress");
   await shot(student, testInfo, "06-student-sees-reply");
 
   // ── Agent resolves; student replies (reopens), then closes ──
@@ -83,7 +83,7 @@ test("student opens a ticket, agent works it, student closes it", async ({ brows
 test("requesters can't open someone else's ticket or the staff console", async ({ browser }, testInfo) => {
   const agent = await sessionFor(browser, testInfo, AGENT);
   // The agent's own ticket, opened through the portal, belongs to someone other than the student.
-  await fillNewTicket(agent, { topic: "Printer Setup", campus: "Main Campus", room: "Office", subject: `Agent's own printer ${Date.now()}`, body: "Toner light is on." });
+  await fillNewTicket(agent, { topic: "Printer Setup", campus: "SS1", room: "Office", subject: `Agent's own printer ${Date.now()}`, body: "Toner light is on." });
   await agent.getByRole("button", { name: "Submit ticket" }).click();
   await agent.waitForURL(/\/tickets\/TKT-\d{6}/);
   const ticketNumber = agent.url().match(/TKT-\d{6}/)![0];

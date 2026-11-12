@@ -5,3 +5,8 @@ src/generated
 uploads
 test-results
 playwright-report
+.git
+.env
+.env.*
+backups
+tickets-*.csv

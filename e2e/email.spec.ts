@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { ADMIN, AGENT, fillNewTicket, sessionFor, shot, STUDENT } from "./helpers";
+import { ADMIN, AGENT, fillNewTicket, openTicketSection, sessionFor, shot, STUDENT } from "./helpers";
 import { plainText, sendMail, waitForMail } from "./mail";
 
 const thread = (page: Page) => page.getByRole("list", { name: "Conversation" });
@@ -29,7 +29,7 @@ test("email round trip: email opens a ticket, agent reply is emailed, emailed re
 
   const agent = await sessionFor(browser, testInfo, AGENT);
   await agent.goto(`/staff/tickets/${ticketNumber}`);
-  await expect(agent.getByText(/via Email/)).toBeVisible();
+  await expect(agent.getByText(/^TKT-\d{6} · .+ · Email$/)).toBeVisible();
 
   // ── The student got a confirmation email ──
   const confirmation = await waitForMail(requesterEmail, new RegExp(`^\\[${ticketNumber}\\]`));
@@ -68,7 +68,7 @@ test("email round trip: email opens a ticket, agent reply is emailed, emailed re
 test("CC: requester adds and removes someone, staff can add people by name", async ({ browser }, testInfo) => {
   const stamp = `${testInfo.project.name}-${Date.now()}`;
   const student = await sessionFor(browser, testInfo, STUDENT);
-  await fillNewTicket(student, { topic: "Printer Setup", campus: "Main Campus", room: "Classroom", subject: `Printer for class ${stamp}`, body: "The class printer needs setting up." });
+  await fillNewTicket(student, { topic: "Printer Setup", campus: "SS1", room: "Classroom", subject: `Printer for class ${stamp}`, body: "The class printer needs setting up." });
   await student.getByRole("button", { name: "Submit ticket" }).click();
   await student.waitForURL(/\/tickets\/TKT-\d{6}/);
   const ticketNumber = student.url().match(/TKT-\d{6}/)![0];
@@ -87,6 +87,7 @@ test("CC: requester adds and removes someone, staff can add people by name", asy
 
   const agent = await sessionFor(browser, testInfo, AGENT);
   await agent.goto(`/staff/tickets/${ticketNumber}`);
+  await openTicketSection(agent, "People on this ticket");
   await agent.getByLabel("Email to CC").fill(`deputy-${stamp}@ciaschool.edu.kh`);
   await agent.getByLabel("Their name (if new)").fill("Deputy Head");
   await agent.getByRole("button", { name: "Add to CC" }).click();

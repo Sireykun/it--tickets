@@ -1,11 +1,16 @@
-// Background worker: sends queued email and polls the helpdesk mailbox.
+// Background worker: sends queued email, polls the helpdesk mailbox, and runs housekeeping.
 // Run with `npx tsx src/worker/index.ts` (the `worker` compose service).
+import { writeFile } from "node:fs/promises";
 import { fetchInbox, imapConfigured } from "@/server/email/imap";
 import { requeueStuck, sendDueEmails, smtpConfigured } from "@/server/email/smtp";
+import { runMaintenance } from "@/server/maintenance";
 import { prisma } from "@/server/prisma";
 
 const OUTBOX_EVERY_MS = 5_000;
 const INBOX_EVERY_MS = Number(process.env.IMAP_POLL_SECONDS ?? 30) * 1000;
+const MAINTENANCE_EVERY_MS = 60_000;
+// The container healthcheck fails when this file goes stale (see docker-compose.prod.yml).
+const HEARTBEAT_FILE = process.env.WORKER_HEARTBEAT_FILE ?? "/tmp/worker-heartbeat";
 
 let stopping = false;
 
@@ -32,12 +37,14 @@ async function main() {
   await Promise.all([
     every("outbox", OUTBOX_EVERY_MS, async () => {
       const { sent, failed } = await sendDueEmails();
+      await writeFile(HEARTBEAT_FILE, new Date().toISOString());
       return sent || failed ? `sent ${sent}, failed ${failed}` : null;
     }),
     every("inbox", INBOX_EVERY_MS, async () => {
       const results = await fetchInbox();
       return results.length ? results.map((r) => `${r.status}${r.ticketNumber ? ` ${r.ticketNumber}` : ""}${r.reason ? ` (${r.reason})` : ""}`).join("; ") : null;
     }),
+    every("maintenance", MAINTENANCE_EVERY_MS, () => runMaintenance()),
   ]);
   await prisma.$disconnect();
 }

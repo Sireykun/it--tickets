@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { ADMIN, AGENT, openTicketPanel, sessionFor, shot, STUDENT } from "./helpers";
+import { ADMIN, AGENT, openTicketPanel, openTicketSection, sessionFor, shot, STUDENT } from "./helpers";
 
 const thread = (page: Page) => page.getByRole("list", { name: "Conversation" });
 const composer = (page: Page) => page.getByRole("textbox", { name: /^(Message|Internal note)$/ });
@@ -22,7 +22,7 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
 
   // ── Open a walk-in ticket for the student ──
   const main = await openOnBehalf(agent, `Laptop wifi ${stamp}`);
-  await expect(agent.getByText(/via Walk-in/)).toBeVisible();
+  await expect(agent.getByText(/^TKT-\d{6} · .+ · Walk-in$/)).toBeVisible();
   await expect(thread(agent).getByText("Opened on behalf of the requester (Walk-in)")).toBeVisible();
   await expect(thread(agent).getByText("Came to the IT office")).toBeVisible();
 
@@ -44,7 +44,7 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
   await shot(agent, testInfo, "08-agent-ticket-tools");
 
   // ── Task on the ticket: add, comment, complete ──
-  await openTicketPanel(agent);
+  await openTicketSection(agent, "Tasks");
   await agent.getByLabel("New task").fill(`Re-image laptop ${stamp}`);
   await agent.getByLabel("Assign task to agent").selectOption({ label: "Sample Agent" });
   await agent.getByRole("button", { name: "Add task" }).click();
@@ -64,6 +64,7 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
   // ── Transfer to another department ──
   await agent.goto(`/staff/tickets/${main}`);
   await openTicketPanel(agent);
+  await agent.locator("summary", { hasText: "More routing" }).click();
   await agent.getByLabel("Department").selectOption({ label: "Infrastructure" });
   await agent.getByRole("button", { name: "Save changes" }).click();
   await expect(thread(agent).getByText("Transferred from IT Support to Infrastructure")).toBeVisible();
@@ -78,7 +79,7 @@ test("agent tools: on-behalf tickets, canned replies, lock warning, tasks, trans
   await agent.getByRole("button", { name: "Yes, merge" }).click();
   await agent.waitForURL(new RegExp(`/staff/tickets/${main}$`));
   await expect(thread(agent).getByText(`Merged ${dup}`)).toBeVisible();
-  await openTicketPanel(agent);
+  await openTicketSection(agent, "Linked tickets");
   await expect(agent.getByRole("link", { name: new RegExp(dup) })).toBeVisible();
 
   // ── Print view and CSV export ──

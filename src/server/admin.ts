@@ -351,6 +351,19 @@ export async function resetEmailTemplate(actor: AppUser, key: string) {
   });
 }
 
+// Puts FAILED emails back in the queue with a fresh set of attempts: one email, or every failed one.
+export async function retryFailedEmails(actor: AppUser, emailId?: string): Promise<number> {
+  assertAdmin(actor);
+  return prisma.$transaction(async (tx) => {
+    const { count } = await tx.emailOutbox.updateMany({
+      where: { status: "FAILED", ...(emailId ? { id: emailId } : {}) },
+      data: { status: "PENDING", attempts: 0, nextAttemptAt: new Date() },
+    });
+    await audit(tx, actor, "email.retry", { type: "email_outbox", id: emailId ?? "all-failed" }, { count });
+    return count;
+  });
+}
+
 export async function saveCampus(actor: AppUser, input: z.infer<typeof campusSchema>) {
   assertAdmin(actor);
   const { id, ...data } = input;

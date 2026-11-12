@@ -24,6 +24,11 @@ test("superadmin adds a campus and grants a campus admin 'Manage users' there", 
   await admin.goto("/staff/admin/campuses");
   await admin.getByRole("link", { name: new RegExp(`North ${stamp}`) }).click();
   await expect(admin.getByText("manages users & agents")).toBeVisible();
+
+  // Take the campus down again so runs don't pile campuses into every campus picker.
+  await admin.getByRole("button", { name: "Delete" }).click();
+  await admin.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+  await admin.waitForURL(/campuses\?deleted=1/);
 });
 
 test("campus admin manages users of their campus but no other settings", async ({ browser }, testInfo) => {
@@ -41,8 +46,8 @@ test("campus admin manages users of their campus but no other settings", async (
   await cadmin.getByLabel("Full name").fill(`Lab Tech ${stamp}`);
   await cadmin.getByLabel("Email").fill(`labtech-${stamp}@ciaschool.edu.kh`);
   await cadmin.locator("form select#role").selectOption("AGENT");
-  await cadmin.getByLabel("Home campus").selectOption({ label: "Main Campus" });
-  await cadmin.locator("fieldset", { hasText: "Campus access" }).locator("div", { has: cadmin.getByText("Main Campus", { exact: true }) }).last().getByRole("checkbox", { name: "Works here" }).check();
+  await cadmin.getByLabel("Home campus").selectOption({ label: "SS1" });
+  await cadmin.locator("fieldset", { hasText: "Campus access" }).locator("div", { has: cadmin.getByText("SS1", { exact: true }) }).last().getByRole("checkbox", { name: "Works here" }).check();
   await cadmin.getByRole("button", { name: "Create" }).click();
   await cadmin.waitForURL(/users\?saved=1/);
   await expect(cadmin.getByText(`Lab Tech ${stamp}`)).toBeVisible();
@@ -54,7 +59,7 @@ test("campus admin manages users of their campus but no other settings", async (
 test("an agent from another campus can't see this campus's tickets", async ({ browser }, testInfo) => {
   const subject = `Main campus only ${testInfo.project.name}-${Date.now()}`;
   const student = await sessionFor(browser, testInfo, STUDENT);
-  await fillNewTicket(student, { topic: "Printer Setup", campus: "Main Campus", room: "101", subject, body: "Printer offline." });
+  await fillNewTicket(student, { topic: "Printer Setup", campus: "SS1", room: "101", subject, body: "Printer offline." });
   await student.getByRole("button", { name: "Submit ticket" }).click();
   await student.waitForURL(/\/tickets\/TKT-\d{6}/);
   const ticketNumber = student.url().match(/TKT-\d{6}/)![0];
@@ -68,7 +73,7 @@ test("an agent from another campus can't see this campus's tickets", async ({ br
   // The superadmin sees it, labelled with its campus.
   const admin = await sessionFor(browser, testInfo, ADMIN);
   await admin.goto(`/staff/tickets/${ticketNumber}`);
-  await expect(admin.getByText(/Main Campus · via Web/)).toBeVisible();
+  await expect(admin.getByText(/^TKT-\d{6} · SS1 · Web$/)).toBeVisible();
 });
 
 test("superadmin bulk-adds an agent to a campus and removes them from the campus page", async ({ browser }, testInfo) => {
@@ -88,14 +93,15 @@ test("superadmin bulk-adds an agent to a campus and removes them from the campus
   await admin.getByRole("checkbox", { name: `Select ${name}` }).check();
   await admin.getByRole("button", { name: "Bulk actions" }).click();
   await admin.getByRole("menuitem", { name: "Add to campus" }).click();
-  await admin.getByRole("menuitem", { name: "Main Campus" }).click();
+  // Keyboard, not a pointer jump: a straight-line move from the trigger crosses sibling items and swaps the submenu.
+  await admin.getByRole("menuitem", { name: "SS1" }).press("Enter");
   await admin.waitForURL(/bulk=1/);
   await expect(admin.getByText("Updated 1 user.")).toBeVisible();
-  await expect(admin.getByRole("link", { name: new RegExp(name) }).getByText("Main Campus", { exact: true })).toBeVisible();
+  await expect(admin.getByRole("link", { name: new RegExp(name) }).getByText("SS1", { exact: true })).toBeVisible();
   await shot(admin, testInfo, "15-user-bulk");
 
   await admin.goto("/staff/admin/campuses");
-  await admin.getByRole("link", { name: /^Main Campus/ }).click();
-  await admin.getByRole("button", { name: `Remove ${name} from Main Campus` }).click();
-  await expect(admin.getByRole("button", { name: `Remove ${name} from Main Campus` })).toHaveCount(0);
+  await admin.getByRole("link", { name: /^SS1/ }).click();
+  await admin.getByRole("button", { name: `Remove ${name} from SS1` }).click();
+  await expect(admin.getByRole("button", { name: `Remove ${name} from SS1` })).toHaveCount(0);
 });

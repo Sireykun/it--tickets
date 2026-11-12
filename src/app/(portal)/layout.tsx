@@ -16,14 +16,14 @@ export default async function PortalLayout({ children }: { children: React.React
       <PortalSidebar name={user.name} roleLabel={ROLE_LABEL[user.role]} hasPhoto={hasPhoto} staff={isStaff(user.role)} />
       <div className="min-w-0 flex-1">
         <header data-portal-header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur-md lg:hidden">
-          <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 lg:px-6">
+          <div className="mx-auto flex h-16 max-w-[96rem] items-center gap-3 px-4 lg:px-6">
             <Link href="/" className="mr-auto rounded-lg">
               <Brand />
             </Link>
             <UserMenu name={user.name} email={user.email} hasPhoto={hasPhoto} theme={theme} switchTo={isStaff(user.role) ? "staff" : null} />
           </div>
         </header>
-        <main data-portal-main className="motion-page pb-tabbar mx-auto max-w-7xl px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6">{children}</main>
+        <main data-portal-main className="motion-page pb-tabbar mx-auto max-w-[96rem] px-4 py-8 lg:px-6 lg:pb-12 lg:pt-6">{children}</main>
         <TabBar />
       </div>
     </div>

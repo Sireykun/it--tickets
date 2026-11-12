@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { BookOpen, ExternalLink, Headset, History, Inbox, LifeBuoy, LogOut, PlusCircle, Settings, UserRound } from "lucide-react";
+import { BookOpen, ExternalLink, Headset, History, Inbox, LifeBuoy, LogOut, Plus, PlusCircle, Settings, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Brand } from "@/components/brand";
@@ -16,38 +16,92 @@ const tabs = [
   { href: "/account", label: "Account", icon: UserRound, match: (p: string) => p.startsWith("/account") },
 ];
 
+const sidebarItemClass = (active: boolean) =>
+  clsx(
+    "motion-nav flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm",
+    active ? "bg-sidebar-active font-semibold text-sidebar-active-fg" : "font-medium text-sidebar-fg hover:bg-sidebar-hover hover:text-sidebar-strong",
+  );
+
+const sidebarGroupLabelClass = "mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-muted";
+
 export function PortalSidebar({ name, roleLabel, hasPhoto, staff }: { name: string; roleLabel: string; hasPhoto: boolean; staff: boolean }) {
   const pathname = usePathname();
   const closed = useSearchParams().get("show") === "closed";
-  const links = [
+  const requestLinks = [
     { href: "/", label: "Active tickets", icon: Inbox, active: (pathname === "/" && !closed) || (pathname.startsWith("/tickets/") && pathname !== "/tickets/new") },
     { href: "/?show=closed", label: "Support history", icon: History, active: pathname === "/" && closed },
-    { href: "/tickets/new", label: "New ticket", icon: PlusCircle, active: pathname === "/tickets/new" },
-    { href: "/help", label: "Help center", icon: BookOpen, active: pathname.startsWith("/help") },
-    { href: "/account", label: "Settings", icon: Settings, active: pathname === "/account" },
   ];
+  const isHelpActive = pathname.startsWith("/help");
+  const isAccountActive = pathname === "/account";
   return (
-    <aside data-portal-sidebar className="hidden min-h-dvh w-58 shrink-0 border-r border-border bg-surface/70 px-4 py-6 lg:block xl:w-64">
-      <div className="sticky top-6 flex min-h-[calc(100dvh-3rem)] flex-col">
-        <Link href="/" className="mb-8 block rounded-lg px-1 py-1"><Brand /></Link>
-        <nav aria-label="Requester sidebar" className="space-y-1">
-          {links.map(({ href, label, icon: Icon, active }) => <Link key={href} href={href} aria-current={active ? "page" : undefined}
-            className={clsx("motion-nav flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold", active ? label === "Help center" ? "border-gold bg-primary-soft text-text" : "border-gold bg-primary-soft text-primary" : label === "Help center" ? "border-transparent text-text hover:bg-surface-2" : "border-transparent text-muted hover:bg-surface-2 hover:text-text")}>
-            <Icon className="size-4" aria-hidden />{label}
-          </Link>)}
-          <a href="https://nexus.ciaschool.edu.kh/knowledge-base" target="_blank" rel="noopener noreferrer"
-            className="motion-nav flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-bold text-muted hover:bg-surface-2 hover:text-text">
-            <LifeBuoy className="size-4" aria-hidden />Knowledge base<span className="sr-only"> (opens in a new tab)</span><ExternalLink className="ml-auto size-3.5" aria-hidden />
-          </a>
-          {staff && <Link href="/staff" className="motion-nav flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-bold text-muted hover:bg-surface-2 hover:text-text"><Headset className="size-4" aria-hidden />Staff console</Link>}
-        </nav>
-        <div className="mt-auto flex items-center gap-3 rounded-xl border border-border bg-surface-2 px-3 py-4">
-          <ProfileAvatar name={name} hasPhoto={hasPhoto} className="size-10 text-lg" />
-          <span className="min-w-0"><span className="block break-words text-base font-bold leading-tight">{name}</span><span className="mt-1 block text-sm text-muted">{roleLabel}</span></span>
+    <aside data-portal-sidebar data-sidebar className="hidden min-h-dvh w-58 shrink-0 bg-sidebar text-sidebar-strong lg:block xl:w-64">
+      <div className="sticky top-0 flex h-dvh flex-col">
+        <Link href="/" className="mx-3 mb-1 mt-4 block rounded-lg px-2 py-1"><Brand tone="sidebar" /></Link>
+        <div className="px-4 pb-4 pt-3">
+          <Link
+            href="/tickets/new"
+            aria-current={pathname === "/tickets/new" ? "page" : undefined}
+            className="motion-nav flex min-h-11 items-center justify-center gap-2 rounded-lg bg-sidebar-cta px-3 text-sm font-semibold text-sidebar-cta-fg hover:bg-sidebar-cta-hover"
+          >
+            <Plus className="size-4" strokeWidth={2.5} aria-hidden /> New ticket
+          </Link>
         </div>
-        <form action={logoutAction} className="pt-3">
-          <button type="submit" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-danger/50 bg-danger-soft px-3 text-base font-bold text-danger transition-colors hover:border-danger hover:bg-danger-soft/70"><LogOut className="size-4" aria-hidden />Sign out</button>
-        </form>
+        <nav aria-label="Requester sidebar" className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+          <div>
+            <p className={sidebarGroupLabelClass}>My requests</p>
+            <ul className="space-y-0.5">
+              {requestLinks.map(({ href, label, icon: Icon, active }) => (
+                <li key={href}>
+                  <Link href={href} aria-current={active ? "page" : undefined} className={sidebarItemClass(active)}>
+                    <Icon className="size-[1.125rem]" aria-hidden /> {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className={sidebarGroupLabelClass}>Get help</p>
+            <ul className="space-y-0.5">
+              <li>
+                <Link href="/help" aria-current={isHelpActive ? "page" : undefined} className={sidebarItemClass(isHelpActive)}>
+                  <BookOpen className="size-[1.125rem]" aria-hidden /> Help center
+                </Link>
+              </li>
+              <li>
+                <a href="https://nexus.ciaschool.edu.kh/knowledge-base" target="_blank" rel="noopener noreferrer" className={sidebarItemClass(false)}>
+                  <LifeBuoy className="size-[1.125rem]" aria-hidden />
+                  <span className="flex-1">Knowledge base</span>
+                  <span className="sr-only"> (opens in a new tab)</span>
+                  <ExternalLink className="size-3.5" aria-hidden />
+                </a>
+              </li>
+              <li>
+                <Link href="/account" aria-current={isAccountActive ? "page" : undefined} className={sidebarItemClass(isAccountActive)}>
+                  <Settings className="size-[1.125rem]" aria-hidden /> Settings
+                </Link>
+              </li>
+              {staff && (
+                <li>
+                  <Link href="/staff" className={sidebarItemClass(false)}>
+                    <Headset className="size-[1.125rem]" aria-hidden /> Staff console
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </div>
+        </nav>
+        <div className="flex items-center gap-3 border-t border-sidebar-border px-4 pb-5 pt-3">
+          <ProfileAvatar name={name} hasPhoto={hasPhoto} className="size-9" />
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="block truncate text-sm font-semibold">{name}</span>
+            <span className="block truncate text-xs text-sidebar-muted">{roleLabel}</span>
+          </span>
+          <form action={logoutAction}>
+            <button type="submit" aria-label="Sign out" title="Sign out" className="grid size-11 place-items-center rounded-lg text-sidebar-fg hover:bg-sidebar-hover hover:text-sidebar-strong">
+              <LogOut className="size-[1.125rem]" aria-hidden />
+            </button>
+          </form>
+        </div>
       </div>
     </aside>
   );
@@ -66,12 +120,12 @@ export function TabBar() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={clsx("flex min-h-16 flex-col items-center justify-center gap-1 border-t-2 text-sm font-bold", active ? "border-gold text-primary" : "border-transparent text-muted")}
+                className={clsx("flex min-h-16 flex-col items-center justify-center gap-1 border-t-2 px-0.5 text-[0.7rem] font-bold tracking-tight", active ? "border-gold text-primary" : "border-transparent text-muted")}
               >
                 <span className={clsx("grid h-7 w-12 place-items-center rounded-full transition-colors", active && "bg-primary-soft")}>
                   <Icon className="size-5" aria-hidden strokeWidth={active ? 2.4 : 1.8} />
                 </span>
-                {label}
+                <span className="max-w-full truncate">{label}</span>
               </Link>
             </li>
           );

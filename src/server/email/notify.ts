@@ -142,6 +142,13 @@ export async function notifyStatus(tx: Tx, ticketId: string, actor: { id: string
   await enqueue(tx, status === "RESOLVED" ? "ticket.resolved" : "ticket.closed", t, participants(t), actor.id, {});
 }
 
+// Sent by the worker (no acting user) when a ticket misses its SLA.
+export async function notifyOverdue(tx: Tx, ticketId: string, message: string) {
+  if (!emailEnabled()) return;
+  const t = await loadTicket(tx, ticketId);
+  await enqueue(tx, "ticket.overdue", t, await staffToAlert(tx, t), null, { message });
+}
+
 // The requester closed or reopened their own ticket, so the staff working it should know.
 export async function notifyRequesterStatus(tx: Tx, ticketId: string, actor: { id: string }, status: "CLOSED" | "OPEN") {
   if (!emailEnabled()) return;

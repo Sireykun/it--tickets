@@ -6,9 +6,12 @@ next-env.d.ts
 *.tsbuildinfo
 uploads/
 test-results/
+layout-audit-out/
 playwright-report/
 .env
 osTicket-develop-patches/
 ops/
 character-showcase/
 .claude/settings.local.json
+.env.prod
+backups/

@@ -1,17 +1,20 @@
-import { ArrowRight, CircleHelp, Inbox, Laptop, Mail, Plus, Search, Wifi } from "lucide-react";
+import clsx from "clsx";
+import { Inbox, Laptop, Mail, Plus, Search, Wifi } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TicketCard } from "@/components/tickets/ticket-card";
 import { AccentRule, Card, EmptyState } from "@/components/ui/misc";
+import { listAnnouncementsFor } from "@/server/announcements";
 import { requireUser } from "@/server/authz";
 import { listMyTickets } from "@/server/tickets";
+import { ItStatus } from "./it-status";
 
 export const metadata: Metadata = { title: "My tickets" };
 
 const helpLinks = [
-  { label: "Wi-Fi issues", detail: "Connection and network help", icon: Wifi, accent: "green" },
-  { label: "Reset password", detail: "Accounts and sign-in help", icon: Mail, accent: "gold" },
-  { label: "Device support", detail: "Computers and classroom devices", icon: Laptop, accent: "cyan" },
+  { label: "Wi-Fi issues", detail: "Connection and network help", icon: Wifi, accent: "green", href: "/help?q=Wi-Fi" },
+  { label: "Reset password", detail: "Accounts and sign-in help", icon: Mail, accent: "gold", href: "/help?q=password" },
+  { label: "Device support", detail: "Computers and classroom devices", icon: Laptop, accent: "cyan", href: "/help" },
 ] as const;
 
 const helpAccent = {
@@ -26,9 +29,10 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
   const filter = params.show === "closed" ? "closed" : "open";
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 100) : "";
   const tickets = await listMyTickets(user, filter, { q });
+  const notices = await listAnnouncementsFor(user);
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
-      <section aria-label={filter === "closed" ? "Support history" : "Active tickets"} className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-card sm:p-5">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[auto_1fr] xl:gap-8">
+      <section aria-label={filter === "closed" ? "Support history" : "Active tickets"} className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-card sm:p-5 lg:col-start-1 lg:row-span-2 lg:row-start-1">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{filter === "closed" ? "Support history" : `Hi, ${user.name.split(" ")[0]}`}</h1>
@@ -47,7 +51,7 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
             <Search className="size-4 shrink-0 text-muted" aria-hidden />
             <input id="ticket-search" name="q" defaultValue={q} maxLength={100} placeholder="Search tickets..." className="min-h-11 w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted" />
           </div>
-          <button type="submit" className="min-h-11 rounded-lg border border-gold bg-gold px-4 text-base font-bold text-bg transition-colors hover:bg-gold-text">Search</button>
+          <button type="submit" className="min-h-11 rounded-lg border border-gold bg-gold px-4 text-base font-bold text-cia-black transition-colors hover:bg-gold/85">Search</button>
         </form>
 
         {tickets.length === 0 ? (
@@ -63,33 +67,20 @@ export default async function MyTicketsPage({ searchParams }: PageProps<"/">) {
         )}
       </section>
 
-      <aside aria-label="Help and updates" className="grid content-start gap-4 sm:grid-cols-2 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-1 lg:overflow-y-auto">
-        <section className="rounded-xl border border-border bg-surface p-4 shadow-card">
-          <h2 className="text-lg font-bold">Support &amp; announcements</h2>
-          <AccentRule className="mt-2 w-10" />
-          <div className="mt-4 rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2 p-3">
-            <p className="text-base font-bold">Need help from IT?</p>
-            <p className="mt-1 text-base text-muted">Create a ticket and include your campus, room, and device.</p>
-            <Link href="/tickets/new" className="mt-2 inline-flex items-center gap-1 text-base font-bold text-primary hover:underline">Open a request <ArrowRight className="size-4" aria-hidden /></Link>
-          </div>
-        </section>
+      {/* On phones a live notice goes above the ticket list, where it can't be missed. */}
+      <ItStatus notices={notices} className={clsx("lg:col-start-2 lg:row-start-1", notices.length > 0 && "order-first")} />
+      <aside aria-label="Quick help" className="lg:col-start-2 lg:row-start-2">
         <section className="rounded-xl border border-border bg-surface p-4 shadow-card">
           <h2 className="text-lg font-bold">Quick help</h2>
           <AccentRule className="mt-2 w-10" />
           <ul className="mt-3 space-y-2">
-            {helpLinks.map(({ label, detail, icon: Icon, accent }) => <li key={label}>
-              <Link href="/tickets/new" className="flex items-start gap-3 rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2 p-3 transition-colors hover:border-primary/50 hover:bg-primary-soft">
+            {helpLinks.map(({ label, detail, icon: Icon, accent, href }) => <li key={label}>
+              <Link href={href} className="flex items-start gap-3 rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2 p-3 transition-colors hover:border-primary/50 hover:bg-primary-soft">
                 <span className={`grid size-10 shrink-0 place-items-center rounded-lg ${helpAccent[accent]}`}><Icon className="size-5" aria-hidden /></span>
                 <span><span className="block text-base font-bold">{label}</span><span className="block text-sm text-muted">{detail}</span></span>
               </Link>
             </li>)}
           </ul>
-        </section>
-        <section className="rounded-xl border border-border bg-surface p-4 shadow-card sm:col-span-2 lg:col-span-1">
-          <h2 className="text-lg font-bold">IT status</h2>
-          <AccentRule className="mt-2 w-10" />
-          <p className="mt-2 text-base text-muted">For a service issue or outage, submit a ticket so the IT team can investigate.</p>
-          <Link href="/tickets/new" className="mt-3 inline-flex items-center gap-1 text-base font-bold text-primary hover:underline"><CircleHelp className="size-4" aria-hidden /> Report an issue</Link>
         </section>
       </aside>
     </div>

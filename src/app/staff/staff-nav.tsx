@@ -4,23 +4,25 @@ import * as Dialog from "@radix-ui/react-dialog";
 import clsx from "clsx";
 import {
   AlarmClock,
+  ArrowLeft,
   BarChart3,
   BookOpen,
   Building2,
-  ChevronDown,
+  ChevronRight,
   ClipboardList,
   Inbox,
   LayoutDashboard,
   ListTodo,
   LogOut,
   Mail,
+  Megaphone,
   Menu,
   MessageSquareText,
   PartyPopper,
-  PlusCircle,
+  Plus,
   ScrollText,
-  Settings,
-  Tags,
+  SlidersHorizontal,
+  Tag,
   Timer,
   UserRound,
   Users,
@@ -29,7 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { Brand } from "@/components/brand";
 import { HolidayMotif } from "@/components/holiday";
 import { logoutAction } from "@/app/actions/auth";
@@ -63,21 +65,29 @@ const USER_MANAGEMENT_PATHS = ["/staff/admin/users", "/staff/admin/campuses"];
 
 const SETTINGS_GROUPS: { label: string; links: { href: string; label: string; icon: typeof Users; match?: string[] }[] }[] = [
   {
-    label: "Directory",
-    links: [{ href: "/staff/admin/users", label: "User management", icon: Users, match: USER_MANAGEMENT_PATHS }],
-  },
-  {
-    label: "Helpdesk",
+    label: "People",
     links: [
+      { href: "/staff/admin/users", label: "User management", icon: Users, match: USER_MANAGEMENT_PATHS },
       { href: "/staff/admin/teams", label: "Teams", icon: UsersRound },
       { href: "/staff/admin/departments", label: "Departments", icon: Building2 },
-      { href: "/staff/admin/help-topics", label: "Help topics", icon: Tags },
-      { href: "/staff/admin/sla", label: "SLA policies", icon: Timer },
-      { href: "/staff/admin/canned", label: "Canned replies", icon: MessageSquareText },
-      { href: "/staff/admin/knowledge-base", label: "Knowledge base", icon: BookOpen },
     ],
   },
-  { label: "Messaging", links: [{ href: "/staff/admin/email", label: "Email", icon: Mail }] },
+  {
+    label: "Tickets",
+    links: [
+      { href: "/staff/admin/help-topics", label: "Help topics", icon: Tag },
+      { href: "/staff/admin/sla", label: "SLA policies", icon: Timer },
+      { href: "/staff/admin/canned", label: "Canned replies", icon: MessageSquareText },
+    ],
+  },
+  {
+    label: "Content & email",
+    links: [
+      { href: "/staff/admin/knowledge-base", label: "Knowledge base", icon: BookOpen },
+      { href: "/staff/admin/announcements", label: "Announcements", icon: Megaphone },
+      { href: "/staff/admin/email", label: "Email", icon: Mail },
+    ],
+  },
   {
     label: "System",
     links: [
@@ -87,79 +97,128 @@ const SETTINGS_GROUPS: { label: string; links: { href: string; label: string; ic
   },
 ];
 
+const SETTINGS_PATHS = SETTINGS_GROUPS.flatMap((group) => group.links.flatMap(({ href, match = [href] }) => match));
+
 const itemClass = (active: boolean) =>
   clsx(
-    "motion-nav flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-base font-bold",
-    active ? "border-gold bg-primary-soft text-primary" : "border-transparent text-muted hover:bg-surface-2 hover:text-text",
+    "motion-nav flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm",
+    active ? "bg-sidebar-active font-semibold text-sidebar-active-fg" : "font-medium text-sidebar-fg hover:bg-sidebar-hover hover:text-sidebar-strong",
   );
+
+const groupLabelClass = "mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-muted";
 
 function NavLinks({ counts, fullQueue, admin, user, theme, season, onNavigate }: NavProps) {
   const pathname = usePathname();
   const params = useSearchParams();
   const currentView = pathname === "/staff" ? (params.get("view") ?? "unassigned") : null;
+  const isOnSettingsPage = admin === "super" && SETTINGS_PATHS.some((path) => pathname.startsWith(path));
+  // A manual switch only holds on the page where it was made, so navigating shows the menu that page belongs to.
+  const [settingsOverride, setSettingsOverride] = useState<{ pathname: string; isOpen: boolean } | null>(null);
+  const isSettingsOpen = settingsOverride?.pathname === pathname ? settingsOverride.isOpen : isOnSettingsPage;
+  // The button that switched views unmounts, so focus moves to its counterpart in the new view.
+  const shouldMoveFocus = useRef(false);
+  const focusAfterSwitch = (el: HTMLElement | null) => {
+    if (el && shouldMoveFocus.current) {
+      shouldMoveFocus.current = false;
+      el.focus();
+    }
+  };
+  const handleSettingsToggle = (isOpen: boolean) => {
+    shouldMoveFocus.current = true;
+    setSettingsOverride({ pathname, isOpen });
+  };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className={clsx("relative px-4 pb-4 pt-6", season && "bg-gradient-to-b from-primary-soft to-transparent")}>
+    <div data-sidebar className="flex h-full flex-col bg-sidebar text-sidebar-strong">
+      <div className="relative px-5 pb-4 pt-5">
         {season && <div aria-hidden className="holiday-band absolute inset-x-0 top-1" />}
-        <Link href="/staff" onClick={onNavigate}>
-          <Brand subtitle="Staff console" />
+        <Link href="/staff" onClick={onNavigate} className="block rounded-lg">
+          <Brand subtitle="Staff console" tone="sidebar" />
         </Link>
-        {season && <HolidayMotif season={season} className="absolute right-2 top-4 size-7 text-primary" />}
+        {season && <HolidayMotif season={season} className="absolute right-3 top-5 size-7 text-sidebar-accent" />}
       </div>
 
-      <nav aria-label="Staff" className="flex-1 space-y-6 overflow-y-auto px-3 pb-4 pt-1">
-        {fullQueue ? (
-          <FullQueueLinks counts={counts} currentView={currentView} pathname={pathname} showReports={admin === "super"} onNavigate={onNavigate} />
-        ) : (
-          <ul className="space-y-0.5">
-            <li>
-              <Link href="/staff" onClick={onNavigate} aria-current={pathname === "/staff" ? "page" : undefined} className={itemClass(pathname === "/staff")}>
-                <Inbox className="size-[1.125rem]" aria-hidden />
-                <span className="flex-1">My open tickets</span>
-                <span className="min-w-7 rounded-full bg-surface-2 px-2 text-center font-mono text-xs leading-5 text-muted">{counts.personal}</span>
-              </Link>
-            </li>
-            <li>
-              <Link href="/staff/tickets/new" onClick={onNavigate} aria-current={pathname === "/staff/tickets/new" ? "page" : undefined} className={itemClass(pathname === "/staff/tickets/new")}>
-                <PlusCircle className="size-[1.125rem]" aria-hidden /> New ticket
-              </Link>
-            </li>
-            <li>
-              <Link href="/help" onClick={onNavigate} className={itemClass(false)}>
-                <BookOpen className="size-[1.125rem]" aria-hidden /> Help center
-              </Link>
-            </li>
-          </ul>
-        )}
-
-        {admin === "super" && <SettingsLinks pathname={pathname} onNavigate={onNavigate} />}
-        {admin === "users" && (
-          <div>
-            <p className="mb-1.5 px-3 text-xs font-bold uppercase tracking-wide text-gold-text">Admin</p>
+      {isSettingsOpen ? (
+        <SettingsLinks pathname={pathname} onNavigate={onNavigate} onBack={() => handleSettingsToggle(false)} backRef={focusAfterSwitch} />
+      ) : (
+        <>
+          <div className="px-4 pb-4">
             <Link
-              href="/staff/admin/users"
+              href="/staff/tickets/new"
               onClick={onNavigate}
-              aria-current={pathname.startsWith("/staff/admin/users") ? "page" : undefined}
-              className={itemClass(pathname.startsWith("/staff/admin/users"))}
+              aria-current={pathname === "/staff/tickets/new" ? "page" : undefined}
+              className="motion-nav flex min-h-11 items-center justify-center gap-2 rounded-lg bg-sidebar-cta px-3 text-sm font-semibold text-sidebar-cta-fg hover:bg-sidebar-cta-hover"
             >
-              <Users className="size-[1.125rem]" aria-hidden /> User management
+              <Plus className="size-4" strokeWidth={2.5} aria-hidden /> New ticket
             </Link>
           </div>
-        )}
-      </nav>
 
-      <div className="space-y-3 px-3 pb-6 pt-3">
-        <div className="rounded-xl border border-border bg-surface-2 p-2">
-          <UserMenu name={user.name} email={user.email} hasPhoto={user.hasPhoto} theme={theme} switchTo="portal" showName />
-          <p className="pl-12 text-sm text-muted">Staff</p>
+          <nav aria-label="Staff" className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+            {fullQueue ? (
+              <FullQueueLinks counts={counts} currentView={currentView} pathname={pathname} showReports={admin === "super"} onNavigate={onNavigate} />
+            ) : (
+              <ul className="space-y-0.5">
+                <li>
+                  <Link href="/staff" onClick={onNavigate} aria-current={pathname === "/staff" ? "page" : undefined} className={itemClass(pathname === "/staff")}>
+                    <Inbox className="size-[1.125rem]" aria-hidden />
+                    <span className="flex-1">My open tickets</span>
+                    <Count value={counts.personal} />
+                  </Link>
+                </li>
+              </ul>
+            )}
+
+            {admin === "super" && (
+              <div>
+                <p className={groupLabelClass}>Admin</p>
+                <button ref={focusAfterSwitch} type="button" onClick={() => handleSettingsToggle(true)} className={clsx(itemClass(false), "w-full")}>
+                  <SlidersHorizontal className="size-[1.125rem]" aria-hidden />
+                  <span className="flex-1 text-left">Settings</span>
+                  <ChevronRight className="size-4" aria-hidden />
+                </button>
+              </div>
+            )}
+            {admin === "users" && (
+              <div>
+                <p className={groupLabelClass}>Admin</p>
+                <Link
+                  href="/staff/admin/users"
+                  onClick={onNavigate}
+                  aria-current={pathname.startsWith("/staff/admin/users") ? "page" : undefined}
+                  className={itemClass(pathname.startsWith("/staff/admin/users"))}
+                >
+                  <Users className="size-[1.125rem]" aria-hidden /> User management
+                </Link>
+              </div>
+            )}
+          </nav>
+        </>
+      )}
+
+      <div className="space-y-1 border-t border-sidebar-border px-3 pb-5 pt-2">
+        <Link href="/help" onClick={onNavigate} className={itemClass(false)}>
+          <BookOpen className="size-[1.125rem]" aria-hidden /> Help center
+        </Link>
+        <div className="flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+            <UserMenu name={user.name} email={user.email} hasPhoto={user.hasPhoto} theme={theme} switchTo="portal" showName subtitle="Staff" tone="sidebar" />
+          </div>
+          <form action={logoutAction}>
+            <button type="submit" aria-label="Sign out" title="Sign out" className="grid size-11 place-items-center rounded-lg text-sidebar-fg hover:bg-sidebar-hover hover:text-sidebar-strong">
+              <LogOut className="size-[1.125rem]" aria-hidden />
+            </button>
+          </form>
         </div>
-        <form action={logoutAction}>
-          <button type="submit" className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-danger/50 bg-danger-soft px-3 text-base font-bold text-danger transition-colors hover:border-danger"><LogOut className="size-4" aria-hidden /> Sign out</button>
-        </form>
       </div>
     </div>
   );
+}
+
+function Count({ value, isAlert = false }: { value: number; isAlert?: boolean }) {
+  if (isAlert && value > 0) {
+    return <span className="min-w-6 rounded-full bg-sidebar-badge px-2 text-center text-xs font-semibold leading-5 tabular-nums text-sidebar-badge-fg">{value}</span>;
+  }
+  return <span className="text-xs tabular-nums opacity-80">{value}</span>;
 }
 
 function FullQueueLinks({
@@ -172,7 +231,7 @@ function FullQueueLinks({
   return (
     <>
       <div>
-        <p className="mb-1.5 px-3 text-xs font-bold uppercase tracking-wide text-gold-text">Queue</p>
+        <p className={groupLabelClass}>Queue</p>
         <ul className="space-y-0.5">
           {showReports && (
             <li>
@@ -186,9 +245,7 @@ function FullQueueLinks({
               <Link href={`/staff?view=${view}`} onClick={onNavigate} aria-current={currentView === view ? "page" : undefined} className={itemClass(currentView === view)}>
                 <Icon className="size-[1.125rem]" aria-hidden />
                 <span className="flex-1">{label}</span>
-                <span className={clsx("min-w-7 rounded-full px-2 text-center font-mono text-xs leading-5", view === "overdue" && counts.overdue > 0 ? "bg-danger-soft text-danger" : "bg-surface-2 text-muted")}>
-                  {counts[view]}
-                </span>
+                <Count value={counts[view]} isAlert={view === "overdue"} />
               </Link>
             </li>
           ))}
@@ -196,19 +253,14 @@ function FullQueueLinks({
       </div>
 
       <div>
-        <p className="mb-1.5 px-3 text-xs font-bold uppercase tracking-wide text-gold-text">Work</p>
+        <p className={groupLabelClass}>Work</p>
         <ul className="space-y-0.5">
-          <li>
-            <Link href="/staff/tickets/new" onClick={onNavigate} aria-current={pathname === "/staff/tickets/new" ? "page" : undefined} className={itemClass(pathname === "/staff/tickets/new")}>
-              <PlusCircle className="size-[1.125rem]" aria-hidden /> New ticket
-            </Link>
-          </li>
           <li>
             <Link href="/staff/tasks" onClick={onNavigate} aria-current={pathname.startsWith("/staff/tasks") ? "page" : undefined} className={itemClass(pathname.startsWith("/staff/tasks"))}>
               <ListTodo className="size-[1.125rem]" aria-hidden />
               <span className="flex-1">Tasks</span>
-              <span className="min-w-7 rounded-full bg-surface-2 px-2 text-center font-mono text-xs leading-5 text-muted" title="Open tasks assigned to you">
-                {counts.tasks}
+              <span title="Open tasks assigned to you">
+                <Count value={counts.tasks} />
               </span>
             </Link>
           </li>
@@ -219,55 +271,51 @@ function FullQueueLinks({
               </Link>
             </li>
           )}
-          <li>
-            <Link href="/help" onClick={onNavigate} className={itemClass(false)}>
-              <BookOpen className="size-[1.125rem]" aria-hidden /> Help center
-            </Link>
-          </li>
         </ul>
       </div>
     </>
   );
 }
 
-function SettingsLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  const isInSettings = pathname.startsWith("/staff/admin");
-  const [isOpen, setIsOpen] = useState(isInSettings);
+function SettingsLinks({
+  pathname,
+  onNavigate,
+  onBack,
+  backRef,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+  onBack: () => void;
+  backRef: (el: HTMLElement | null) => void;
+}) {
   return (
-    <div>
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        aria-controls="settings-links"
-        onClick={() => setIsOpen((o) => !o)}
-        className={clsx(itemClass(false), "w-full", isInSettings && !isOpen && "text-primary")}
-      >
-        <Settings className="size-[1.125rem]" aria-hidden />
-        <span className="flex-1 text-left">Settings</span>
-        <ChevronDown className={clsx("size-4 transition-transform", isOpen && "rotate-180")} aria-hidden />
-      </button>
-      {isOpen && (
-        <div id="settings-links" className="mt-1 ml-5 space-y-3 border-l border-border pl-2">
-          {SETTINGS_GROUPS.map((group) => (
-            <div key={group.label}>
-              <p className="mb-0.5 px-3 pt-1 text-xs font-bold uppercase tracking-wide text-gold-text">{group.label}</p>
-              <ul className="space-y-0.5">
-                {group.links.map(({ href, label, icon: Icon, match = [href] }) => {
-                  const isActive = match.some((m) => pathname.startsWith(m));
-                  return (
-                    <li key={href}>
-                      <Link href={href} onClick={onNavigate} aria-current={isActive ? "page" : undefined} className={itemClass(isActive)}>
-                        <Icon className="size-[1.125rem]" aria-hidden /> {label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <>
+      <div className="border-b border-sidebar-border px-3 pb-3">
+        <button ref={backRef} type="button" onClick={onBack} className="motion-nav flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-sm font-medium text-sidebar-fg hover:bg-sidebar-hover hover:text-sidebar-strong">
+          <ArrowLeft className="size-4" aria-hidden /> Back to menu
+        </button>
+        <h2 className="px-3 pt-1 text-lg font-bold tracking-tight">Settings</h2>
+      </div>
+      <nav aria-label="Settings" className="flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-3">
+        {SETTINGS_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className={groupLabelClass}>{group.label}</p>
+            <ul className="space-y-0.5">
+              {group.links.map(({ href, label, icon: Icon, match = [href] }) => {
+                const isActive = match.some((m) => pathname.startsWith(m));
+                return (
+                  <li key={href}>
+                    <Link href={href} onClick={onNavigate} aria-current={isActive ? "page" : undefined} className={itemClass(isActive)}>
+                      <Icon className="size-[1.125rem]" aria-hidden /> {label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+    </>
   );
 }
 
@@ -288,14 +336,14 @@ export function StaffMobileNav(props: NavProps) {
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim backdrop-blur-[2px]" />
-        <Dialog.Content className="fixed inset-y-0 left-0 z-50 w-[min(20rem,85vw)] border-r border-border bg-surface shadow-raised focus:outline-none">
+        <Dialog.Content data-sidebar className="fixed inset-y-0 left-0 z-50 w-[min(20rem,85vw)] bg-sidebar shadow-raised focus:outline-none">
           <Dialog.Title className="sr-only">Navigation</Dialog.Title>
-          <Dialog.Close className="absolute top-4 right-3 grid size-10 place-items-center rounded-lg hover:bg-surface-2" aria-label="Close menu">
-            <X className="size-5" aria-hidden />
-          </Dialog.Close>
           <Suspense>
             <NavLinks {...props} onNavigate={() => setOpen(false)} />
           </Suspense>
+          <Dialog.Close className="absolute right-3 top-4 grid size-11 place-items-center rounded-lg text-sidebar-fg hover:bg-sidebar-hover hover:text-sidebar-strong" aria-label="Close menu">
+            <X className="size-5" aria-hidden />
+          </Dialog.Close>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

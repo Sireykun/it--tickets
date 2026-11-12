@@ -1,66 +1,88 @@
 @import "tailwindcss";
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────
-   Light: cool neutral base + the helpdesk blue. Dark (the default, see
-   src/lib/theme.ts): CIA FIRST Digital Nexus palette — near-black slate canvas,
-   navy cards, cyan links, teal actions, and muted gold accents. Status and
-   priority hues are semantic, never decorative.
+   CIA FIRST brand palette: CIA Blue #01A3D2, CIA Gold #BCA560, CIA Black #171818.
+   Light: blue-tinted surfaces. Dark (the default, see src/lib/theme.ts): the ink
+   ladder (there is no navy in the brand). Contrast rules from the brand guide:
+   full-strength blue is a fill with a black label (white on it fails), so links
+   on light use blue-700; gold is never text on light, so gold text uses gold-700.
+   Status and priority hues are semantic, never decorative.
 
    Shape rule (keep it consistent):
      controls (buttons, inputs, nav items, segmented tabs) → rounded-lg (8px)
      surfaces (cards, panels, message bubbles, dialogs)    → rounded-xl (12px)
      chips, counts, avatars                                 → rounded-full */
 :root {
-  --bg: #f4f6f8;
-  --surface: #ffffff;
-  --surface-2: #eef1f4;
-  --border: #e0e5ea;
-  --border-strong: #c5cdd6;
-  --text: #0f1b26;
-  --muted: #55626e;
-  --primary: #17587f;
-  --primary-hover: #104562;
-  --primary-fg: #ffffff;
-  --primary-soft: #e3eef6;
-  --action: #17587f;
-  --action-hover: #104562;
-  --action-fg: #ffffff;
-  --focus: #2b7bba;
-  --danger: #b42318;
-  --danger-soft: #fdecea;
-  --shadow: 16 32 48;
-  /* Solid brand surface (login panel); stays deep blue in both themes. */
-  --brand: #17587f;
-  --brand-fg: #ffffff;
-  --gold: #a88a3d;
-  --gold-text: #7a5d12;
-  --accent-green: #12704a;
-  --accent-green-soft: #e2f4eb;
-  /* Staff replies and kudos. */
-  --reply-bg: #fbf6e9;
-  --reply-border: #d9c48a;
+  /* Fixed brand colours for always-dark surfaces (the login panel); the same in every mode. */
+  --cia-blue: #01a3d2;
+  --cia-gold: #bca560;
+  --cia-black: #171818;
+  --cia-ink: #0e0e0e;
 
-  --open: #1c5fa8;
-  --open-soft: #e3eefa;
+  --bg: #f0f6fc;
+  --surface: #ffffff;
+  --surface-2: #f7fafd;
+  --border: #e2edf5;
+  --border-strong: #c8d6e3;
+  --text: #0d1b2a;
+  --muted: #4a6080;
+  --primary: #017293;
+  --primary-hover: #015a74;
+  --primary-fg: #ffffff;
+  --primary-soft: #e6f6fa;
+  --action: #01a3d2;
+  --action-hover: #018bb2;
+  --action-fg: #171818;
+  --focus: #018bb2;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --shadow: 13 27 42;
+  --brand: #171818;
+  --brand-fg: #ffffff;
+  --gold: #bca560;
+  --gold-text: #7a6b3e;
+  --accent-green: #046c4a;
+  --accent-green-soft: #ecfdf3;
+  /* Staff replies and kudos. */
+  --reply-bg: #f8f6ef;
+  --reply-border: #d7c9a0;
+
+  --open: #015a74;
+  --open-soft: #e6f6fa;
   --progress: #6a3fb5;
   --progress-soft: #efe8fa;
-  --resolved: #12704a;
-  --resolved-soft: #e2f4eb;
-  --closed: #4f5b66;
-  --closed-soft: #eceff2;
+  --resolved: #046c4a;
+  --resolved-soft: #ecfdf3;
+  --closed: #3e4c5b;
+  --closed-soft: #f1f4f7;
 
-  --p-low: #55626e;
-  --p-normal: #1c5fa8;
-  --p-high: #a64708;
+  --p-low: #4a6080;
+  --p-normal: #015a74;
+  --p-high: #8a4b08;
   --p-emergency: #b42318;
 
   --note: #6b4e00;
   --note-bg: #fff7dc;
   --note-border: #ecc94b;
-  --warn: #a64708;
-  --warn-soft: #fff1e6;
+  --warn: #8a4b08;
+  --warn-soft: #fff8eb;
   /* Dims the page behind dialogs and drawers. */
-  --scrim: rgb(15 27 38 / 0.45);
+  --scrim: rgb(23 24 24 / 0.45);
+  /* Staff and portal sidebar: a deep brand-teal panel in every mode, gold for the main action. */
+  --sidebar: #0b3a4a;
+  --sidebar-fg: #cfe1e6;
+  --sidebar-strong: #ffffff;
+  --sidebar-muted: #a9c6cf;
+  --sidebar-hover: rgb(255 255 255 / 0.08);
+  --sidebar-border: rgb(255 255 255 / 0.12);
+  --sidebar-active: #ffffff;
+  --sidebar-active-fg: #0b3a4a;
+  --sidebar-accent: #d9c58a;
+  --sidebar-cta: #bca560;
+  --sidebar-cta-hover: #cbb675;
+  --sidebar-cta-fg: #1d1708;
+  --sidebar-badge: #f97066;
+  --sidebar-badge-fg: #2b0b08;
   /* Campus identity (categorical, fixed order, validated for colour-blind separation).
      Always shown next to the campus name; never used for status. */
   --campus-1: #2a78d6;
@@ -74,50 +96,53 @@
 /* Kept as two identical blocks because a media query can't share a selector list. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #020617;
-  --surface: #0f172a;
-  --surface-2: #17243a;
-  --border: #1e293b;
-  --border-strong: #334155;
-  --text: #f1f5f9;
-  --muted: #cbd5e1;
-  --primary: #5cc8e8;
-  --primary-hover: #8cddf2;
-  --primary-fg: #05151d;
-  --primary-soft: #0b3042;
-  --action: #015f7a;
-  --action-hover: #017596;
-  --action-fg: #ffffff;
-  --focus: #5cc8e8;
-  --danger: #f2837a;
+  --bg: #0e0e0e;
+  --surface: #171818;
+  --surface-2: #222323;
+  --border: #2e2f2f;
+  --border-strong: #454646;
+  --text: #f3f3f3;
+  --muted: #aeaeae;
+  --primary: #01a3d2;
+  --primary-hover: #34b5db;
+  --primary-fg: #171818;
+  --primary-soft: #002934;
+  --action: #01a3d2;
+  --action-hover: #34b5db;
+  --action-fg: #171818;
+  --focus: #01a3d2;
+  --danger: #fda29b;
   --danger-soft: #3a1714;
   --shadow: 0 0 0;
-  --brand: #015f7a;
+  --brand: #171818;
   --brand-fg: #ffffff;
   --gold: #bca560;
-  --gold-text: #d4bc84;
-  --accent-green: #6fd0a2;
-  --accent-green-soft: #123628;
-  --reply-bg: #211f24;
-  --reply-border: #6b5c30;
-  --open: #7db3ea;
-  --open-soft: #16304d;
+  --gold-text: #c9b780;
+  --accent-green: #6ce9a6;
+  --accent-green-soft: #0f2e22;
+  --reply-bg: #1f1d17;
+  --reply-border: #5e5230;
+  --open: #34b5db;
+  --open-soft: #002934;
   --progress: #b99af0;
   --progress-soft: #2c2048;
-  --resolved: #6fd0a2;
-  --resolved-soft: #123628;
-  --closed: #a5b1bc;
-  --closed-soft: #252f39;
-  --p-low: #cbd5e1;
-  --p-normal: #7db3ea;
+  --resolved: #6ce9a6;
+  --resolved-soft: #0f2e22;
+  --closed: #aeaeae;
+  --closed-soft: #2e2f2f;
+  --p-low: #aeaeae;
+  --p-normal: #34b5db;
   --p-high: #f0a66b;
-  --p-emergency: #f2837a;
+  --p-emergency: #fda29b;
   --note: #f3d77a;
   --note-bg: #2a2410;
   --note-border: #6e5a1c;
   --warn: #f0a66b;
   --warn-soft: #3a2412;
-  --scrim: rgb(2 6 14 / 0.65);
+  --scrim: rgb(0 0 0 / 0.65);
+  --sidebar: #0a2731;
+  --sidebar-active: #e6f6fa;
+  --sidebar-active-fg: #0a2731;
   --campus-1: #3987e5;
   --campus-2: #d95926;
   --campus-3: #199e70;
@@ -129,50 +154,53 @@
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     color-scheme: dark;
-    --bg: #020617;
-    --surface: #0f172a;
-    --surface-2: #17243a;
-    --border: #1e293b;
-    --border-strong: #334155;
-    --text: #f1f5f9;
-    --muted: #cbd5e1;
-    --primary: #5cc8e8;
-    --primary-hover: #8cddf2;
-    --primary-fg: #05151d;
-    --primary-soft: #0b3042;
-    --action: #015f7a;
-    --action-hover: #017596;
-    --action-fg: #ffffff;
-    --focus: #5cc8e8;
-    --danger: #f2837a;
+    --bg: #0e0e0e;
+    --surface: #171818;
+    --surface-2: #222323;
+    --border: #2e2f2f;
+    --border-strong: #454646;
+    --text: #f3f3f3;
+    --muted: #aeaeae;
+    --primary: #01a3d2;
+    --primary-hover: #34b5db;
+    --primary-fg: #171818;
+    --primary-soft: #002934;
+    --action: #01a3d2;
+    --action-hover: #34b5db;
+    --action-fg: #171818;
+    --focus: #01a3d2;
+    --danger: #fda29b;
     --danger-soft: #3a1714;
     --shadow: 0 0 0;
-    --brand: #015f7a;
+    --brand: #171818;
     --brand-fg: #ffffff;
     --gold: #bca560;
-    --gold-text: #d4bc84;
-    --accent-green: #6fd0a2;
-    --accent-green-soft: #123628;
-    --reply-bg: #211f24;
-    --reply-border: #6b5c30;
-    --open: #7db3ea;
-    --open-soft: #16304d;
+    --gold-text: #c9b780;
+    --accent-green: #6ce9a6;
+    --accent-green-soft: #0f2e22;
+    --reply-bg: #1f1d17;
+    --reply-border: #5e5230;
+    --open: #34b5db;
+    --open-soft: #002934;
     --progress: #b99af0;
     --progress-soft: #2c2048;
-    --resolved: #6fd0a2;
-    --resolved-soft: #123628;
-    --closed: #a5b1bc;
-    --closed-soft: #252f39;
-    --p-low: #cbd5e1;
-    --p-normal: #7db3ea;
+    --resolved: #6ce9a6;
+    --resolved-soft: #0f2e22;
+    --closed: #aeaeae;
+    --closed-soft: #2e2f2f;
+    --p-low: #aeaeae;
+    --p-normal: #34b5db;
     --p-high: #f0a66b;
-    --p-emergency: #f2837a;
+    --p-emergency: #fda29b;
     --note: #f3d77a;
     --note-bg: #2a2410;
     --note-border: #6e5a1c;
     --warn: #f0a66b;
     --warn-soft: #3a2412;
-    --scrim: rgb(2 6 14 / 0.65);
+    --scrim: rgb(0 0 0 / 0.65);
+    --sidebar: #0a2731;
+    --sidebar-active: #e6f6fa;
+    --sidebar-active-fg: #0a2731;
     --campus-1: #3987e5;
     --campus-2: #d95926;
     --campus-3: #199e70;
@@ -183,6 +211,10 @@
 }
 
 @theme inline {
+  --color-cia-blue: var(--cia-blue);
+  --color-cia-gold: var(--cia-gold);
+  --color-cia-black: var(--cia-black);
+  --color-cia-ink: var(--cia-ink);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -226,13 +258,27 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-scrim: var(--scrim);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-fg: var(--sidebar-fg);
+  --color-sidebar-strong: var(--sidebar-strong);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-fg: var(--sidebar-active-fg);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-cta: var(--sidebar-cta);
+  --color-sidebar-cta-hover: var(--sidebar-cta-hover);
+  --color-sidebar-cta-fg: var(--sidebar-cta-fg);
+  --color-sidebar-badge: var(--sidebar-badge);
+  --color-sidebar-badge-fg: var(--sidebar-badge-fg);
   --color-campus-1: var(--campus-1);
   --color-campus-2: var(--campus-2);
   --color-campus-3: var(--campus-3);
   --color-campus-4: var(--campus-4);
   --color-campus-5: var(--campus-5);
   --color-campus-6: var(--campus-6);
-  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-body), var(--font-khmer), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
   /* Shadows are tinted with the page hue, never pure black on light. */
   --shadow-card: 0 1px 2px rgb(var(--shadow) / 0.05), 0 1px 1px rgb(var(--shadow) / 0.03);
@@ -264,6 +310,11 @@ body {
   outline-offset: 2px;
 }
 
+/* The default focus blue is too dark to see on the teal sidebar. */
+[data-sidebar] :focus-visible {
+  outline-color: var(--sidebar-accent);
+}
+
 /* Room for the phone bottom tab bar + iOS home indicator. */
 .pb-tabbar {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom));
@@ -281,7 +332,7 @@ body {
   }
 }
 
-/* Per-user accent (profile "theme"), layered on top of the light/dark mode. Ocean is the base palette.
+/* Per-user accent (profile "theme"), layered on top of the light/dark mode. "ocean" (labelled CIA Blue) is the base palette.
    Light values first; the dark-mode selectors below are more specific and win when dark is active. */
 [data-portal-theme="violet"] {
   --primary: #5b3a9e;
@@ -290,6 +341,7 @@ body {
   --primary-soft: #ece6f8;
   --action: #5b3a9e;
   --action-hover: #472c80;
+  --action-fg: #ffffff;
   --focus: #6b4bc2;
 }
 
@@ -300,6 +352,7 @@ body {
   --primary-soft: #fbe6ef;
   --action: #a3305f;
   --action-hover: #82244b;
+  --action-fg: #ffffff;
   --focus: #b83d6e;
 }
 
@@ -315,6 +368,7 @@ body {
   --primary-soft: #33254e;
   --action: #68449a;
   --action-hover: #7955ac;
+  --action-fg: #ffffff;
   --focus: #c4a7ff;
 }
 
@@ -330,6 +384,7 @@ body {
   --primary-soft: #4b2940;
   --action: #8b3561;
   --action-hover: #a54373;
+  --action-fg: #ffffff;
   --focus: #f7a2ca;
 }
 
@@ -346,6 +401,7 @@ body {
     --primary-soft: #33254e;
     --action: #68449a;
     --action-hover: #7955ac;
+    --action-fg: #ffffff;
     --focus: #c4a7ff;
   }
 
@@ -361,6 +417,7 @@ body {
     --primary-soft: #4b2940;
     --action: #8b3561;
     --action-hover: #a54373;
+    --action-fg: #ffffff;
     --focus: #f7a2ca;
   }
 }
@@ -374,6 +431,7 @@ body {
   --primary-soft: #fbe7e3;
   --action: #a3201f;
   --action-hover: #821817;
+  --action-fg: #ffffff;
   --focus: #c2362f;
   --gold: #b8862b;
 }
@@ -385,6 +443,7 @@ body {
   --primary-soft: #fbefdc;
   --action: #9a4a07;
   --action-hover: #7a3a05;
+  --action-fg: #ffffff;
   --focus: #c2620f;
   --gold: #b58a2a;
 }
@@ -396,6 +455,7 @@ body {
   --primary-soft: #dff3f2;
   --action: #0b6b70;
   --action-hover: #08555a;
+  --action-fg: #ffffff;
   --focus: #12858b;
   --gold: #b0862c;
 }
@@ -407,6 +467,7 @@ body {
   --primary-soft: #3d1512;
   --action: #9b2620;
   --action-hover: #b02e27;
+  --action-fg: #ffffff;
   --focus: #ff9b8f;
   --gold: #d9b45a;
 }
@@ -418,6 +479,7 @@ body {
   --primary-soft: #3b250c;
   --action: #8a4206;
   --action-hover: #a0500a;
+  --action-fg: #ffffff;
   --focus: #f6b56b;
   --gold: #e0b860;
 }
@@ -429,6 +491,7 @@ body {
   --primary-soft: #0c3533;
   --action: #0b6b70;
   --action-hover: #0d7f85;
+  --action-fg: #ffffff;
   --focus: #5fd4cf;
   --gold: #e0bf5c;
 }
@@ -441,6 +504,7 @@ body {
     --primary-soft: #3d1512;
     --action: #9b2620;
     --action-hover: #b02e27;
+    --action-fg: #ffffff;
     --focus: #ff9b8f;
     --gold: #d9b45a;
   }
@@ -452,6 +516,7 @@ body {
     --primary-soft: #3b250c;
     --action: #8a4206;
     --action-hover: #a0500a;
+    --action-fg: #ffffff;
     --focus: #f6b56b;
     --gold: #e0b860;
   }
@@ -463,6 +528,7 @@ body {
     --primary-soft: #0c3533;
     --action: #0b6b70;
     --action-hover: #0d7f85;
+    --action-fg: #ffffff;
     --focus: #5fd4cf;
     --gold: #e0bf5c;
   }

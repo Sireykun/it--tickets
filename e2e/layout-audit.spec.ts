@@ -60,7 +60,7 @@ test("staff and admin pages fit", async ({ page }) => {
   await login(page, ADMIN);
   const ticket = await firstHref(page, "/staff", /^\/staff\/tickets\/(?!new)[^/?]+$/);
   const task = await firstHref(page, "/staff/tasks", /^\/staff\/tasks\/[^/?]+$/);
-  const admin = ["", "/users", "/users?edit=new", "/campuses", "/departments", "/teams", "/help-topics", "/sla", "/canned", "/knowledge-base", "/email"].map((p) => `/staff/admin${p}`);
+  const admin = ["", "/users", "/users?edit=new", "/campuses", "/departments", "/teams", "/help-topics", "/sla", "/canned", "/knowledge-base", "/announcements", "/email"].map((p) => `/staff/admin${p}`);
   await audit(page, "staff", ["/staff", ticket, "/staff/tickets/new", "/staff/tasks", task, "/staff/reports", ...admin].filter((p): p is string => !!p));
 });
 

@@ -12,7 +12,8 @@ import { isSuperadmin, requireUserManager } from "@/server/authz";
 import { prisma } from "@/server/prisma";
 import { UserForm } from "../../admin-forms";
 import { AdminPage } from "../../entity-list";
-import { USER_BULK_FORM, UserBulkBar } from "./user-bulk-bar";
+import { UserBulkBar } from "./user-bulk-bar";
+import { USER_BULK_FORM } from "./user-bulk-form";
 import { UserDetail } from "./user-detail";
 
 export const metadata: Metadata = { title: "Users" };

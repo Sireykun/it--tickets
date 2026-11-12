@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
-import { useActionState, useState } from "react";
+import { ChevronDown, SlidersHorizontal, UserPlus } from "lucide-react";
+import { useActionState, useRef, useState } from "react";
+import { buttonClass } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
 import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -27,18 +28,29 @@ type Props = {
   departments: Option[];
   teams: Option[];
   agents: Option[];
+  viewerId: string;
 };
 
-export function TicketFieldsForm({ action, ticket, campuses, departments, teams, agents }: Props) {
+export function TicketFieldsForm({ action, ticket, campuses, departments, teams, agents, viewerId }: Props) {
   const [state, formAction] = useActionState(action, initialActionState);
   const [status, setStatus] = useState<TicketStatus>(ticket.status);
   const closure = useStaffClosure();
   const preparingClose = status === "CLOSED" && ticket.status !== "CLOSED";
-  const admins = agents.filter((agent) => agent.role === "ADMIN" || agent.role === "SUPERADMIN");
-  const currentIsAdmin = admins.some((admin) => admin.id === ticket.assignedAgentId);
+  const isAssigneeListed = agents.some((agent) => agent.id === ticket.assignedAgentId);
+  const canAssignToSelf = ticket.assignedAgentId !== viewerId && agents.some((agent) => agent.id === viewerId);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Picks the viewer in "Assigned to" and saves, so it goes through the same checks as Save changes.
+  function assignToSelf() {
+    const form = formRef.current;
+    const assignee = form?.elements.namedItem("assignedAgentId");
+    if (!form || !(assignee instanceof HTMLSelectElement)) return;
+    assignee.value = viewerId;
+    form.requestSubmit();
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4">
       <div className="flex items-center gap-2 border-b border-border pb-3">
         <SlidersHorizontal className="size-4 text-primary" aria-hidden />
         <h2 className="font-bold">Ticket controls</h2>
@@ -68,13 +80,18 @@ export function TicketFieldsForm({ action, ticket, campuses, departments, teams,
           <label htmlFor="assignedAgentId" className="text-sm text-muted">Assigned to</label>
           <Select id="assignedAgentId" name="assignedAgentId" defaultValue={ticket.assignedAgentId ?? ""}>
             <option value="">Unassigned</option>
-            {ticket.assignedAgentId && !currentIsAdmin && (
+            {ticket.assignedAgentId && !isAssigneeListed && (
               <option value={ticket.assignedAgentId}>{ticket.assignedAgentName ?? "Current assignee"}</option>
             )}
-            {admins.map((admin) => <option key={admin.id} value={admin.id}>{admin.name}</option>)}
+            {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
           </Select>
         </div>
       </div>
+      {canAssignToSelf && !preparingClose && (
+        <button type="button" onClick={assignToSelf} className={buttonClass({ variant: "secondary", className: "w-full" })}>
+          <UserPlus className="size-4" aria-hidden /> Assign to me
+        </button>
+      )}
       <SubmitButton className="w-full" pendingText="Saving…" disabled={preparingClose}>Save changes</SubmitButton>
       {preparingClose && <p role="status" className="text-sm text-gold-text">Review the prepared reply in the conversation, then send it to close this ticket.</p>}
       <details className="group border-t border-border pt-3">

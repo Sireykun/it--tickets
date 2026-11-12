@@ -266,3 +266,13 @@ describe("ensureUser", () => {
     expect(user).toMatchObject({ email: `new@staff.${tag}.edu`, name: "new" });
   });
 });
+
+describe("email layout", () => {
+  it("wraps the message in the school layout and keeps the reply marker text intact", () => {
+    const html = textToHtml(`${REPLY_MARKER}\n\nHi Dara,\n\nSee https://helpdesk.test/tickets/TKT-000001`);
+    expect(html).toContain("CIA FIRST");
+    expect(html).toContain("INTERNATIONAL SCHOOL &middot; IT HELP DESK");
+    expect(html).toContain(`>${REPLY_MARKER}</p>`);
+    expect(html).toContain("<p style=\"margin:0 0 12px\">Hi Dara,</p>");
+  });
+});

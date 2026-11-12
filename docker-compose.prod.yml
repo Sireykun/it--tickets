@@ -1,0 +1,115 @@
+# Production stack. Settings and secrets come from .env.prod (copy env.prod.example):
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# See docs/deployment.md for first start, backups and restore.
+name: cia-helpdesk
+
+x-app: &app
+  build:
+    context: .
+    target: prod
+  image: cia-helpdesk:latest
+  env_file: .env.prod
+  environment: &app-env
+    NODE_ENV: production
+    DATABASE_URL: postgresql://${POSTGRES_USER:-ticket}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}@db:5432/${POSTGRES_DB:-ticketdb}?schema=public
+    UPLOAD_DIR: /data/uploads
+    APP_URL: https://${APP_DOMAIN:?set APP_DOMAIN in .env.prod}
+    AUTH_TRUST_HOST: "true"
+  volumes:
+    - uploads:/data/uploads
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ticket}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-ticketdb}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # Applies pending migrations, then exits. web and worker wait for it.
+  migrate:
+    <<: *app
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  worker:
+    <<: *app
+    command: ["node_modules/.bin/tsx", "src/worker/index.ts"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    # The outbox loop touches the heartbeat file every 5 seconds.
+    healthcheck:
+      test: ["CMD", "node", "-e", "const s = require('fs').statSync('/tmp/worker-heartbeat'); process.exit(Date.now() - s.mtimeMs < 120000 ? 0 : 1)"]
+      interval: 60s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+
+  # Nightly database dump and uploads archive into BACKUP_DIR. Copy that folder off this machine.
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-ticket}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-ticketdb}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
+      - uploads:/data/uploads:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    # Cron runs in UTC: 19:00 UTC is 02:00 in Phnom Penh.
+    entrypoint: ["/bin/sh", "-c"]
+    command: ['echo "${BACKUP_CRON:-0 19 * * *} sh /usr/local/bin/backup.sh > /proc/1/fd/1 2>&1" | crontab - && exec crond -f -l 8']
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

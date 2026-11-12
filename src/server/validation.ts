@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ANNOUNCEMENT_LEVELS } from "@/lib/announcements";
 import { HOLIDAY_MODES, SEASONS } from "@/lib/holidays";
 import { AUDIT_CATEGORIES } from "@/lib/labels";
 import { parseLocalDateTime } from "@/lib/time";
@@ -148,6 +149,16 @@ export const cannedSchema = z.object({
   title: z.string().trim().min(1, "Title is required.").max(100),
   body: z.string().trim().min(1, "Reply text is required.").max(10_000),
   departmentId: optionalId,
+  isActive: checkbox,
+});
+
+export const announcementSchema = z.object({
+  id: optionalId,
+  title: z.string().trim().min(1, "Title is required.").max(120),
+  body: z.string().trim().min(1, "Message is required.").max(2000),
+  level: z.enum(ANNOUNCEMENT_LEVELS, { message: "Please choose a type." }),
+  campusId: optionalId,
+  endsAt: optionalDate,
   isActive: checkbox,
 });
 

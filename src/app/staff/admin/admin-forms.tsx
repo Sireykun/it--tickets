@@ -9,10 +9,12 @@ import { Alert } from "@/components/ui/misc";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { Role, TicketPriority } from "@/generated/prisma/enums";
 import { type ActionState, initialActionState } from "@/lib/action-state";
+import { ANNOUNCEMENT_LEVEL_LABEL, ANNOUNCEMENT_LEVELS, type AnnouncementLevel } from "@/lib/announcements";
 import { HOLIDAY_MODES, type HolidayMode, isSeason, SEASON_INFO, SEASONS } from "@/lib/holidays";
 import { PRIORITIES, PRIORITY_LABEL, ROLE_LABEL } from "@/lib/labels";
 import {
   addToCampusAction,
+  deleteAnnouncementAction,
   deleteArticleAction,
   deleteCampusAction,
   deleteCannedAction,
@@ -22,6 +24,7 @@ import {
   deleteSlaAction,
   deleteTeamAction,
   deleteUserAction,
+  saveAnnouncementAction,
   saveArticleAction,
   saveCampusAction,
   saveCannedAction,
@@ -412,6 +415,43 @@ export function CannedForm({ canned, departments, variables }: { canned?: Canned
         <Textarea id="body" name="body" required rows={8} defaultValue={canned?.body} />
       </Field>
       <ActiveToggle isActive={canned?.isActive} hint="Inactive replies are hidden from agents." />
+    </AdminForm>
+  );
+}
+
+// ─── Announcements ──────────────────────────────────────────────────────────
+
+type Announcement = { id: string; title: string; body: string; level: AnnouncementLevel; campusId: string | null; endsAtLocal: string; isActive: boolean };
+
+export function AnnouncementForm({ announcement, campuses }: { announcement?: Announcement; campuses: Option[] }) {
+  return (
+    <AdminForm
+      action={saveAnnouncementAction}
+      cancelHref="/staff/admin/announcements"
+      id={announcement?.id}
+      submitLabel={announcement ? undefined : "Post"}
+      remove={announcement?.isActive ? { action: deleteAnnouncementAction, name: announcement.title } : undefined}
+    >
+      <Field label="Title" htmlFor="title" className="@lg:col-span-2">
+        <Input id="title" name="title" required maxLength={120} defaultValue={announcement?.title} placeholder="e.g. Wi-Fi is down in Building B" />
+      </Field>
+      <Field label="Type" htmlFor="level">
+        <Select id="level" name="level" defaultValue={announcement?.level ?? "info"}>
+          {ANNOUNCEMENT_LEVELS.map((level) => (
+            <option key={level} value={level}>
+              {ANNOUNCEMENT_LEVEL_LABEL[level]}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <OptionSelect id="campusId" label="Campus" options={campuses} value={announcement?.campusId} empty="All campuses" />
+      <Field label="Message" htmlFor="body" className="@lg:col-span-2" hint="Say what is affected and when you expect it to be fixed.">
+        <Textarea id="body" name="body" required rows={4} maxLength={2000} defaultValue={announcement?.body} />
+      </Field>
+      <Field label="Hide automatically at" htmlFor="endsAt" hint="Optional. Leave empty to keep it up until you take it down.">
+        <Input id="endsAt" name="endsAt" type="datetime-local" defaultValue={announcement?.endsAtLocal} />
+      </Field>
+      <ActiveToggle isActive={announcement?.isActive} hint="Inactive announcements are hidden from everyone." />
     </AdminForm>
   );
 }

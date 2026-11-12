@@ -20,6 +20,10 @@ docker compose run --rm e2e                        # Playwright (desktop + iPhon
 docker compose run --rm app npm run db:reset       # drop and re-migrate the dev DB (then run db:seed)
 ```
 
+Production uses `docker-compose.prod.yml` (Dockerfile `prod` target, Caddy, nightly backups); see `docs/deployment.md`. The dev compose builds the Dockerfile's `dev` target.
+
+The worker's maintenance loop (`src/server/maintenance.ts`, every minute) sends SLA-overdue alerts once per breach (`responseOverdueAlertedAt`/`resolutionOverdueAlertedAt`), requeues stuck email and clears old ticket locks.
+
 **Hot reload doesn't see edits made on Windows** (Turbopack ignores polling on the bind mount). After changing code, run `docker compose restart web worker` before testing in the browser or running e2e; otherwise you're testing stale code.
 
 Dev logins (dev seed only): the admin uses `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`; the requester uses `SEED_REQUESTER_EMAIL` / `SEED_REQUESTER_PASSWORD` (falling back to `student@ciaschool.edu.kh` / `SEED_SAMPLE_PASSWORD`). Agents use the sample credentials in `docker-compose.yml`. This checkout's ignored `.env` maps the previous local admin and requester credentials. The seed creates 4 placeholder campuses only if none exist, so renames survive re-seeding.
@@ -40,3 +44,17 @@ Dev logins (dev seed only): the admin uses `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASS
 - The only grantable campus permission is `"users.manage"` (`CAMPUS_PERMISSIONS`); only superadmins grant it. All shared settings, campuses and CSV export are superadmin-only (`requireSuperadmin`); the Users page uses `requireUserManager`.
 - Build test users with `tests/fixtures.ts` `makeUser` (real `StaffCampus` rows, loaded via `loadAppUser`), never hand-written `AppUser` objects.
 - Config comes from `docker-compose.yml` environment. An ignored local `.env` may supply seed logins and Google credentials to Compose. Google sign-in turns on when `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` are set on the host.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on Sireykun/it--tickets, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `GLOSSARY.md` plus `docs/adr/` (created lazily). See `docs/agents/domain.md`.

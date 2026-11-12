@@ -6,8 +6,8 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuSub, MenuSubContent, MenuSubTrigger, MenuTrigger } from "@/components/ui/dropdown-menu";
 import { bulkUpdateUsersAction } from "../../actions";
+import { USER_BULK_FORM } from "./user-bulk-form";
 
-export const USER_BULK_FORM = { id: "user-bulk-form", name: "users" };
 type Option = { id: string; name: string };
 
 const userBoxes = () => [...document.querySelectorAll<HTMLInputElement>(`input[form="${USER_BULK_FORM.id}"][name="${USER_BULK_FORM.name}"]`)];

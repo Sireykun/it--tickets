@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { updateThemeAction } from "../actions";
 
 const choices = [
-  { id: "ocean", label: "Ocean", swatch: "bg-[#5cc8e8]" },
+  { id: "ocean", label: "CIA Blue", swatch: "bg-cia-blue" },
   { id: "violet", label: "Violet", swatch: "bg-[#c4a7ff]" },
   { id: "rose", label: "Rose", swatch: "bg-[#f7a2ca]" },
 ] as const;

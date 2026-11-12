@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { z } from "zod";
+import { z } from "zod";
 import type { ActionState } from "@/lib/action-state";
 import { runAction } from "@/server/action-utils";
 import { safeRedirectPath } from "@/server/auth-rules";
@@ -13,6 +13,7 @@ import {
   deleteUser,
   removeFromCampus,
   resetEmailTemplate,
+  retryFailedEmails,
   saveCampus,
   saveDepartment,
   saveEmailTemplate,
@@ -22,12 +23,14 @@ import {
   saveUser,
   type UserBulkChange,
 } from "@/server/admin";
+import { deleteAnnouncement, saveAnnouncement } from "@/server/announcements";
 import { type AppUser, requireSuperadmin, requireUserManager } from "@/server/authz";
 import { deleteCanned, saveCanned } from "@/server/canned";
 import { deleteHolidayWindow, saveHolidayMode, saveHolidayWindow } from "@/server/holidays";
 import { deleteArticle, saveArticle } from "@/server/kb";
 import {
   adminUserSchema,
+  announcementSchema,
   campusMemberSchema,
   campusSchema,
   cannedSchema,
@@ -161,6 +164,14 @@ export async function resetEmailTemplateAction(key: string) {
   redirect("/staff/admin/email?saved=1");
 }
 
+export async function retryFailedEmailsAction(emailId: string | null) {
+  const actor = await requireSuperadmin();
+  const id = emailId === null ? undefined : z.uuid().parse(emailId);
+  await retryFailedEmails(actor, id);
+  revalidatePath("/staff/admin/email");
+  redirect("/staff/admin/email?retried=1");
+}
+
 export async function saveCampusAction(_prev: ActionState, formData: FormData) {
   return save(formData, campusSchema, saveCampus, "/staff/admin/campuses");
 }
@@ -225,4 +236,12 @@ export async function removeFromCampusAction(formData: FormData) {
   revalidatePath("/staff", "layout");
   const error = result.error ? `&memberError=${encodeURIComponent(result.error)}` : "";
   redirect(`/staff/admin/campuses?edit=${campusId}${error}`);
+}
+
+export async function saveAnnouncementAction(_prev: ActionState, formData: FormData) {
+  return save(formData, announcementSchema, saveAnnouncement, "/staff/admin/announcements");
+}
+
+export async function deleteAnnouncementAction(_prev: ActionState, formData: FormData) {
+  return remove(formData, deleteAnnouncement, "/staff/admin/announcements");
 }

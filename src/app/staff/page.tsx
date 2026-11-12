@@ -133,11 +133,11 @@ export default async function QueuePage({ searchParams }: PageProps<"/staff">) {
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted" aria-hidden />
             <label htmlFor="q" className="sr-only">
-              Search
+              Search by ticket number, subject or requester
             </label>
-            <Input id="q" name="q" type="search" defaultValue={params.q} placeholder="Search number, subject, requester…" className="border-l-[3px] border-l-gold pl-10" />
+            <Input id="q" name="q" type="search" defaultValue={params.q} placeholder="Search tickets…" title="Ticket number, subject or requester" className="border-l-[3px] border-l-gold pl-10" />
           </div>
-          <button type="submit" className="min-h-11 rounded-lg border border-gold bg-gold px-4 text-base font-bold text-bg transition-colors hover:bg-gold-text">
+          <button type="submit" className="min-h-11 rounded-lg border border-gold bg-gold px-4 text-base font-bold text-cia-black transition-colors hover:bg-gold/85">
             Search
           </button>
         </form>

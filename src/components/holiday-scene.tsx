@@ -1,7 +1,7 @@
 import type { Season } from "@/lib/holidays";
 
-// Full-panel holiday artwork for the login hero, shown instead of the eagle canvas. It's an
-// illustration on a fixed dark panel (like the eagle), so its palette is fixed rather than tokens.
+// Full-panel holiday artwork for the login hero, shown instead of the school backdrop. It's an
+// illustration on a fixed dark panel, so its palette is fixed rather than tokens.
 // Only the stars and lamp flames move, through `holiday-twinkle`, which respects reduced motion.
 export function HolidayScene({ season }: { season: Season }) {
   return (

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ticket
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: ticketdb
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ticket -d ticketdb"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      # Tests reset and use ticketdb_test, derived from this URL (tests/global-setup.ts).
+      DATABASE_URL: postgresql://ticket:ci_password@localhost:5432/ticketdb?schema=public
+      SEED_ADMIN_PASSWORD: ci-only-admin-password
+      EMAIL_TOKEN_SECRET: ci-only-email-token-secret
+      AUTH_SECRET: ci-only-auth-secret-0123456789abcdef
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx next typegen
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

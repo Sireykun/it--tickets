@@ -22,7 +22,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
     searchParams,
   ]);
   return (
-    <div className="grid w-full gap-5 lg:grid-cols-2">
+    <div className="grid w-full grid-cols-1 gap-5 lg:grid-cols-2">
       <div className="lg:col-span-2"><PageHeader title="Profile & appearance" subtitle="Make your help desk feel like yours." /></div>
       {(params.photo || params.theme) && <p role="status" className="rounded-lg border border-resolved/30 bg-resolved-soft px-4 py-3 font-bold text-resolved lg:col-span-2">Settings saved.</p>}
 

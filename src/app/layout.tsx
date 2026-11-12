@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible_Mono, Atkinson_Hyperlegible_Next, Noto_Sans_Khmer } from "next/font/google";
+import { JetBrains_Mono, Kantumruy_Pro, Plus_Jakarta_Sans } from "next/font/google";
 import { readTheme } from "@/server/theme";
 import "./globals.css";
 
-// Hyperlegible for readers on small screens and in a second language; the mono sibling sets ticket numbers and counts.
-const body = Atkinson_Hyperlegible_Next({ subsets: ["latin"], variable: "--font-body" });
-const code = Atkinson_Hyperlegible_Mono({ subsets: ["latin"], variable: "--font-code" });
-// Only `lang="km"` text uses it (holiday greetings), so it isn't preloaded on every page.
-const khmer = Noto_Sans_Khmer({ subsets: ["khmer"], variable: "--font-khmer", preload: false });
+// CIA FIRST brand type: Plus Jakarta Sans for Latin, Kantumruy Pro for Khmer; the mono sets ticket numbers and counts.
+const body = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body" });
+const code = JetBrains_Mono({ subsets: ["latin"], variable: "--font-code" });
+// Not preloaded: the browser fetches it only when a page contains Khmer text.
+const khmer = Kantumruy_Pro({ subsets: ["khmer"], variable: "--font-khmer", preload: false });
 
 export const metadata: Metadata = {
   title: { default: "CIA FIRST IT Help Desk", template: "%s · CIA FIRST IT Help Desk" },
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 
 export async function generateViewport(): Promise<Viewport> {
   const theme = await readTheme();
-  const light = "#f4f6f8";
-  const dark = "#020617";
+  const light = "#f0f6fc";
+  const dark = "#0e0e0e";
   return {
     width: "device-width",
     initialScale: 1,

@@ -75,6 +75,8 @@ const ACTION_LABEL: Record<string, string> = {
   "kb.delete": "Deleted knowledge base article",
   "canned.save": "Saved canned reply",
   "canned.delete": "Deleted canned reply",
+  "announcement.save": "Saved announcement",
+  "announcement.delete": "Took down announcement",
 };
 
 const VERB_LABEL: Record<string, string> = { save: "Saved", create: "Created", update: "Updated", reset: "Reset", remove: "Removed", add: "Added", delete: "Deleted" };

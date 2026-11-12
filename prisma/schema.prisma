@@ -98,24 +98,24 @@ enum TicketLinkKind {
 // ─── Users, departments, teams ──────────────────────────────────────────────
 
 model User {
-  id             String    @id @default(uuid(7)) @db.Uuid
-  email          String    @unique // store lowercased
-  name           String
+  id               String    @id @default(uuid(7)) @db.Uuid
+  email            String    @unique // store lowercased
+  name             String
   // Null for requesters who only open tickets by email and never log in.
-  passwordHash   String?   @map("password_hash")
-  role           Role      @default(USER)
-  isActive       Boolean   @default(true) @map("is_active")
-  departmentId   String?   @map("department_id") @db.Uuid
+  passwordHash     String?   @map("password_hash")
+  role             Role      @default(USER)
+  isActive         Boolean   @default(true) @map("is_active")
+  departmentId     String?   @map("department_id") @db.Uuid
   // Home campus: new tickets from this user go here.
-  campusId       String?   @map("campus_id") @db.Uuid
+  campusId         String?   @map("campus_id") @db.Uuid
   // Staff alert emails (new ticket, assigned, requester replied). Requester emails always go out.
-  emailAlerts    Boolean   @default(true) @map("email_alerts")
-  avatarStorageKey String?  @map("avatar_storage_key")
-  avatarMimeType   String?  @map("avatar_mime_type")
-  themePreference  String   @default("ocean") @map("theme_preference")
-  lastLoginAt    DateTime? @map("last_login_at") @db.Timestamptz(3)
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  emailAlerts      Boolean   @default(true) @map("email_alerts")
+  avatarStorageKey String?   @map("avatar_storage_key")
+  avatarMimeType   String?   @map("avatar_mime_type")
+  themePreference  String    @default("ocean") @map("theme_preference")
+  lastLoginAt      DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   department         Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   teamMemberships    TeamMember[]
@@ -125,6 +125,7 @@ model User {
   threadEntries      TicketThread[]
   uploads            Attachment[]
   cannedResponses    CannedResponse[]
+  announcements      Announcement[]
   assignedTasks      Task[]               @relation("TaskAssignedAgent")
   createdTasks       Task[]               @relation("TaskCreatedBy")
   taskComments       TaskComment[]
@@ -260,14 +261,17 @@ model Ticket {
   // from unknown senders and for rows whose creator was deleted.
   createdById     String?        @map("created_by_id") @db.Uuid
 
-  firstResponseDueAt DateTime? @map("first_response_due_at") @db.Timestamptz(3)
-  resolutionDueAt    DateTime? @map("resolution_due_at") @db.Timestamptz(3)
-  firstRespondedAt   DateTime? @map("first_responded_at") @db.Timestamptz(3)
-  resolvedAt         DateTime? @map("resolved_at") @db.Timestamptz(3)
-  closedAt           DateTime? @map("closed_at") @db.Timestamptz(3)
-  closedByStaff      Boolean   @default(false) @map("closed_by_staff")
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  firstResponseDueAt         DateTime? @map("first_response_due_at") @db.Timestamptz(3)
+  resolutionDueAt            DateTime? @map("resolution_due_at") @db.Timestamptz(3)
+  firstRespondedAt           DateTime? @map("first_responded_at") @db.Timestamptz(3)
+  // Set by the worker when it alerts staff about an overdue SLA, so each breach is announced once.
+  responseOverdueAlertedAt   DateTime? @map("response_overdue_alerted_at") @db.Timestamptz(3)
+  resolutionOverdueAlertedAt DateTime? @map("resolution_overdue_alerted_at") @db.Timestamptz(3)
+  resolvedAt                 DateTime? @map("resolved_at") @db.Timestamptz(3)
+  closedAt                   DateTime? @map("closed_at") @db.Timestamptz(3)
+  closedByStaff              Boolean   @default(false) @map("closed_by_staff")
+  createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   requester     User                 @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Restrict)
   department    Department           @relation(fields: [departmentId], references: [id], onDelete: Restrict)
@@ -275,7 +279,7 @@ model Ticket {
   assignedTeam  Team?                @relation(fields: [assignedTeamId], references: [id], onDelete: SetNull)
   assignedAgent User?                @relation("TicketAssignedAgent", fields: [assignedAgentId], references: [id], onDelete: SetNull)
   createdBy     User?                @relation("TicketCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  slaPolicy    SlaPolicy?           @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  slaPolicy     SlaPolicy?           @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
   thread        TicketThread[]
   tasks         Task[]
   lock          TicketLock?
@@ -306,9 +310,9 @@ model TicketKudo {
   recipientId String?  @map("recipient_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  requester   User   @relation("KudoRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  recipient   User?  @relation("KudoRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  requester User   @relation("KudoRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient User?  @relation("KudoRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
 
   @@map("ticket_kudos")
 }
@@ -469,9 +473,10 @@ model Campus {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  users   User[]
-  tickets Ticket[]
-  staff   StaffCampus[]
+  users         User[]
+  tickets       Ticket[]
+  staff         StaffCampus[]
+  announcements Announcement[]
 
   @@map("campuses")
 }
@@ -491,7 +496,6 @@ model StaffCampus {
   @@index([campusId])
   @@map("staff_campuses")
 }
-
 
 // ─── Email ──────────────────────────────────────────────────────────────────
 
@@ -610,4 +614,25 @@ model HolidayThemeSetting {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("holiday_theme_settings")
+}
+
+// Notices from IT shown on the requester home page (outages, planned work).
+// level: info | warning | outage (CHECK). A null campus means every campus.
+model Announcement {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  title       String
+  body        String
+  level       String    @default("info")
+  campusId    String?   @map("campus_id") @db.Uuid
+  isActive    Boolean   @default(true) @map("is_active")
+  endsAt      DateTime? @map("ends_at") @db.Timestamptz(3)
+  createdById String?   @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  campus    Campus? @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([isActive, endsAt])
+  @@map("announcements")
 }

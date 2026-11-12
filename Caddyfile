@@ -1,0 +1,6 @@
+# HTTPS in front of the web service. Caddy gets and renews the certificate for APP_DOMAIN by itself,
+# which needs the domain's DNS pointing here and ports 80/443 reachable from the internet.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}

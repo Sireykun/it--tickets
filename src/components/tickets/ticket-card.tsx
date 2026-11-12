@@ -37,11 +37,14 @@ export function TicketCard({ ticket, href, variant, accent = "cyan" }: { ticket:
   if (variant === "requester") {
     return (
       <Link href={href} className="motion-card group flex items-start gap-3 rounded-lg border border-border border-l-[3px] border-l-gold bg-surface-2 p-4 hover:border-primary/50 hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-        <span className={clsx("grid size-10 shrink-0 place-items-center rounded-lg", ticketAccent[accent])}><Ticket className="size-5" aria-hidden /></span>
+        <span className={clsx("hidden size-10 shrink-0 place-items-center rounded-lg sm:grid", ticketAccent[accent])}><Ticket className="size-5" aria-hidden /></span>
         <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-muted">
-            <span className="font-mono font-bold tracking-tight text-gold-text">{ticket.ticketNumber}</span>
-            {ticket.helpTopic && <span className="truncate">{ticket.helpTopic.name}</span>}
+          <span className="flex items-start gap-2 text-sm text-muted">
+            <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="font-mono font-bold tracking-tight text-gold-text">{ticket.ticketNumber}</span>
+              {ticket.helpTopic && <span className="truncate">{ticket.helpTopic.name}</span>}
+            </span>
+            <span className="ml-auto shrink-0 rounded-md border border-gold/40 bg-gold/10 px-2 py-1 font-semibold text-gold-text">{formatRelative(ticket.updatedAt)}</span>
           </span>
           <span className="mt-1 block break-words text-base font-bold">{ticket.subject}</span>
           <span className="mt-2 flex flex-wrap items-center gap-2">
@@ -50,10 +53,7 @@ export function TicketCard({ ticket, href, variant, accent = "cyan" }: { ticket:
             {waiting && <span className="inline-flex items-center gap-1 text-sm font-bold text-primary"><MessageCircleReply className="size-4" aria-hidden />New reply from IT</span>}
           </span>
         </span>
-        <span className="ml-auto flex shrink-0 flex-col items-end gap-2">
-          <span className="rounded-md border border-gold/40 bg-gold/10 px-2 py-1 text-sm font-semibold text-gold-text">{formatRelative(ticket.updatedAt)}</span>
-          <ChevronRight className="size-4 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
-        </span>
+        <ChevronRight className="mt-9 size-4 shrink-0 self-start text-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
       </Link>
     );
   }
@@ -63,7 +63,7 @@ export function TicketCard({ ticket, href, variant, accent = "cyan" }: { ticket:
       href={href}
       className="group relative flex items-start gap-3 px-4 py-4 transition-colors hover:bg-primary-soft/50 sm:px-5"
     >
-      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary"><Ticket className="size-5" aria-hidden /></span>
+      <span className="hidden size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary sm:grid"><Ticket className="size-5" aria-hidden /></span>
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex items-center gap-2 text-xs text-muted">
           <span className="font-mono font-bold tracking-tight text-gold-text">{ticket.ticketNumber}</span>

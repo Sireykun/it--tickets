@@ -19,6 +19,13 @@ test("admin manages help topics and users; deactivation signs a user out", async
   await expect(admin.getByText(`Smartboard ${stamp}`)).toBeVisible();
   await shot(admin, testInfo, "07-admin-topics");
 
+  // Take it down again so test runs don't pile topics into the requester's topic picker.
+  await admin.getByRole("link", { name: new RegExp(`Smartboard ${stamp}`) }).click();
+  await admin.getByRole("button", { name: "Delete" }).click();
+  await admin.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+  await admin.waitForURL(/help-topics\?deleted=1/);
+  await expect(admin.getByText(`Smartboard ${stamp}`)).toHaveCount(0);
+
   // ── Validation errors keep what was typed ──
   const email = `teacher-${stamp}@ciaschool.edu.kh`;
   await admin.goto("/staff/admin/users?edit=new");

@@ -4,6 +4,7 @@ import {
   Building2,
   ChevronRight,
   Mail,
+  Megaphone,
   MessageSquareText,
   School,
   Tags,
@@ -52,13 +53,14 @@ export default async function AdminDashboardPage() {
       ...d.config.kbArticles,
       activeLabel: "published",
     },
+    { href: "/staff/admin/announcements", label: "Announcements", icon: <Megaphone />, chip: "bg-danger-soft text-danger", ...d.config.announcements },
   ];
 
   return (
     <>
       <DashboardSpatial tickets={t} campuses={d.campuses} emailOn={emailEnabled()} recentLogins={d.people.recentLogins} />
 
-      <div className="mb-6 grid gap-4 md:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="p-4 sm:p-5">
           <CardTitle icon={<UserRound />} chip="bg-open-soft text-open">
             Busiest agents

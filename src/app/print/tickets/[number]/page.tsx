@@ -41,8 +41,8 @@ export default async function PrintTicketPage({ params }: PageProps<"/print/tick
   ];
 
   return (
-    <main className="mx-auto max-w-3xl bg-white px-6 py-8 text-[13px] leading-normal text-black [color-scheme:light] print:p-0">
-      <div className="mb-6 flex items-start justify-between gap-4">
+    <main className="mx-auto max-w-3xl bg-white px-6 py-8 text-[13px] leading-normal text-cia-black [color-scheme:light] print:p-0">
+      <div className="mb-6 flex items-start justify-between gap-4 border-b-2 border-cia-gold pb-4">
         <div>
           <p className="text-sm text-neutral-600">CIA FIRST IT Help Desk · printed {formatDateTime(new Date())} by {user.name}</p>
           <h1 className="mt-1 text-2xl font-bold">
@@ -68,7 +68,7 @@ export default async function PrintTicketPage({ params }: PageProps<"/print/tick
         {ticket.thread.map((e) => (
           <li key={e.id} className={`break-inside-avoid border-l-4 pl-3 ${e.type === "INTERNAL_NOTE" ? "border-amber-500" : e.type === "SYSTEM_EVENT" ? "border-neutral-300" : "border-neutral-700"}`}>
             <p className="text-xs text-neutral-600">
-              <strong className="text-black">{ENTRY_LABEL[e.type]}</strong> · {e.author?.name ?? "System"} · {formatDateTime(e.createdAt)}
+              <strong className="text-cia-black">{ENTRY_LABEL[e.type]}</strong> · {e.author?.name ?? "System"} · {formatDateTime(e.createdAt)}
             </p>
             <p className="whitespace-pre-wrap">{e.body}</p>
             {e.attachments.length > 0 && (

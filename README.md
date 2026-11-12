@@ -28,6 +28,10 @@ docker compose run --rm app npm run typecheck
 docker compose run --rm app npm run build
 ```
 
+## Production
+
+`docker-compose.prod.yml` runs the built app behind Caddy (HTTPS) with nightly backups. Setup, updates and restore are in [docs/deployment.md](docs/deployment.md). GitHub Actions (`.github/workflows/ci.yml`) runs the typecheck, tests and build on every pull request.
+
 See `CLAUDE.md` for the app layout, data rules, and Docker workflows. The prior local osTicket code is preserved on the `codex/osticket-before-nextjs` branch.
 
 The [VS Code Git buttons](vscode-git-buttons/README.md) extension remains available for one-click Pull and Push with this repository.
